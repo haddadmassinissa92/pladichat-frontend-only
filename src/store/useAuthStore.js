@@ -31,7 +31,6 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post("/auth/signup", data);
       set({ authUser: res.data });
-      get().connectSocket();
       return { success: true };
     } catch (error) {
       return {
@@ -46,7 +45,6 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post("/auth/login", data);
       set({ authUser: res.data });
-      get().connectSocket();
       return { success: true };
     } catch (error) {
       return {
