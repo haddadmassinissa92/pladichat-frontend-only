@@ -1,20 +1,28 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import ChatContainer from "@/components/ChatContainer";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useChatStore } from "@/store/useChatStore";
 
 export default function Home() {
-  const { checkAuth, isCheckingAuth } = useAuthStore();
+  const router = useRouter();
+  const { checkAuth, isCheckingAuth, authUser } = useAuthStore();
   const { selectedUser, selectedGroup } = useChatStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  if (isCheckingAuth) {
+  useEffect(() => {
+    if (!isCheckingAuth && !authUser) {
+      router.replace("/login");
+    }
+  }, [isCheckingAuth, authUser, router]);
+
+  if (isCheckingAuth || !authUser) {
     return (
       <div className="flex h-screen items-center justify-center">
         Chargement...
