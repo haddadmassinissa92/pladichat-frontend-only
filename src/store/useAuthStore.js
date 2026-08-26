@@ -103,6 +103,13 @@ export const useAuthStore = create((set, get) => ({
       }
     }, 10000);
     set({ onlinePollInterval: interval });
+
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted) {
+        get().disconnectSocket();
+        get().connectSocket();
+      }
+    });
   },
 
   // Fonction pour déconnecter le socket de l'utilisateur
