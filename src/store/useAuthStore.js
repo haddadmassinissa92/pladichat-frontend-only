@@ -89,18 +89,20 @@ export const useAuthStore = create((set, get) => ({
     });
 
     // Filet de sécurité : revérifie qui est en ligne toutes les 10s
+    // Filet de sécurité : revérifie qui est en ligne toutes les 10s
     const interval = setInterval(async () => {
       try {
         const res = await axiosInstance.get("/users/online");
+        console.log("SONDAGE onlineUsers reçu:", res.data);
         set({ onlineUsers: res.data });
-      } catch {
-        // ignore les erreurs de sondage silencieusement
+      } catch (err) {
+        console.log("SONDAGE erreur:", err.message);
       }
     }, 10000);
     set({ onlinePollInterval: interval });
   },
 
-   // Fonction pour déconnecter le socket de l'utilisateur
+  // Fonction pour déconnecter le socket de l'utilisateur
   disconnectSocket: () => {
     if (get().socket?.connected) get().socket.disconnect();
     const interval = get().onlinePollInterval;
