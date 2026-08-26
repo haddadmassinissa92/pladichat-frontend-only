@@ -77,7 +77,7 @@ export default function ChatContainer() {
   useEffect(() => {
     subscribeToTyping();
     return () => unsubscribeFromTyping();
-  }, [selectedUser, subscribeToTyping, unsubscribeFromTyping]);
+  }, [selectedUser, socket, subscribeToTyping, unsubscribeFromTyping]);
 
   // Gérer les événements de glissement pour revenir à la liste sur mobile
   const handleTouchStart = (e: React.TouchEvent) => {
