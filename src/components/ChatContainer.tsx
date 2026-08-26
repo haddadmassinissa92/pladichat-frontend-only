@@ -37,7 +37,7 @@ export default function ChatContainer() {
   } = useChatStore();
 
   const [showGroupMenu, setShowGroupMenu] = useState(false);
-  const { authUser } = useAuthStore();
+  const { authUser, socket } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
@@ -60,6 +60,7 @@ export default function ChatContainer() {
   }, [
     selectedUser,
     selectedGroup,
+    socket,
     subscribeToMessages,
     unsubscribeFromMessages,
   ]);
