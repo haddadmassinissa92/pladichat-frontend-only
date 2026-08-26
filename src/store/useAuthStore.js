@@ -75,6 +75,7 @@ export const useAuthStore = create((set, get) => ({
 
     const newSocket = io(SOCKET_URL, {
       query: { userId: authUser._id },
+      transports: ["websocket"],
     });
 
     newSocket.connect();
@@ -91,6 +92,4 @@ export const useAuthStore = create((set, get) => ({
   disconnectSocket: () => {
     if (get().socket?.connected) get().socket.disconnect();
   },
-
-  
 }));
