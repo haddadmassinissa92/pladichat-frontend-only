@@ -10,10 +10,11 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Création du store d'authentification avec Zustand
 export const useAuthStore = create((set, get) => ({
-  authUser: null,
-  isCheckingAuth: true,
-  socket: null,
   onlineUsers: [],
+  authUser: null,
+  socket: null,
+  onlinePollInterval: null,
+  isCheckingAuth: true,
 
   // Fonction pour vérifier l'authentification de l'utilisateur
   checkAuth: async () => {
@@ -86,10 +87,24 @@ export const useAuthStore = create((set, get) => ({
     newSocket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
     });
+
+    // Filet de sécurité : revérifie qui est en ligne toutes les 10s
+    const interval = setInterval(async () => {
+      try {
+        const res = await axiosInstance.get("/users/online");
+        set({ onlineUsers: res.data });
+      } catch {
+        // ignore les erreurs de sondage silencieusement
+      }
+    }, 10000);
+    set({ onlinePollInterval: interval });
   },
 
-  // Fonction pour déconnecter le socket de l'utilisateur
+   // Fonction pour déconnecter le socket de l'utilisateur
   disconnectSocket: () => {
     if (get().socket?.connected) get().socket.disconnect();
+    const interval = get().onlinePollInterval;
+    if (interval) clearInterval(interval);
+    set({ onlinePollInterval: null });
   },
 }));
