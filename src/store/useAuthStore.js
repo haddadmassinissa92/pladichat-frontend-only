@@ -76,7 +76,6 @@ export const useAuthStore = create((set, get) => ({
 
     const newSocket = io(SOCKET_URL, {
       query: { userId: authUser._id },
-      transports: ["websocket"],
     });
 
     newSocket.connect();
@@ -86,6 +85,10 @@ export const useAuthStore = create((set, get) => ({
 
     newSocket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
+    });
+
+    newSocket.on("disconnect", (reason) => {
+      console.log("RAISON DECONNEXION:", reason);
     });
 
     // Filet de sécurité : revérifie qui est en ligne toutes les 10s
