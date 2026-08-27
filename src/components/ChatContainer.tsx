@@ -18,6 +18,22 @@ import MessageInput from "@/components/MessageInput";
 
 import MessageBubble from "./MessageBubble";
 
+function formatDateSeparator(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  if (date.toDateString() === now.toDateString()) return "Aujourd'hui";
+  if (date.toDateString() === yesterday.toDateString()) return "Hier";
+
+  return date.toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+  });
+}
+
 export default function ChatContainer() {
   const {
     selectedUser,
@@ -171,22 +187,39 @@ export default function ChatContainer() {
           <p className="text-center text-sm text-zinc-400">Chargement...</p>
         )}
 
-        {messages.map((msg: Message) => {
+        {messages.map((msg: Message, index: number) => {
           const isMine = msg.sender === authUser?._id;
           const senderName = selectedGroup
             ? selectedGroup.members.find(
                 (m: { _id: string; username: string }) => m._id === msg.sender,
               )?.username
             : undefined;
+
+          const previousMsg = messages[index - 1];
+          const showDateSeparator =
+            !previousMsg ||
+            new Date(previousMsg.createdAt).toDateString() !==
+              new Date(msg.createdAt).toDateString();
+
           return (
-            <MessageBubble
-              key={msg._id}
-              msg={msg}
-              isMine={isMine}
-              senderName={senderName}
-            />
+            <div key={msg._id}>
+              {showDateSeparator && (
+                <div className="flex justify-center my-3">
+                  <span className="text-xs font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-full px-3 py-1">
+                    {formatDateSeparator(msg.createdAt)}
+                  </span>
+                </div>
+              )}
+              <MessageBubble
+                msg={msg}
+                isMine={isMine}
+                senderName={senderName}
+              />
+            </div>
           );
         })}
+
+        {/** prevention de l'ecriture , quand un contact t'ecris un message */}
         {isTyping && (
           <div className="max-w-xs px-4 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 self-start flex gap-1 items-center">
             <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
