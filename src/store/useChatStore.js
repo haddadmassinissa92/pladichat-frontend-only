@@ -136,24 +136,27 @@ export const useChatStore = create((set, get) => ({
 
     socket.on("messagesRead", ({ readBy, groupId }) => {
       const myId = useAuthStore.getState().authUser?._id;
+      const now = new Date().toISOString();
+
       if (selectedGroup && groupId === selectedGroup._id) {
         set({
           messages: get().messages.map((msg) =>
             msg.sender === myId && msg.status !== "read"
-              ? { ...msg, status: "read" }
+              ? { ...msg, status: "read", readAt: now }
               : msg,
           ),
         });
       } else if (selectedUser && readBy === selectedUser._id) {
         set({
           messages: get().messages.map((msg) =>
-            msg.receiver === readBy ? { ...msg, status: "read" } : msg,
+            msg.receiver === readBy
+              ? { ...msg, status: "read", readAt: now }
+              : msg,
           ),
         });
       }
     });
 
-    
     socket.on("messageDeleted", ({ messageId }) => {
       set({ messages: get().messages.filter((m) => m._id !== messageId) });
     });
