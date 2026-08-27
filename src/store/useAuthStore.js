@@ -104,10 +104,13 @@ export const useAuthStore = create((set, get) => ({
     }, 10000);
     set({ onlinePollInterval: interval });
 
-    window.addEventListener("pageshow", (event) => {
-      if (event.persisted) {
-        get().disconnectSocket();
-        get().connectSocket();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        const { socket } = get();
+        if (!socket || !socket.connected) {
+          get().disconnectSocket();
+          get().connectSocket();
+        }
       }
     });
   },
