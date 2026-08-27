@@ -104,51 +104,9 @@ export default function Sidebar() {
   return (
     <aside className="w-full h-full border-r border-zinc-200 dark:border-zinc-800 flex flex-col">
       <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <button
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-              aria-label="Menu profil"
-              disabled={uploading}
-            >
-              <Avatar
-                src={authUser?.avatar}
-                fallback={authUser?.username?.[0]?.toUpperCase() || "?"}
-                colorClass="bg-indigo-600"
-                size="w-9 h-9"
-              />
-            </button>
-
-            {showProfileMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowProfileMenu(false)}
-                />
-                <div className="absolute left-0 top-11 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                  >
-                    Changer la photo
-                  </button>
-                  <button
-                    onClick={logout}
-                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
-                  >
-                    Se déconnecter
-                  </button>
-                </div>
-              </>
-            )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-pink-600 text-white flex items-center justify-center font-bold text-sm">
+            P
           </div>
           <h2 className="font-bold text-lg">PladiChat</h2>
         </div>
@@ -267,6 +225,53 @@ export default function Sidebar() {
           </div>
         </div>
       )}
+      {/* Barre de profil en bas, style WhatsApp : avatar + nom + menu vers le haut */}
+      <div className="relative border-t border-zinc-200 dark:border-zinc-800 p-3">
+        <button
+          onClick={() => setShowProfileMenu(!showProfileMenu)}
+          disabled={uploading}
+          className="w-full flex items-center gap-3 rounded-lg p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+        >
+          <Avatar
+            src={authUser?.avatar}
+            fallback={authUser?.username?.[0]?.toUpperCase() || "?"}
+            colorClass="bg-indigo-600"
+            size="w-9 h-9"
+          />
+          <span className="font-medium text-sm truncate">{authUser?.username}</span>
+        </button>
+
+        {showProfileMenu && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowProfileMenu(false)}
+            />
+            <div className="absolute left-3 bottom-16 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                Changer la photo
+              </button>
+              <button
+                onClick={logout}
+                className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
+              >
+                Se déconnecter
+              </button>
+            </div>
+          </>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
+      </div>
     </aside>
   );
 }
