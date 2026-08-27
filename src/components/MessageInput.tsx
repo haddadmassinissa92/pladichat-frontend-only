@@ -6,13 +6,21 @@ import { useAuthStore } from "@/store/useAuthStore";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
 
+const COMMON_EMOJIS = [
+  "😀", "😂", "😍", "😊", "😉", "😎", "🤔", "😢",
+  "😭", "😡", "👍", "👎", "🙏", "👏", "🔥", "🎉",
+  "❤️", "💯", "😴", "🥳", "😅", "🤗", "🙄", "😱",
+];
+
 export default function MessageInput() {
   // etats pour la gestion des messages, les images, la saisie et l'envoi
   const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
 
   // etats pour la gestion des messages, modification, suppression et réponse
   const sendMessage = useChatStore((state) => state.sendMessage);
@@ -48,6 +56,11 @@ export default function MessageInput() {
         senderId: authUser?._id,
       });
     }, 1500);
+  };
+
+  const handleEmojiClick = (emoji: string) => {
+    setText((prev) => prev + emoji);
+    textInputRef.current?.focus();
   };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,8 +209,53 @@ export default function MessageInput() {
         </div>
       )}
 
-      <div className="p-3 flex items-end gap-2">
+      <div className="p-3 flex items-end gap-2 relative">
+        {showEmojiPicker && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowEmojiPicker(false)}
+            />
+            <div className="absolute bottom-14 left-3 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg p-2 grid grid-cols-6 gap-1 w-64">
+              {COMMON_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => handleEmojiClick(emoji)}
+                  className="text-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded p-1"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         <div className="flex-1 min-w-0 flex items-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-full px-3 py-2 bg-transparent">
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="text-zinc-500 shrink-0"
+            aria-label="Ajouter un emoji"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+              <line x1="9" y1="9" x2="9.01" y2="9" />
+              <line x1="15" y1="9" x2="15.01" y2="9" />
+            </svg>
+          </button>
+
           <input
             type="file"
             accept="image/*"
@@ -229,6 +287,7 @@ export default function MessageInput() {
           </button>
 
           <input
+            ref={textInputRef}
             type="text"
             placeholder="Écris un message..."
             value={text}
