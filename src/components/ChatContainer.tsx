@@ -115,10 +115,21 @@ export default function ChatContainer() {
             setSelectedUser(null);
             setSelectedGroup(null);
           }}
-          className="sm:hidden text-xl"
+          className="sm:hidden p-1 -ml-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
           aria-label="Retour"
         >
-          ←
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
         <h2 className="font-bold flex-1">
           {selectedGroup ? selectedGroup.name : selectedUser?.username}

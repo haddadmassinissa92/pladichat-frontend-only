@@ -13,9 +13,39 @@ type Group = {
   members: User[];
 };
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
+
+function Avatar({
+  src,
+  fallback,
+  colorClass,
+  size = "w-10 h-10",
+}: {
+  src?: string;
+  fallback: string;
+  colorClass: string;
+  size?: string;
+}) {
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={src}
+        alt={fallback}
+        className={`${size} rounded-full object-cover`}
+      />
+    );
+  }
+  return (
+    <div
+      className={`${size} rounded-full ${colorClass} text-white flex items-center justify-center font-semibold`}
+    >
+      {fallback}
+    </div>
+  );
+}
 
 export default function Sidebar() {
   const {
@@ -30,12 +60,15 @@ export default function Sidebar() {
     setSelectedGroup,
     createGroup,
   } = useChatStore();
-  const { onlineUsers } = useAuthStore();
+  const { onlineUsers, authUser, logout, updateProfile } = useAuthStore();
 
   const [search, setSearch] = useState("");
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getUsers();
@@ -58,12 +91,64 @@ export default function Sidebar() {
     }
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    await updateProfile(file);
+    setUploading(false);
+    setShowProfileMenu(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <aside className="w-full h-full border-r border-zinc-200 dark:border-zinc-800 flex flex-col">
       <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-pink-600 text-white flex items-center justify-center font-bold text-sm">
-            P
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <button
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              aria-label="Menu profil"
+              disabled={uploading}
+            >
+              <Avatar
+                src={authUser?.avatar}
+                fallback={authUser?.username?.[0]?.toUpperCase() || "?"}
+                colorClass="bg-indigo-600"
+                size="w-9 h-9"
+              />
+            </button>
+
+            {showProfileMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowProfileMenu(false)}
+                />
+                <div className="absolute left-0 top-11 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    Changer la photo
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
+                  >
+                    Se déconnecter
+                  </button>
+                </div>
+              </>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
           </div>
           <h2 className="font-bold text-lg">PladiChat</h2>
         </div>
@@ -128,9 +213,11 @@ export default function Sidebar() {
               }`}
             >
               <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-semibold">
-                  {user.username[0].toUpperCase()}
-                </div>
+                <Avatar
+                  src={user.avatar}
+                  fallback={user.username[0].toUpperCase()}
+                  colorClass="bg-indigo-600"
+                />
                 {onlineUsers.includes(user._id) && (
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-zinc-900 rounded-full" />
                 )}

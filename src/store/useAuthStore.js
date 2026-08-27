@@ -122,4 +122,20 @@ export const useAuthStore = create((set, get) => ({
     if (interval) clearInterval(interval);
     set({ onlinePollInterval: null });
   },
+
+  // Fonction pour mettre à jour la photo de profil
+  updateProfile: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const res = await axiosInstance.put("/users/profile", formData);
+      set({ authUser: res.data });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
 }));
