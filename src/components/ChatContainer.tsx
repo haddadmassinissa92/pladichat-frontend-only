@@ -214,6 +214,7 @@ export default function ChatContainer() {
                 msg={msg}
                 isMine={isMine}
                 senderName={senderName}
+                isLast={index === messages.length - 1}
               />
             </div>
           );

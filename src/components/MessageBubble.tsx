@@ -14,6 +14,7 @@ type Message = {
   image: string;
   audio: string;
   status: string;
+  readAt?: string | null;
   createdAt: string;
   edited?: boolean;
   replyTo?: {
@@ -22,14 +23,23 @@ type Message = {
   } | null;
 };
 
+function formatReadTime(dateString: string): string {
+  return new Date(dateString).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function MessageBubble({
   msg,
   isMine,
   senderName,
+  isLast = false,
 }: {
   msg: Message;
   isMine: boolean;
   senderName?: string;
+  isLast?: boolean;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -135,6 +145,12 @@ export default function MessageBubble({
               {msg.status === "read" ? "✓✓" : "✓"}
             </span>
           )}
+        </div>
+      )}
+
+      {isMine && isLast && msg.status === "read" && msg.readAt && (
+        <div className="text-xs text-zinc-400 mt-1 text-right w-full">
+          Vu à {formatReadTime(msg.readAt)}
         </div>
       )}
 
