@@ -1,26 +1,32 @@
 "use client";
 
-type Message = {
-  text?: string;
-  image?: string;
-  audio?: string;
-  createdAt: string;
-  sender?: string | { _id: string; username: string };
-};
-
 type User = {
   _id: string;
   username: string;
   email: string;
   avatar: string;
-  lastMessage?: Message | null;
+  lastMessage?: {
+    text?: string;
+    image?: string;
+    audio?: string;
+    createdAt: string;
+    sender: string;
+  } | null;
+  unreadCount?: number;
 };
 
 type Group = {
   _id: string;
   name: string;
   members: User[];
-  lastMessage?: Message | null;
+  lastMessage?: {
+    text?: string;
+    image?: string;
+    audio?: string;
+    createdAt: string;
+    sender: { _id: string; username: string } | string;
+  } | null;
+  unreadCount?: number;
 };
 
 import { useEffect, useRef, useState } from "react";
@@ -44,9 +50,9 @@ function Avatar({
       <Image
         src={src}
         alt={fallback}
-        className={`${size} rounded-full object-cover`}
         width={40}
         height={40}
+        className={`${size} rounded-full object-cover`}
       />
     );
   }
@@ -59,7 +65,11 @@ function Avatar({
   );
 }
 
-function formatLastMessage(msg: User["lastMessage"]): string {
+function formatLastMessage(msg: {
+  text?: string;
+  image?: string;
+  audio?: string;
+} | null | undefined): string {
   if (!msg) return "";
   if (msg.image) return "📷 Photo";
   if (msg.audio) return "🎤 Message vocal";
@@ -71,10 +81,7 @@ function formatTime(dateString: string): string {
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
   if (isToday) {
-    return date.toLocaleTimeString("fr-FR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   }
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 }
@@ -109,9 +116,7 @@ export default function Sidebar() {
 
   const toggleMember = (userId: string) => {
     setSelectedMembers((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId],
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
     );
   };
 
@@ -191,14 +196,21 @@ export default function Sidebar() {
                   </span>
                 )}
               </div>
-              {group.lastMessage && (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
-                  {typeof group.lastMessage.sender === "object"
-                    ? group.lastMessage.sender.username
-                    : ""}: {" "}
-                  {formatLastMessage(group.lastMessage)}
-                </p>
-              )}
+              <div className="flex items-center justify-between gap-2">
+                {group.lastMessage && (
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
+                    {typeof group.lastMessage.sender === "object"
+                      ? group.lastMessage.sender.username
+                      : ""}
+                    : {formatLastMessage(group.lastMessage)}
+                  </p>
+                )}
+                {!!group.unreadCount && (
+                  <span className="bg-indigo-600 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
+                    {group.unreadCount > 99 ? "99+" : group.unreadCount}
+                  </span>
+                )}
+              </div>
             </div>
           </button>
         ))}
@@ -223,7 +235,7 @@ export default function Sidebar() {
 
         {users
           .filter((user: User) =>
-            user.username.toLowerCase().includes(search.toLowerCase()),
+            user.username.toLowerCase().includes(search.toLowerCase())
           )
           .map((user: User) => (
             <button
@@ -254,11 +266,18 @@ export default function Sidebar() {
                     </span>
                   )}
                 </div>
-                {user.lastMessage && (
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
-                    {formatLastMessage(user.lastMessage)}
-                  </p>
-                )}
+                <div className="flex items-center justify-between gap-2">
+                  {user.lastMessage && (
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
+                      {formatLastMessage(user.lastMessage)}
+                    </p>
+                  )}
+                  {!!user.unreadCount && (
+                    <span className="bg-indigo-600 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
+                      {user.unreadCount > 99 ? "99+" : user.unreadCount}
+                    </span>
+                  )}
+                </div>
               </div>
             </button>
           ))}
@@ -307,6 +326,7 @@ export default function Sidebar() {
           </div>
         </div>
       )}
+
       {/* Barre de profil en bas, style WhatsApp : avatar + nom + menu vers le haut */}
       <div className="relative border-t border-zinc-200 dark:border-zinc-800 p-3">
         <button
