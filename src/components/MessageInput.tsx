@@ -6,10 +6,83 @@ import { useAuthStore } from "@/store/useAuthStore";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
 
-const COMMON_EMOJIS = [
-  "😀", "😂", "😍", "😊", "😉", "😎", "🤔", "😢",
-  "😭", "😡", "👍", "👎", "🙏", "👏", "🔥", "🎉",
-  "❤️", "💯", "😴", "🥳", "😅", "🤗", "🙄", "😱",
+const EMOJI_CATEGORIES: { label: string; emojis: string[] }[] = [
+  {
+    label: "😀",
+    emojis: [
+      "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
+      "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
+      "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜",
+      "🤪", "🤨", "🧐", "🤓", "😎", "🥸", "🤩", "🥳",
+      "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️",
+      "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤",
+      "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱",
+      "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫",
+      "🤥", "😶", "😐", "😑", "😬", "🙄", "😯", "😦",
+      "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵",
+      "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕",
+    ],
+  },
+  {
+    label: "👍",
+    emojis: [
+      "👋", "🤚", "🖐️", "✋", "🖖", "👌", "🤌", "🤏",
+      "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆",
+      "🖕", "👇", "☝️", "👍", "👎", "✊", "👊", "🤛",
+      "🤜", "👏", "🙌", "👐", "🤲", "🤝", "🙏", "✍️",
+      "💅", "🤳", "💪", "🦾", "🦵", "🦿", "🦶", "👂",
+    ],
+  },
+  {
+    label: "❤️",
+    emojis: [
+      "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍",
+      "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖",
+      "💘", "💝", "💟", "☮️", "✝️", "☪️", "🕉️", "☸️",
+      "💯", "💢", "💥", "💫", "💦", "💨", "🕳️", "💣",
+      "💬", "👁️‍🗨️", "🗨️", "🗯️", "💭", "💤", "🔥", "✨",
+    ],
+  },
+  {
+    label: "🐶",
+    emojis: [
+      "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼",
+      "🐻‍❄️", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵",
+      "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤",
+      "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄",
+      "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦗", "🕷️",
+    ],
+  },
+  {
+    label: "🍎",
+    emojis: [
+      "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓",
+      "🫐", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝",
+      "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🌽",
+      "🍕", "🍔", "🍟", "🌭", "🥪", "🌮", "🌯", "🥗",
+      "🍿", "🍩", "🍪", "🎂", "🍰", "🧁", "🍫", "🍬",
+      "☕", "🍵", "🧃", "🥤", "🍺", "🍷", "🥂", "🍾",
+    ],
+  },
+  {
+    label: "⚽",
+    emojis: [
+      "⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏉", "🎱",
+      "🏓", "🏸", "🥊", "🥋", "⛳", "⛸️", "🎣", "🤿",
+      "🎽", "🎿", "🛹", "🎯", "🎮", "🎲", "🧩", "🎨",
+      "🎬", "🎤", "🎧", "🎸", "🎹", "🥁", "🎺", "🎻",
+    ],
+  },
+  {
+    label: "🚗",
+    emojis: [
+      "🚗", "🚕", "🚙", "🚌", "🏎️", "🚓", "🚑", "🚒",
+      "🚲", "🛵", "🏍️", "✈️", "🚀", "🛸", "🚁", "⛵",
+      "🌍", "🌎", "🌏", "🗺️", "🏔️", "🌋", "🏖️", "🏝️",
+      "🌙", "⭐", "🌟", "☀️", "⛅", "☁️", "🌧️", "⛈️",
+      "❄️", "☃️", "🌈", "🎉", "🎊", "🎁", "🏆", "🥇",
+    ],
+  },
 ];
 
 export default function MessageInput() {
@@ -19,6 +92,7 @@ export default function MessageInput() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeEmojiCategory, setActiveEmojiCategory] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
 
@@ -216,17 +290,35 @@ export default function MessageInput() {
               className="fixed inset-0 z-10"
               onClick={() => setShowEmojiPicker(false)}
             />
-            <div className="absolute bottom-14 left-3 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg p-2 grid grid-cols-6 gap-1 w-64">
-              {COMMON_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => handleEmojiClick(emoji)}
-                  className="text-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded p-1"
-                >
-                  {emoji}
-                </button>
-              ))}
+            <div className="absolute bottom-14 left-3 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg w-72 overflow-hidden">
+              <div className="flex border-b border-zinc-200 dark:border-zinc-700">
+                {EMOJI_CATEGORIES.map((cat, index) => (
+                  <button
+                    key={cat.label}
+                    type="button"
+                    onClick={() => setActiveEmojiCategory(index)}
+                    className={`flex-1 text-lg py-2 ${
+                      activeEmojiCategory === index
+                        ? "bg-zinc-100 dark:bg-zinc-800"
+                        : ""
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-8 gap-1 p-2 max-h-48 overflow-y-auto">
+                {EMOJI_CATEGORIES[activeEmojiCategory].emojis.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => handleEmojiClick(emoji)}
+                    className="text-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded p-1"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
             </div>
           </>
         )}
