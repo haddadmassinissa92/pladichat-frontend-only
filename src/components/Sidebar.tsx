@@ -65,11 +65,16 @@ function Avatar({
   );
 }
 
-function formatLastMessage(msg: {
-  text?: string;
-  image?: string;
-  audio?: string;
-} | null | undefined): string {
+function formatLastMessage(
+  msg:
+    | {
+        text?: string;
+        image?: string;
+        audio?: string;
+      }
+    | null
+    | undefined,
+): string {
   if (!msg) return "";
   if (msg.image) return "📷 Photo";
   if (msg.audio) return "🎤 Message vocal";
@@ -81,7 +86,10 @@ function formatTime(dateString: string): string {
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
   if (isToday) {
-    return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 }
@@ -99,7 +107,8 @@ export default function Sidebar() {
     setSelectedGroup,
     createGroup,
   } = useChatStore();
-  const { onlineUsers, authUser, logout, updateProfile } = useAuthStore();
+  const { onlineUsers, authUser, logout, updateProfile, socket } =
+    useAuthStore();
 
   const [search, setSearch] = useState("");
   const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -114,9 +123,25 @@ export default function Sidebar() {
     getGroups();
   }, [getUsers, getGroups]);
 
+  useEffect(() => {
+    if (!socket) return;
+    const refresh = () => {
+      getUsers();
+      getGroups();
+    };
+    socket.on("newMessage", refresh);
+    socket.on("messagesRead", refresh);
+    return () => {
+      socket.off("newMessage", refresh);
+      socket.off("messagesRead", refresh);
+    };
+  }, [socket, getUsers, getGroups]);
+
   const toggleMember = (userId: string) => {
     setSelectedMembers((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
     );
   };
 
@@ -235,7 +260,7 @@ export default function Sidebar() {
 
         {users
           .filter((user: User) =>
-            user.username.toLowerCase().includes(search.toLowerCase())
+            user.username.toLowerCase().includes(search.toLowerCase()),
           )
           .map((user: User) => (
             <button
