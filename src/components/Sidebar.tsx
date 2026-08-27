@@ -94,10 +94,11 @@ function formatTime(dateString: string): string {
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 }
 
-function toggleTheme() {
+function toggleTheme(): boolean {
   const html = document.documentElement;
   const isDark = html.classList.toggle("dark");
   localStorage.setItem("theme", isDark ? "dark" : "light");
+  return isDark;
 }
 
 export default function Sidebar() {
@@ -122,6 +123,11 @@ export default function Sidebar() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(
+    () =>
+      typeof document !== "undefined" &&
+      document.documentElement.classList.contains("dark"),
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -389,12 +395,25 @@ export default function Sidebar() {
               >
                 Changer la photo
               </button>
-              <button
-                onClick={toggleTheme}
-                className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                Mode sombre / clair
-              </button>
+
+              <div className="flex items-center justify-between px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                <span>Mode sombre</span>
+                <button
+                  type="button"
+                  onClick={() => setIsDarkMode(toggleTheme())}
+                  aria-label="Basculer le mode sombre"
+                  className={`relative w-10 h-5 rounded-full transition-colors ${
+                    isDarkMode ? "bg-indigo-600" : "bg-zinc-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                      isDarkMode ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
               <button
                 onClick={logout}
                 className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
