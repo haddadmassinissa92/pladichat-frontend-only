@@ -94,6 +94,12 @@ function formatTime(dateString: string): string {
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 }
 
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.classList.toggle("dark");
+  localStorage.setItem("theme", isDark ? "dark" : "light");
+}
+
 export default function Sidebar() {
   const {
     users,
@@ -382,6 +388,12 @@ export default function Sidebar() {
                 className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
                 Changer la photo
+              </button>
+              <button
+                onClick={toggleTheme}
+                className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                Mode sombre / clair
               </button>
               <button
                 onClick={logout}
