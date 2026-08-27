@@ -1,23 +1,26 @@
 "use client";
 
+type Message = {
+  text?: string;
+  image?: string;
+  audio?: string;
+  createdAt: string;
+  sender?: string | { _id: string; username: string };
+};
+
 type User = {
   _id: string;
   username: string;
   email: string;
   avatar: string;
-  lastMessage?: {
-    text?: string;
-    image?: string;
-    audio?: string;
-    createdAt: string;
-    sender: string;
-  } | null;
+  lastMessage?: Message | null;
 };
 
 type Group = {
   _id: string;
   name: string;
   members: User[];
+  lastMessage?: Message | null;
 };
 
 import { useEffect, useRef, useState } from "react";
@@ -179,7 +182,24 @@ export default function Sidebar() {
             <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold">
               {group.name[0].toUpperCase()}
             </div>
-            <span className="font-medium">{group.name}</span>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium truncate">{group.name}</span>
+                {group.lastMessage && (
+                  <span className="text-xs text-zinc-400 flex-shrink-0">
+                    {formatTime(group.lastMessage.createdAt)}
+                  </span>
+                )}
+              </div>
+              {group.lastMessage && (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
+                  {typeof group.lastMessage.sender === "object"
+                    ? group.lastMessage.sender.username
+                    : ""}: {" "}
+                  {formatLastMessage(group.lastMessage)}
+                </p>
+              )}
+            </div>
           </button>
         ))}
 
