@@ -5,6 +5,7 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import EmojiPicker from "./EmojiPicker";
 
 type Reaction = {
   emoji: string;
@@ -60,6 +61,7 @@ export default function MessageBubble({
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { deleteMessage, editMessage, setReplyingTo, reactToMessage } =
@@ -219,7 +221,7 @@ export default function MessageBubble({
                   onClick={() => setShowReactionPicker(false)}
                 />
                 <div
-                  className={`absolute z-20 bottom-full mb-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-full shadow-lg px-2 py-1 flex gap-1 ${
+                  className={`absolute z-20 bottom-full mb-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-full shadow-lg px-2 py-1 flex gap-1 items-center ${
                     isMine ? "right-0" : "left-0"
                   }`}
                 >
@@ -232,6 +234,32 @@ export default function MessageBubble({
                       {emoji}
                     </button>
                   ))}
+                  <button
+                    onClick={() => {
+                      setShowReactionPicker(false);
+                      setShowFullEmojiPicker(true);
+                    }}
+                    className="text-lg text-zinc-400 hover:text-zinc-600 px-1"
+                    aria-label="Plus d'emojis"
+                  >
+                    +
+                  </button>
+                </div>
+              </>
+            )}
+
+            {showFullEmojiPicker && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowFullEmojiPicker(false)}
+                />
+                <div
+                  className={`absolute z-20 bottom-full mb-1 ${
+                    isMine ? "right-0" : "left-0"
+                  }`}
+                >
+                  <EmojiPicker onSelect={handleReact} />
                 </div>
               </>
             )}
@@ -275,7 +303,7 @@ export default function MessageBubble({
               isMine ? "right-0" : "left-0"
             }`}
           >
-            <div className="flex gap-1 px-3 py-2 border-b border-zinc-200 dark:border-zinc-700">
+            <div className="flex gap-1 px-3 py-2 border-b border-zinc-200 dark:border-zinc-700 items-center">
               {QUICK_REACTIONS.map((emoji) => (
                 <button
                   key={emoji}
@@ -285,6 +313,16 @@ export default function MessageBubble({
                   {emoji}
                 </button>
               ))}
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowFullEmojiPicker(true);
+                }}
+                className="text-lg text-zinc-400 hover:text-zinc-600 px-1"
+                aria-label="Plus d'emojis"
+              >
+                +
+              </button>
             </div>
             <button
               onClick={handleCopy}
