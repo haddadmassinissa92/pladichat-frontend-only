@@ -95,6 +95,22 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Fonction pour ajouter/retirer une réaction (emoji) sur un message
+  reactToMessage: async (messageId, emoji) => {
+    try {
+      const res = await axiosInstance.put(`/messages/react/${messageId}`, {
+        emoji,
+      });
+      set({
+        messages: get().messages.map((m) =>
+          m._id === messageId ? res.data : m,
+        ),
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
   // Fonction pour définir l'utilisateur sélectionné pour la conversation
   setSelectedUser: (user) => set({ selectedUser: user, selectedGroup: null }),
 
@@ -168,6 +184,14 @@ export const useChatStore = create((set, get) => ({
         ),
       });
     });
+
+    socket.on("messageReaction", ({ messageId, reactions }) => {
+      set({
+        messages: get().messages.map((m) =>
+          m._id === messageId ? { ...m, reactions } : m,
+        ),
+      });
+    });
   },
 
   // déconnecter du message socket pour arrêter de recevoir les messages en temps réel
@@ -177,6 +201,7 @@ export const useChatStore = create((set, get) => ({
     socket?.off("messagesRead");
     socket?.off("messageDeleted");
     socket?.off("messageEdited");
+    socket?.off("messageReaction");
   },
 
   // boolean pour indiquer si l'utilisateur sélectionné est en train d'écrire un message
