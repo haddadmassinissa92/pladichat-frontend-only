@@ -121,7 +121,7 @@ export default function Sidebar() {
     setSelectedGroup,
     createGroup,
   } = useChatStore();
-  const { onlineUsers, authUser, logout, updateProfile, socket } =
+  const { onlineUsers, authUser, logout, updateProfile, socket, changePassword, deleteAccount } =
     useAuthStore();
 
   const [search, setSearch] = useState("");
@@ -130,6 +130,13 @@ export default function Sidebar() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(
     () =>
       typeof document !== "undefined" &&
@@ -218,6 +225,30 @@ export default function Sidebar() {
     setUploading(false);
     setShowProfileMenu(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    if (newPassword.length < 6) {
+      setPasswordError("Le nouveau mot de passe doit contenir au moins 6 caractères.");
+      return;
+    }
+    const result = await changePassword(currentPassword, newPassword);
+    if (result.success) {
+      setShowChangePassword(false);
+      setCurrentPassword("");
+      setNewPassword("");
+    } else {
+      setPasswordError(result.message);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteError("");
+    const result = await deleteAccount(deletePassword);
+    if (!result.success) {
+      setDeleteError(result.message);
+    }
   };
 
   return (
@@ -501,10 +532,30 @@ export default function Sidebar() {
               </div>
 
               <button
+                onClick={() => {
+                  setShowChangePassword(true);
+                  setShowProfileMenu(false);
+                }}
+                className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                Modifier le mot de passe
+              </button>
+
+              <button
                 onClick={logout}
                 className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
               >
                 Se déconnecter
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowDeleteAccount(true);
+                  setShowProfileMenu(false);
+                }}
+                className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
+              >
+                Supprimer mon compte
               </button>
             </div>
           </>
@@ -518,6 +569,89 @@ export default function Sidebar() {
           onChange={handleAvatarChange}
         />
       </div>
+
+      {showChangePassword && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Modifier le mot de passe</h3>
+            <input
+              type="password"
+              placeholder="Mot de passe actuel"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 mb-3 bg-transparent text-sm"
+            />
+            <input
+              type="password"
+              placeholder="Nouveau mot de passe"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 mb-3 bg-transparent text-sm"
+            />
+            {passwordError && (
+              <p className="text-red-600 text-sm mb-3">{passwordError}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowChangePassword(false);
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setPasswordError("");
+                }}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleChangePassword}
+                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium"
+              >
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteAccount && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-2 text-red-600">Supprimer mon compte</h3>
+            <p className="text-sm text-zinc-500 mb-3">
+              Cette action est définitive et irréversible. Entre ton mot de passe pour confirmer.
+            </p>
+            <input
+              type="password"
+              placeholder="Mot de passe"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 mb-3 bg-transparent text-sm"
+            />
+            {deleteError && (
+              <p className="text-red-600 text-sm mb-3">{deleteError}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowDeleteAccount(false);
+                  setDeletePassword("");
+                  setDeleteError("");
+                }}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-medium"
+              >
+                Supprimer définitivement
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
