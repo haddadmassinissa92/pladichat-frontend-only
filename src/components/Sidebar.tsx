@@ -31,8 +31,15 @@ type Group = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import {
+  WALLPAPERS,
+  getGlobalWallpaper,
+  setGlobalWallpaper,
+  setGlobalWallpaperImage,
+} from "@/lib/wallpaper";
 
 function Avatar({
   src,
@@ -129,6 +136,42 @@ export default function Sidebar() {
       document.documentElement.classList.contains("dark"),
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Thème de fond par défaut, appliqué à toutes les discussions sans réglage propre
+  const [globalWallpaper, setGlobalWallpaperState] = useState(() =>
+    getGlobalWallpaper(),
+  );
+  const [showGlobalWallpaperMenu, setShowGlobalWallpaperMenu] = useState(false);
+  const globalWallpaperFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleGlobalWallpaperChange = (id: string) => {
+    setGlobalWallpaperState(id);
+    setGlobalWallpaper(id);
+    setShowGlobalWallpaperMenu(false);
+  };
+
+  const handleGlobalWallpaperImageSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.3,
+        maxWidthOrHeight: 1600,
+        useWebWorker: true,
+      });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setGlobalWallpaperImage(dataUrl);
+        handleGlobalWallpaperChange("custom");
+      };
+      reader.readAsDataURL(compressed);
+    } catch (error) {
+      console.error("Erreur de compression du fond:", error);
+    }
+  };
 
   useEffect(() => {
     getUsers();
@@ -388,13 +431,56 @@ export default function Sidebar() {
               className="fixed inset-0 z-10"
               onClick={() => setShowProfileMenu(false)}
             />
-            <div className="absolute left-3 bottom-16 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+            <div className="absolute left-3 bottom-16 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-56">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
                 Changer la photo
               </button>
+
+              <div className="relative">
+                <button
+                  onClick={() =>
+                    setShowGlobalWallpaperMenu(!showGlobalWallpaperMenu)
+                  }
+                  className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  Thème de fond (toutes les discussions)
+                </button>
+                {showGlobalWallpaperMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowGlobalWallpaperMenu(false)}
+                    />
+                    <div className="absolute left-full ml-2 bottom-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+                      {WALLPAPERS.map((w) => (
+                        <button
+                          key={w.id}
+                          onClick={() =>
+                            w.id === "custom"
+                              ? globalWallpaperFileInputRef.current?.click()
+                              : handleGlobalWallpaperChange(w.id)
+                          }
+                          className={`block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${
+                            globalWallpaper === w.id ? "font-semibold" : ""
+                          }`}
+                        >
+                          {w.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <input
+                  ref={globalWallpaperFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleGlobalWallpaperImageSelect}
+                />
+              </div>
 
               <div className="flex items-center justify-between px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
                 <span>Mode sombre</span>

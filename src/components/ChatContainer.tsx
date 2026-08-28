@@ -16,6 +16,13 @@ import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import MessageInput from "@/components/MessageInput";
 import imageCompression from "browser-image-compression";
+import {
+  WALLPAPERS,
+  resolveWallpaper,
+  setConversationWallpaper,
+  setConversationWallpaperImage,
+  clearConversationWallpaper,
+} from "@/lib/wallpaper";
 
 import MessageBubble from "./MessageBubble";
 
@@ -33,20 +40,6 @@ function formatDateSeparator(dateString: string): string {
     month: "long",
     year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
   });
-}
-
-const WALLPAPERS: { id: string; label: string; className: string }[] = [
-  { id: "default", label: "Par défaut", className: "" },
-  { id: "dots", label: "Points", className: "bg-wallpaper-dots" },
-  { id: "warm", label: "Chaleureux", className: "bg-amber-50 dark:bg-amber-950" },
-  { id: "cool", label: "Frais", className: "bg-sky-50 dark:bg-sky-950" },
-  { id: "green", label: "Nature", className: "bg-emerald-50 dark:bg-emerald-950" },
-  { id: "custom", label: "Image personnalisée", className: "" },
-];
-
-function getStoredWallpaper(): string {
-  if (typeof window === "undefined") return "default";
-  return localStorage.getItem("chatWallpaper") || "default";
 }
 
 export default function ChatContainer() {
@@ -73,18 +66,24 @@ export default function ChatContainer() {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
-  // Gestion du fond d'écran de la conversation
-  const [wallpaper, setWallpaper] = useState(getStoredWallpaper);
+  const conversationId = selectedGroup?._id || selectedUser?._id || null;
+
+  // Gestion du fond d'écran spécifique à cette conversation
+  const [wallpaper, setWallpaper] = useState("default");
+  const [customWallpaper, setCustomWallpaper] = useState<string | null>(null);
   const [showWallpaperMenu, setShowWallpaperMenu] = useState(false);
-  const [customWallpaper, setCustomWallpaper] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("chatWallpaperImage");
-  });
   const wallpaperFileInputRef = useRef<HTMLInputElement>(null);
 
+  const resolvedConversationWallpaper = conversationId
+    ? resolveWallpaper(conversationId)
+    : { id: wallpaper, image: customWallpaper };
+  const activeWallpaper = resolvedConversationWallpaper.id;
+  const activeCustomWallpaper = resolvedConversationWallpaper.image;
+
   const handleWallpaperChange = (id: string) => {
+    if (!conversationId) return;
     setWallpaper(id);
-    localStorage.setItem("chatWallpaper", id);
+    setConversationWallpaper(conversationId, id);
     setShowWallpaperMenu(false);
   };
 
@@ -92,7 +91,7 @@ export default function ChatContainer() {
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !conversationId) return;
     try {
       const compressed = await imageCompression(file, {
         maxSizeMB: 0.3,
@@ -103,13 +102,22 @@ export default function ChatContainer() {
       reader.onload = () => {
         const dataUrl = reader.result as string;
         setCustomWallpaper(dataUrl);
-        localStorage.setItem("chatWallpaperImage", dataUrl);
+        setConversationWallpaperImage(conversationId, dataUrl);
         handleWallpaperChange("custom");
       };
       reader.readAsDataURL(compressed);
     } catch (error) {
       console.error("Erreur de compression du fond:", error);
     }
+  };
+
+  const handleResetWallpaper = () => {
+    if (!conversationId) return;
+    clearConversationWallpaper(conversationId);
+    const resolved = resolveWallpaper(conversationId);
+    setWallpaper(resolved.id);
+    setCustomWallpaper(resolved.image);
+    setShowWallpaperMenu(false);
   };
 
   // Récupérer les messages et les marquer comme lus lorsque l'utilisateur/groupe sélectionné change
@@ -209,7 +217,7 @@ export default function ChatContainer() {
           <button
             onClick={() => setShowWallpaperMenu(!showWallpaperMenu)}
             className="text-xl px-2"
-            aria-label="Changer le fond"
+            aria-label="Changer le fond de cette discussion"
           >
             🎨
           </button>
@@ -219,7 +227,10 @@ export default function ChatContainer() {
                 className="fixed inset-0 z-10"
                 onClick={() => setShowWallpaperMenu(false)}
               />
-              <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+              <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-52">
+                <div className="px-4 py-1 text-xs text-zinc-400 uppercase">
+                  Fond de cette discussion
+                </div>
                 {WALLPAPERS.map((w) => (
                   <button
                     key={w.id}
@@ -229,12 +240,20 @@ export default function ChatContainer() {
                         : handleWallpaperChange(w.id)
                     }
                     className={`block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${
-                      wallpaper === w.id ? "font-semibold" : ""
+                      activeWallpaper === w.id ? "font-semibold" : ""
                     }`}
                   >
                     {w.label}
                   </button>
                 ))}
+                <div className="border-t border-zinc-200 dark:border-zinc-700 mt-1">
+                  <button
+                    onClick={handleResetWallpaper}
+                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+                  >
+                    Utiliser le fond par défaut
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -280,12 +299,12 @@ export default function ChatContainer() {
 
       <div
         className={`flex-1 overflow-y-auto p-4 flex flex-col gap-3 ${
-          WALLPAPERS.find((w) => w.id === wallpaper)?.className || ""
+          WALLPAPERS.find((w) => w.id === activeWallpaper)?.className || ""
         }`}
         style={
-          wallpaper === "custom" && customWallpaper
+              activeWallpaper === "custom" && activeCustomWallpaper
             ? {
-                backgroundImage: `url(${customWallpaper})`,
+                backgroundImage: `url(${activeCustomWallpaper})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }
