@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import MessageInput from "@/components/MessageInput";
+import imageCompression from "browser-image-compression";
 
 import MessageBubble from "./MessageBubble";
 
@@ -32,6 +33,20 @@ function formatDateSeparator(dateString: string): string {
     month: "long",
     year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
   });
+}
+
+const WALLPAPERS: { id: string; label: string; className: string }[] = [
+  { id: "default", label: "Par défaut", className: "" },
+  { id: "dots", label: "Points", className: "bg-wallpaper-dots" },
+  { id: "warm", label: "Chaleureux", className: "bg-amber-50 dark:bg-amber-950" },
+  { id: "cool", label: "Frais", className: "bg-sky-50 dark:bg-sky-950" },
+  { id: "green", label: "Nature", className: "bg-emerald-50 dark:bg-emerald-950" },
+  { id: "custom", label: "Image personnalisée", className: "" },
+];
+
+function getStoredWallpaper(): string {
+  if (typeof window === "undefined") return "default";
+  return localStorage.getItem("chatWallpaper") || "default";
 }
 
 export default function ChatContainer() {
@@ -57,6 +72,45 @@ export default function ChatContainer() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+
+  // Gestion du fond d'écran de la conversation
+  const [wallpaper, setWallpaper] = useState(getStoredWallpaper);
+  const [showWallpaperMenu, setShowWallpaperMenu] = useState(false);
+  const [customWallpaper, setCustomWallpaper] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("chatWallpaperImage");
+  });
+  const wallpaperFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleWallpaperChange = (id: string) => {
+    setWallpaper(id);
+    localStorage.setItem("chatWallpaper", id);
+    setShowWallpaperMenu(false);
+  };
+
+  const handleWallpaperImageSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.3,
+        maxWidthOrHeight: 1600,
+        useWebWorker: true,
+      });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setCustomWallpaper(dataUrl);
+        localStorage.setItem("chatWallpaperImage", dataUrl);
+        handleWallpaperChange("custom");
+      };
+      reader.readAsDataURL(compressed);
+    } catch (error) {
+      console.error("Erreur de compression du fond:", error);
+    }
+  };
 
   // Récupérer les messages et les marquer comme lus lorsque l'utilisateur/groupe sélectionné change
   useEffect(() => {
@@ -151,6 +205,48 @@ export default function ChatContainer() {
           {selectedGroup ? selectedGroup.name : selectedUser?.username}
         </h2>
 
+        <div className="relative">
+          <button
+            onClick={() => setShowWallpaperMenu(!showWallpaperMenu)}
+            className="text-xl px-2"
+            aria-label="Changer le fond"
+          >
+            🎨
+          </button>
+          {showWallpaperMenu && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setShowWallpaperMenu(false)}
+              />
+              <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+                {WALLPAPERS.map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() =>
+                      w.id === "custom"
+                        ? wallpaperFileInputRef.current?.click()
+                        : handleWallpaperChange(w.id)
+                    }
+                    className={`block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${
+                      wallpaper === w.id ? "font-semibold" : ""
+                    }`}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          <input
+            ref={wallpaperFileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleWallpaperImageSelect}
+          />
+        </div>
+
         {selectedGroup && selectedGroup.createdBy === authUser?._id && (
           <div className="relative">
             <button
@@ -182,7 +278,20 @@ export default function ChatContainer() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+      <div
+        className={`flex-1 overflow-y-auto p-4 flex flex-col gap-3 ${
+          WALLPAPERS.find((w) => w.id === wallpaper)?.className || ""
+        }`}
+        style={
+          wallpaper === "custom" && customWallpaper
+            ? {
+                backgroundImage: `url(${customWallpaper})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
+      >
         {isMessagesLoading && (
           <p className="text-center text-sm text-zinc-400">Chargement...</p>
         )}
