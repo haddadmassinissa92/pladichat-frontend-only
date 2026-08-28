@@ -44,6 +44,8 @@ export default function MessageBubble({
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(msg.text);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { deleteMessage, editMessage, setReplyingTo } = useChatStore();
@@ -66,9 +68,14 @@ export default function MessageBubble({
     setShowMenu(false);
   };
 
-  const handleDelete = () => {
-    deleteMessage(msg._id);
+  const handleDeleteClick = () => {
     setShowMenu(false);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMessage(msg._id);
+    setShowDeleteConfirm(false);
   };
 
   const handleReply = () => {
@@ -79,6 +86,11 @@ export default function MessageBubble({
   const handleEditSave = () => {
     editMessage(msg._id, editText);
     setIsEditing(false);
+  };
+
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowImagePreview(true);
   };
 
   return (
@@ -115,7 +127,7 @@ export default function MessageBubble({
               {senderName}
             </div>
           )}
-          
+
           {msg.replyTo && (
             <div className="text-xs opacity-70 border-l-2 pl-2 mb-1 italic truncate">
               {msg.replyTo.text}
@@ -127,7 +139,8 @@ export default function MessageBubble({
               alt="Image envoyée"
               width={220}
               height={220}
-              className="rounded-lg mb-1 max-w-full h-auto"
+              onClick={handleImageClick}
+              className="rounded-lg mb-1 max-w-full h-auto cursor-zoom-in"
             />
           )}
 
@@ -189,7 +202,7 @@ export default function MessageBubble({
                   Modifier
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={handleDeleteClick}
                   className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
                 >
                   Supprimer
@@ -198,6 +211,56 @@ export default function MessageBubble({
             )}
           </div>
         </>
+      )}
+
+      {/* Confirmation avant suppression d'un message */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-2">Supprimer ce message ?</h3>
+            <p className="text-sm text-zinc-500 mb-4">
+              Cette action est irréversible.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-medium"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Aperçu de l'image en plein écran */}
+      {showImagePreview && msg.image && (
+        <div
+          className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowImagePreview(false)}
+        >
+          <button
+            onClick={() => setShowImagePreview(false)}
+            className="absolute top-4 right-4 text-white text-3xl leading-none"
+            aria-label="Fermer l'aperçu"
+          >
+            ✕
+          </button>
+          <Image
+            src={msg.image}
+            alt="Image en plein écran"
+            width={1200}
+            height={1200}
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-full object-contain rounded-lg"
+          />
+        </div>
       )}
     </div>
   );
