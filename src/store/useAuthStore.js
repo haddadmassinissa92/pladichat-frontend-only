@@ -138,4 +138,35 @@ export const useAuthStore = create((set, get) => ({
       };
     }
   },
+
+  // Fonction pour changer le mot de passe
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      await axiosInstance.put("/users/change-password", {
+        currentPassword,
+        newPassword,
+      });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Fonction pour supprimer définitivement le compte
+  deleteAccount: async (password) => {
+    try {
+      await axiosInstance.delete("/users/account", { data: { password } });
+      get().disconnectSocket();
+      set({ authUser: null });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
 }));
