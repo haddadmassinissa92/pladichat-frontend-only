@@ -25,6 +25,12 @@ type Message = {
   createdAt: string;
   edited?: boolean;
   reactions?: Reaction[];
+  linkPreview?: {
+    url: string;
+    title: string;
+    description: string;
+    image: string;
+  } | null;
   replyTo?: {
     _id: string;
     text: string;
@@ -191,6 +197,46 @@ export default function MessageBubble({
             )}
 
             {msg.text}
+
+            {/* Carte d'aperçu du lien, affichée si le message contient une URL
+                dont on a pu récupérer les métadonnées (titre, description, image) */}
+            {msg.linkPreview && (
+              <a
+                href={msg.linkPreview.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className={`block mt-2 rounded-lg overflow-hidden border ${
+                  isMine
+                    ? "border-indigo-400 bg-indigo-700"
+                    : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                }`}
+              >
+                {msg.linkPreview.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={msg.linkPreview.image}
+                    alt=""
+                    className="w-full max-h-40 object-cover"
+                  />
+                )}
+                <div className="p-2">
+                  {msg.linkPreview.title && (
+                    <p className="text-xs font-semibold line-clamp-1">
+                      {msg.linkPreview.title}
+                    </p>
+                  )}
+                  {msg.linkPreview.description && (
+                    <p className="text-xs opacity-70 line-clamp-2">
+                      {msg.linkPreview.description}
+                    </p>
+                  )}
+                  <p className="text-xs opacity-50 mt-1 truncate">
+                    {msg.linkPreview.url}
+                  </p>
+                </div>
+              </a>
+            )}
 
             {msg.edited && (
               <span className="text-xs opacity-60 ml-1">(modifié)</span>
