@@ -54,6 +54,9 @@ export default function ChatContainer() {
     selectedGroup,
     messages,
     getMessages,
+    loadMoreMessages,
+    hasMoreMessages,
+    isLoadingMoreMessages,
     markAsRead,
     isMessagesLoading,
     subscribeToMessages,
@@ -82,7 +85,14 @@ export default function ChatContainer() {
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const previousMessagesLength = useRef(0);
 
+  // Gestion du scroll infini vers le haut : mémorise la hauteur du contenu juste
+  // avant de charger des messages plus anciens, pour pouvoir replacer le scroll
+  // exactement au même endroit visuellement une fois les nouveaux messages insérés
+  const scrollHeightBeforeLoadRef = useRef(0);
+  const wasLoadingMoreRef = useRef(false);
+
   const conversationId = selectedGroup?._id || selectedUser?._id || null;
+  const isGroupConversation = !!selectedGroup;
 
   // Gestion du fond d'écran spécifique à la conversation actuelle : fond choisi,
   // image personnalisée éventuelle, état du menu de sélection, et input de fichier caché
@@ -143,8 +153,8 @@ export default function ChatContainer() {
     setShowWallpaperMenu(false);
   };
 
-  // Au changement de conversation : charge les messages correspondants
-  // et les marque comme lus
+  // Au changement de conversation : charge la première page de messages
+  // (les plus récents) et les marque comme lus
   useEffect(() => {
     if (selectedUser) {
       getMessages(selectedUser._id, false);
@@ -180,16 +190,40 @@ export default function ChatContainer() {
   ]);
 
   // Calcule si l'utilisateur regarde le bas de la conversation ou a remonté dans
-  // l'historique, et efface le compteur de nouveaux messages si on revient en bas
+  // l'historique ; efface le compteur de nouveaux messages si on revient en bas ;
+  // et déclenche le chargement de messages plus anciens si on approche du tout haut
   const handleScroll = () => {
     const el = scrollContainerRef.current;
     if (!el) return;
+
     const distanceFromBottom =
       el.scrollHeight - el.scrollTop - el.clientHeight;
     const nearBottom = distanceFromBottom < 100;
     setIsNearBottom(nearBottom);
     if (nearBottom) setNewMessagesCount(0);
+
+    // Scroll infini : si on est proche du haut et qu'il reste des messages plus
+    // anciens à charger, on lance le chargement (le store empêche les doublons
+    // d'appel grâce à isLoadingMoreMessages)
+    if (el.scrollTop < 50 && hasMoreMessages && !isLoadingMoreMessages && conversationId) {
+      scrollHeightBeforeLoadRef.current = el.scrollHeight;
+      loadMoreMessages(conversationId, isGroupConversation);
+    }
   };
+
+  // Une fois que les messages plus anciens ont fini de charger, on ajuste la
+  // position du scroll pour que le contenu déjà visible ne bouge pas à l'écran
+  // (sans ça, l'insertion de messages en haut ferait "sauter" la vue)
+  useEffect(() => {
+    if (wasLoadingMoreRef.current && !isLoadingMoreMessages) {
+      const el = scrollContainerRef.current;
+      if (el) {
+        const newScrollHeight = el.scrollHeight;
+        el.scrollTop = newScrollHeight - scrollHeightBeforeLoadRef.current;
+      }
+    }
+    wasLoadingMoreRef.current = isLoadingMoreMessages;
+  }, [isLoadingMoreMessages, messages]);
 
   // Fait défiler jusqu'en bas de la conversation (appelé au clic sur l'indicateur)
   const scrollToBottom = () => {
@@ -411,6 +445,14 @@ export default function ChatContainer() {
         >
           {isMessagesLoading && (
             <p className="text-center text-sm text-zinc-400">Chargement...</p>
+          )}
+
+          {/* Petit indicateur affiché tout en haut pendant le chargement de
+              messages plus anciens (scroll infini) */}
+          {isLoadingMoreMessages && (
+            <p className="text-center text-xs text-zinc-400 py-2">
+              Chargement des messages précédents...
+            </p>
           )}
 
           {messages.map((msg: Message, index: number) => {

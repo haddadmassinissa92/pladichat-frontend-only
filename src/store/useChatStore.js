@@ -15,6 +15,10 @@ export const useChatStore = create((set, get) => ({
   selectedGroup: null,
   isUsersLoading: false,
   isMessagesLoading: false,
+  // true s'il existe encore des messages plus anciens à charger dans la conversation actuelle
+  hasMoreMessages: true,
+  // true pendant le chargement d'une page supplémentaire de messages anciens
+  isLoadingMoreMessages: false,
 
   // Fonction pour récupérer la liste des utilisateurs
   getUsers: async () => {
@@ -29,16 +33,47 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // Fonction pour récupérer les messages d'une conversation avec un utilisateur spécifique
+  // Fonction pour récupérer la première page de messages (les plus récents)
+  // d'une conversation avec un utilisateur ou un groupe spécifique
   getMessages: async (id, isGroup = false) => {
     set({ isMessagesLoading: true });
     try {
       const res = await axiosInstance.get(`/messages/${id}?isGroup=${isGroup}`);
-      set({ messages: res.data });
+      set({
+        messages: res.data.messages,
+        hasMoreMessages: res.data.hasMore,
+      });
     } catch (error) {
       console.error(error);
     } finally {
       set({ isMessagesLoading: false });
+    }
+  },
+
+  // Fonction pour charger une page supplémentaire de messages plus anciens
+  // (appelée quand l'utilisateur remonte tout en haut de la conversation)
+  loadMoreMessages: async (id, isGroup = false) => {
+    const { messages, hasMoreMessages, isLoadingMoreMessages } = get();
+
+    // On ne charge pas s'il n'y a plus rien à charger, ou si un chargement est déjà en cours
+    if (!hasMoreMessages || isLoadingMoreMessages || messages.length === 0) return;
+
+    set({ isLoadingMoreMessages: true });
+    try {
+      // On demande les messages antérieurs au plus ancien message actuellement affiché
+      const oldestMessage = messages[0];
+      const res = await axiosInstance.get(
+        `/messages/${id}?isGroup=${isGroup}&before=${oldestMessage.createdAt}`,
+      );
+      set({
+        // Les messages plus anciens viennent se placer AVANT les messages déjà présents
+        messages: [...res.data.messages, ...messages],
+        hasMoreMessages: res.data.hasMore,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      set({ isLoadingMoreMessages: false });
     }
   },
 
