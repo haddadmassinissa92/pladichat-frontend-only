@@ -139,10 +139,11 @@ export default function ChatContainer() {
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    console.log("RESET debug: la conversation a changé, remise à zéro du compteur");
     setNewMessagesCount(0);
     setIsNearBottom(true);
     previousMessagesLength.current = 0;
-  }, [selectedUser, selectedGroup]);
+  }, [selectedUser?._id, selectedGroup?._id]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Souscrire aux événements de messages en temps réel
