@@ -63,8 +63,14 @@ export default function ChatContainer() {
   const [showGroupMenu, setShowGroupMenu] = useState(false);
   const { authUser, socket } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+
+  // Suivi du scroll pour l'indicateur "Nouveaux messages"
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
+  const previousMessagesLength = useRef(0);
 
   const conversationId = selectedGroup?._id || selectedUser?._id || null;
 
@@ -131,6 +137,12 @@ export default function ChatContainer() {
     }
   }, [selectedUser, selectedGroup, getMessages, markAsRead]);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNewMessagesCount(0);
+    setIsNearBottom(true);
+  }, [selectedUser, selectedGroup]);
+
   // Souscrire aux événements de messages en temps réel
   useEffect(() => {
     subscribeToMessages();
@@ -143,13 +155,55 @@ export default function ChatContainer() {
     unsubscribeFromMessages,
   ]);
 
-  // Faire défiler vers le bas lorsque les messages ou l'état de saisie changent
+  // Détecter si l'utilisateur est proche du bas de la conversation
+  const handleScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight;
+    const nearBottom = distanceFromBottom < 100;
+    setIsNearBottom(nearBottom);
+    if (nearBottom) setNewMessagesCount(0);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setNewMessagesCount(0);
+  };
+
+  // Faire défiler vers le bas lorsque les messages changent (sauf si l'utilisateur a scrollé vers le haut)
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-    return () => clearTimeout(timeout);
-  }, [messages, isTyping]);
+    const newMessagesArrived = messages.length > previousMessagesLength.current;
+
+    if (newMessagesArrived) {
+      if (isNearBottom) {
+        const timeout = setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+        previousMessagesLength.current = messages.length;
+        return () => clearTimeout(timeout);
+      } else {
+        const lastMessage = messages[messages.length - 1];
+        const isMine = lastMessage?.sender === authUser?._id;
+        if (!isMine) {
+          setNewMessagesCount(
+            (count) => count + (messages.length - previousMessagesLength.current),
+          );
+        }
+      }
+    }
+    previousMessagesLength.current = messages.length;
+  }, [messages, authUser, isNearBottom]);
+
+  // Faire défiler vers le bas quand l'indicateur de saisie apparaît, si déjà en bas
+  useEffect(() => {
+    if (isNearBottom) {
+      const timeout = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [isTyping, isNearBottom]);
 
   // Souscrire aux événements de saisie en temps réel pour l'utilisateur sélectionné
   useEffect(() => {
@@ -297,66 +351,81 @@ export default function ChatContainer() {
         )}
       </div>
 
-      <div
-        className={`flex-1 overflow-y-auto p-4 flex flex-col gap-3 ${
-          WALLPAPERS.find((w) => w.id === activeWallpaper)?.className || ""
-        }`}
-        style={
-              activeWallpaper === "custom" && activeCustomWallpaper
-            ? {
-                backgroundImage: `url(${activeCustomWallpaper})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }
-            : undefined
-        }
-      >
-        {isMessagesLoading && (
-          <p className="text-center text-sm text-zinc-400">Chargement...</p>
-        )}
+      <div className="relative flex-1 min-h-0">
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className={`h-full overflow-y-auto p-4 flex flex-col gap-3 ${
+            WALLPAPERS.find((w) => w.id === activeWallpaper)?.className || ""
+          }`}
+          style={
+            activeWallpaper === "custom" && activeCustomWallpaper
+              ? {
+                  backgroundImage: `url(${activeCustomWallpaper})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : undefined
+          }
+        >
+          {isMessagesLoading && (
+            <p className="text-center text-sm text-zinc-400">Chargement...</p>
+          )}
 
-        {messages.map((msg: Message, index: number) => {
-          const isMine = msg.sender === authUser?._id;
-          const senderName = selectedGroup
-            ? selectedGroup.members.find(
-                (m: { _id: string; username: string }) => m._id === msg.sender,
-              )?.username
-            : undefined;
+          {messages.map((msg: Message, index: number) => {
+            const isMine = msg.sender === authUser?._id;
+            const senderName = selectedGroup
+              ? selectedGroup.members.find(
+                  (m: { _id: string; username: string }) => m._id === msg.sender,
+                )?.username
+              : undefined;
 
-          const previousMsg = messages[index - 1];
-          const showDateSeparator =
-            !previousMsg ||
-            new Date(previousMsg.createdAt).toDateString() !==
-              new Date(msg.createdAt).toDateString();
+            const previousMsg = messages[index - 1];
+            const showDateSeparator =
+              !previousMsg ||
+              new Date(previousMsg.createdAt).toDateString() !==
+                new Date(msg.createdAt).toDateString();
 
-          return (
-            <div key={msg._id}>
-              {showDateSeparator && (
-                <div className="flex justify-center my-3">
-                  <span className="text-xs font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-full px-3 py-1">
-                    {formatDateSeparator(msg.createdAt)}
-                  </span>
-                </div>
-              )}
-              <MessageBubble
-                msg={msg}
-                isMine={isMine}
-                senderName={senderName}
-                isLast={index === messages.length - 1}
-              />
+            return (
+              <div key={msg._id}>
+                {showDateSeparator && (
+                  <div className="flex justify-center my-3">
+                    <span className="text-xs font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-full px-3 py-1">
+                      {formatDateSeparator(msg.createdAt)}
+                    </span>
+                  </div>
+                )}
+                <MessageBubble
+                  msg={msg}
+                  isMine={isMine}
+                  senderName={senderName}
+                  isLast={index === messages.length - 1}
+                />
+              </div>
+            );
+          })}
+
+          {/** prevention de l'ecriture , quand un contact t'ecris un message */}
+          {isTyping && (
+            <div className="max-w-xs px-4 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 self-start flex gap-1 items-center">
+              <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" />
             </div>
-          );
-        })}
+          )}
+          <div ref={messagesEndRef} />
+        </div>
 
-        {/** prevention de l'ecriture , quand un contact t'ecris un message */}
-        {isTyping && (
-          <div className="max-w-xs px-4 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 self-start flex gap-1 items-center">
-            <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-            <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-            <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" />
-          </div>
+        {/* Indicateur de nouveaux messages, visible quand on a scrollé vers le haut */}
+        {newMessagesCount > 0 && (
+          <button
+            onClick={scrollToBottom}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-sm font-medium rounded-full px-4 py-2 shadow-lg flex items-center gap-2"
+          >
+            ↓ {newMessagesCount} nouveau{newMessagesCount > 1 ? "x" : ""} message
+            {newMessagesCount > 1 ? "s" : ""}
+          </button>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       <MessageInput />
