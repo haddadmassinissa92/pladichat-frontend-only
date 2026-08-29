@@ -137,12 +137,13 @@ export default function ChatContainer() {
     }
   }, [selectedUser, selectedGroup, getMessages, markAsRead]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNewMessagesCount(0);
     setIsNearBottom(true);
     previousMessagesLength.current = 0;
   }, [selectedUser, selectedGroup]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Souscrire aux événements de messages en temps réel
   useEffect(() => {
@@ -163,6 +164,7 @@ export default function ChatContainer() {
     const distanceFromBottom =
       el.scrollHeight - el.scrollTop - el.clientHeight;
     const nearBottom = distanceFromBottom < 100;
+    console.log("SCROLL debug: distance =", distanceFromBottom, "nearBottom =", nearBottom);
     setIsNearBottom(nearBottom);
     if (nearBottom) setNewMessagesCount(0);
   };
@@ -175,6 +177,12 @@ export default function ChatContainer() {
   // Faire défiler vers le bas lorsque les messages changent (sauf si l'utilisateur a scrollé vers le haut)
   useEffect(() => {
     const newMessagesArrived = messages.length > previousMessagesLength.current;
+    console.log(
+      "MESSAGES debug: length =", messages.length,
+      "previous =", previousMessagesLength.current,
+      "newMessagesArrived =", newMessagesArrived,
+      "isNearBottom =", isNearBottom,
+    );
 
     if (newMessagesArrived) {
       if (isNearBottom) {
@@ -186,6 +194,7 @@ export default function ChatContainer() {
       } else {
         const lastMessage = messages[messages.length - 1];
         const isMine = lastMessage?.sender === authUser?._id;
+        console.log("MESSAGES debug: lastMessage.sender =", lastMessage?.sender, "authUser._id =", authUser?._id, "isMine =", isMine);
         if (!isMine) {
           setNewMessagesCount(
             (count) => count + (messages.length - previousMessagesLength.current),
