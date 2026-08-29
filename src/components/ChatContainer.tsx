@@ -141,6 +141,7 @@ export default function ChatContainer() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNewMessagesCount(0);
     setIsNearBottom(true);
+    previousMessagesLength.current = 0;
   }, [selectedUser, selectedGroup]);
 
   // Souscrire aux événements de messages en temps réel
