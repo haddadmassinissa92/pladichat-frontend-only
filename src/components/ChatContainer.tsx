@@ -72,11 +72,28 @@ export default function ChatContainer() {
   // État du menu "supprimer le groupe", utilisateur connecté, socket temps réel,
   // et références DOM utilisées pour le défilement et les gestes tactiles
   const [showGroupMenu, setShowGroupMenu] = useState(false);
-  const { authUser, socket } = useAuthStore();
+  const { authUser, socket, toggleBlockUser } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+
+  // Gestion du menu et du statut de blocage pour une conversation privée
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const isBlockedByMe = !!(
+    selectedUser && authUser?.blockedUsers?.includes(selectedUser._id)
+  );
+  const isBlockedMe = !!(
+    selectedUser && selectedUser.blockedUsers?.includes(authUser?._id)
+  );
+  // Aucun message ne peut être envoyé si l'un des deux a bloqué l'autre
+  const isBlockedRelationship = isBlockedByMe || isBlockedMe;
+
+  const handleToggleBlock = async () => {
+    if (!selectedUser) return;
+    await toggleBlockUser(selectedUser._id);
+    setShowUserMenu(false);
+  };
 
   // Gestion de l'indicateur "nouveaux messages" : sait si on regarde le bas de la
   // conversation, combien de nouveaux messages sont arrivés pendant qu'on a remonté,
@@ -309,7 +326,7 @@ export default function ChatContainer() {
       onTouchEnd={handleTouchEnd}
     >
       {/* En-tête : bouton retour (mobile), nom de la conversation,
-          menu de fond d'écran, et menu de suppression du groupe */}
+          menu de fond d'écran, menu bloquer/débloquer, et menu de suppression du groupe */}
       <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-3">
         <button
           onClick={() => {
@@ -391,6 +408,37 @@ export default function ChatContainer() {
           />
         </div>
 
+        {/* Menu "⋮" pour bloquer/débloquer, visible uniquement en conversation privée */}
+        {selectedUser && (
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="text-xl px-2"
+              aria-label="Options"
+            >
+              ⋮
+            </button>
+            {showUserMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowUserMenu(false)}
+                />
+                <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+                  <button
+                    onClick={handleToggleBlock}
+                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
+                  >
+                    {isBlockedByMe
+                      ? `Débloquer ${selectedUser.username}`
+                      : `Bloquer ${selectedUser.username}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Menu de suppression du groupe, visible seulement pour son créateur */}
         {selectedGroup && selectedGroup.createdBy === authUser?._id && (
           <div className="relative">
@@ -422,6 +470,15 @@ export default function ChatContainer() {
           </div>
         )}
       </div>
+
+      {/* Bandeau d'information affiché quand un blocage empêche l'envoi de messages */}
+      {isBlockedRelationship && (
+        <div className="px-4 py-2 text-center text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800">
+          {isBlockedByMe
+            ? "Tu as bloqué cet utilisateur. Débloque-le pour reprendre la conversation."
+            : "Tu ne peux pas envoyer de message à cet utilisateur."}
+        </div>
+      )}
 
       {/* Zone de messages : conteneur scrollable avec le fond choisi, la liste des
           bulles de messages (avec séparateurs de date), l'indicateur de saisie,
@@ -529,8 +586,8 @@ export default function ChatContainer() {
         )}
       </div>
 
-      {/* Barre de saisie du message */}
-      <MessageInput />
+      {/* Barre de saisie du message, masquée si un blocage empêche l'envoi */}
+      {!isBlockedRelationship && <MessageInput />}
     </div>
   );
 }

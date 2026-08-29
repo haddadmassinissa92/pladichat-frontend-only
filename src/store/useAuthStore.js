@@ -87,19 +87,13 @@ export const useAuthStore = create((set, get) => ({
       set({ onlineUsers: userIds });
     });
 
-    newSocket.on("disconnect", (reason) => {
-      console.log("RAISON DECONNEXION:", reason);
-    });
-
-    // Filet de sécurité : revérifie qui est en ligne toutes les 10s
     // Filet de sécurité : revérifie qui est en ligne toutes les 10s
     const interval = setInterval(async () => {
       try {
         const res = await axiosInstance.get("/users/online");
-        console.log("SONDAGE onlineUsers reçu:", res.data);
         set({ onlineUsers: res.data });
-      } catch (err) {
-        console.log("SONDAGE erreur:", err.message);
+      } catch {
+        // ignore les erreurs de sondage silencieusement
       }
     }, 10000);
     set({ onlinePollInterval: interval });
@@ -162,6 +156,25 @@ export const useAuthStore = create((set, get) => ({
       get().disconnectSocket();
       set({ authUser: null });
       return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Fonction pour bloquer ou débloquer un utilisateur (bascule automatique)
+  toggleBlockUser: async (userId) => {
+    try {
+      const res = await axiosInstance.put(`/users/block/${userId}`);
+      set({
+        authUser: {
+          ...get().authUser,
+          blockedUsers: res.data.blockedUsers,
+        },
+      });
+      return { success: true, blocked: res.data.blocked };
     } catch (error) {
       return {
         success: false,
