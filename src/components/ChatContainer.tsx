@@ -197,9 +197,9 @@ export default function ChatContainer() {
         const isMine = lastMessage?.sender === authUser?._id;
         console.log("MESSAGES debug: lastMessage.sender =", lastMessage?.sender, "authUser._id =", authUser?._id, "isMine =", isMine);
         if (!isMine) {
-          setNewMessagesCount(
-            (count) => count + (messages.length - previousMessagesLength.current),
-          );
+          const increment = messages.length - previousMessagesLength.current;
+          console.log("MESSAGES debug: increment =", increment);
+          setNewMessagesCount((count) => count + increment);
         }
       }
     }
