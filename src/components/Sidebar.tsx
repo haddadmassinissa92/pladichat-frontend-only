@@ -29,6 +29,13 @@ type Group = {
   unreadCount?: number;
 };
 
+type DiscoverableGroup = {
+  _id: string;
+  name: string;
+  memberCount: number;
+  requestPending: boolean;
+};
+
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import imageCompression from "browser-image-compression";
@@ -120,6 +127,10 @@ export default function Sidebar() {
     selectedGroup,
     setSelectedGroup,
     createGroup,
+    discoverableGroups,
+    isLoadingDiscoverableGroups,
+    getDiscoverableGroups,
+    requestToJoinGroup,
   } = useChatStore();
   const { onlineUsers, authUser, logout, updateProfile, socket, changePassword, deleteAccount } =
     useAuthStore();
@@ -143,6 +154,18 @@ export default function Sidebar() {
       document.documentElement.classList.contains("dark"),
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Découverte de groupes publics et demandes d'adhésion
+  const [showDiscoverGroups, setShowDiscoverGroups] = useState(false);
+
+  const handleOpenDiscoverGroups = () => {
+    setShowDiscoverGroups(true);
+    getDiscoverableGroups();
+  };
+
+  const handleRequestToJoin = async (groupId: string) => {
+    await requestToJoinGroup(groupId);
+  };
 
   // Thème de fond par défaut, appliqué à toutes les discussions sans réglage propre
   const [globalWallpaper, setGlobalWallpaperState] = useState(() =>
@@ -209,11 +232,60 @@ export default function Sidebar() {
     };
     socket.on("removedFromGroup", handleRemovedFromGroup);
 
+    // Une demande d'adhésion à l'un de nos groupes vient d'arriver : on
+    // rafraîchit la liste (elle contient déjà les demandes en attente) et on
+    // notifie si l'onglet est en arrière-plan
+    const handleJoinRequestReceived = ({
+      groupName,
+    }: {
+      groupId: string;
+      groupName: string;
+    }) => {
+      refresh();
+      if (
+        document.hidden &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        new Notification("Nouvelle demande d'adhésion", {
+          body: `Quelqu'un souhaite rejoindre "${groupName}"`,
+        });
+      }
+    };
+    socket.on("joinRequestReceived", handleJoinRequestReceived);
+
+    // Notre demande d'adhésion a été acceptée : le groupe apparaît dans notre liste
+    const handleJoinRequestApproved = () => {
+      refresh();
+    };
+    socket.on("joinRequestApproved", handleJoinRequestApproved);
+
+    // Notre demande d'adhésion a été refusée : simple information
+    const handleJoinRequestRejected = ({
+      groupName,
+    }: {
+      groupId: string;
+      groupName: string;
+    }) => {
+      if (
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        new Notification("Demande refusée", {
+          body: `Ta demande pour rejoindre "${groupName}" a été refusée.`,
+        });
+      }
+    };
+    socket.on("joinRequestRejected", handleJoinRequestRejected);
+
     return () => {
       socket.off("newMessage", refresh);
       socket.off("messagesRead", refresh);
       socket.off("groupUpdated", refresh);
       socket.off("removedFromGroup", handleRemovedFromGroup);
+      socket.off("joinRequestReceived", handleJoinRequestReceived);
+      socket.off("joinRequestApproved", handleJoinRequestApproved);
+      socket.off("joinRequestRejected", handleJoinRequestRejected);
     };
   }, [socket, getUsers, getGroups, selectedGroup, setSelectedGroup]);
 
@@ -278,13 +350,23 @@ export default function Sidebar() {
           </div>
           <h2 className="font-bold text-lg">PladiChat</h2>
         </div>
-        <button
-          onClick={() => setShowCreateGroup(true)}
-          className="text-indigo-600 text-xl"
-          aria-label="Créer un groupe"
-        >
-          +
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleOpenDiscoverGroups}
+            className="text-indigo-600 text-lg"
+            aria-label="Découvrir des groupes"
+            title="Découvrir des groupes"
+          >
+            🔍
+          </button>
+          <button
+            onClick={() => setShowCreateGroup(true)}
+            className="text-indigo-600 text-xl"
+            aria-label="Créer un groupe"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       <div className="p-3 border-b border-zinc-200 dark:border-zinc-800">
@@ -452,6 +534,51 @@ export default function Sidebar() {
                 Créer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : découvrir des groupes publics et demander à les rejoindre */}
+      {showDiscoverGroups && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Découvrir des groupes</h3>
+            <div className="max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
+              {isLoadingDiscoverableGroups && (
+                <p className="text-sm text-zinc-400">Chargement...</p>
+              )}
+              {!isLoadingDiscoverableGroups && discoverableGroups.length === 0 && (
+                <p className="text-sm text-zinc-400">
+                  Aucun groupe découvrable pour le moment.
+                </p>
+              )}
+              {discoverableGroups.map((group: DiscoverableGroup) => (
+                <div
+                  key={group._id}
+                  className="flex items-center justify-between py-2 text-sm border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{group.name}</p>
+                    <p className="text-xs text-zinc-400">
+                      {group.memberCount} membre{group.memberCount > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRequestToJoin(group._id)}
+                    disabled={group.requestPending}
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white disabled:opacity-50 disabled:bg-zinc-400"
+                  >
+                    {group.requestPending ? "Demande envoyée" : "Rejoindre"}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowDiscoverGroups(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
           </div>
         </div>
       )}

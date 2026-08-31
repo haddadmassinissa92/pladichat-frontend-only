@@ -88,6 +88,9 @@ export default function ChatContainer() {
     addMembersToGroup,
     removeMember,
     toggleBlockMember,
+    toggleDiscoverable,
+    approveJoinRequest,
+    rejectJoinRequest,
   } = useChatStore();
 
   // État du menu "gérer le groupe", utilisateur connecté, socket temps réel,
@@ -122,6 +125,9 @@ export default function ChatContainer() {
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [membersToAdd, setMembersToAdd] = useState<string[]>([]);
   const [showManageMembers, setShowManageMembers] = useState(false);
+
+  // --- Gestion des groupes découvrables et des demandes d'adhésion ---
+  const [showJoinRequests, setShowJoinRequests] = useState(false);
 
   // Un membre est bloqué dans le groupe s'il figure dans blockedMembers
   const isMemberBlockedInGroup = (memberId: string) =>
@@ -178,6 +184,28 @@ export default function ChatContainer() {
   const handleToggleBlockMember = async (memberId: string) => {
     if (!selectedGroup) return;
     await toggleBlockMember(selectedGroup._id, memberId);
+  };
+
+  // Rend le groupe découvrable ou privé (bascule automatique)
+  const handleToggleDiscoverable = async () => {
+    if (!selectedGroup) return;
+    await toggleDiscoverable(selectedGroup._id);
+    setShowGroupMenu(false);
+  };
+
+  const handleOpenJoinRequests = () => {
+    setShowJoinRequests(true);
+    setShowGroupMenu(false);
+  };
+
+  const handleApproveRequest = async (userId: string) => {
+    if (!selectedGroup) return;
+    await approveJoinRequest(selectedGroup._id, userId);
+  };
+
+  const handleRejectRequest = async (userId: string) => {
+    if (!selectedGroup) return;
+    await rejectJoinRequest(selectedGroup._id, userId);
   };
 
   // Liste des contacts qui ne sont pas déjà membres du groupe, pour la modale d'ajout
@@ -420,6 +448,9 @@ export default function ChatContainer() {
   const amIBlockedInThisGroup =
     !!selectedGroup && isMemberBlockedInGroup(authUser?._id || "");
 
+  // Nombre de demandes d'adhésion en attente pour ce groupe (visible pour son créateur)
+  const pendingJoinRequestsCount = selectedGroup?.joinRequests?.length || 0;
+
   return (
     <div
       className="h-full flex flex-col"
@@ -555,7 +586,7 @@ export default function ChatContainer() {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowGroupMenu(false)}
                 />
-                <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+                <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-52">
                   <button
                     onClick={handleOpenRenameGroup}
                     className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -574,6 +605,22 @@ export default function ChatContainer() {
                   >
                     Gérer les membres
                   </button>
+                  <button
+                    onClick={handleToggleDiscoverable}
+                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    {selectedGroup.isDiscoverable
+                      ? "Rendre le groupe privé"
+                      : "Rendre le groupe découvrable"}
+                  </button>
+                  {pendingJoinRequestsCount > 0 && (
+                    <button
+                      onClick={handleOpenJoinRequests}
+                      className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    >
+                      Demandes d&apos;adhésion ({pendingJoinRequestsCount})
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       deleteGroup(selectedGroup._id);
@@ -822,6 +869,52 @@ export default function ChatContainer() {
             </div>
             <button
               onClick={() => setShowManageMembers(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : demandes d'adhésion en attente pour ce groupe */}
+      {showJoinRequests && selectedGroup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Demandes d&apos;adhésion</h3>
+            <div className="max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
+              {(selectedGroup.joinRequests || []).length === 0 && (
+                <p className="text-sm text-zinc-400">
+                  Aucune demande en attente.
+                </p>
+              )}
+              {(selectedGroup.joinRequests || []).map(
+                (requester: GroupMember) => (
+                  <div
+                    key={requester._id}
+                    className="flex items-center justify-between py-2 text-sm border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+                  >
+                    <span className="truncate">{requester.username}</span>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleApproveRequest(requester._id)}
+                        className="text-xs text-emerald-600 font-medium"
+                      >
+                        Accepter
+                      </button>
+                      <button
+                        onClick={() => handleRejectRequest(requester._id)}
+                        className="text-xs text-red-600"
+                      >
+                        Refuser
+                      </button>
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+            <button
+              onClick={() => setShowJoinRequests(false)}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
             >
               Fermer

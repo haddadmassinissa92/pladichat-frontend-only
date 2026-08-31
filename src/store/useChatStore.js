@@ -19,6 +19,9 @@ export const useChatStore = create((set, get) => ({
   hasMoreMessages: true,
   // true pendant le chargement d'une page supplémentaire de messages anciens
   isLoadingMoreMessages: false,
+  // Liste des groupes découvrables (dont l'utilisateur n'est pas membre), pour la recherche
+  discoverableGroups: [],
+  isLoadingDiscoverableGroups: false,
 
   // Fonction pour récupérer la liste des utilisateurs
   getUsers: async () => {
@@ -390,6 +393,87 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.put(
         `/groups/block-member/${groupId}`,
         { memberId },
+      );
+      get().applyGroupUpdate(res.data);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Rend un groupe découvrable ou privé (bascule automatique)
+  toggleDiscoverable: async (groupId) => {
+    try {
+      const res = await axiosInstance.put(
+        `/groups/toggle-discoverable/${groupId}`,
+      );
+      get().applyGroupUpdate(res.data);
+      return { success: true, isDiscoverable: res.data.isDiscoverable };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Récupère la liste des groupes découvrables dont on n'est pas déjà membre
+  getDiscoverableGroups: async () => {
+    set({ isLoadingDiscoverableGroups: true });
+    try {
+      const res = await axiosInstance.get("/groups/discoverable/list");
+      set({ discoverableGroups: res.data });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      set({ isLoadingDiscoverableGroups: false });
+    }
+  },
+
+  // Envoie une demande d'adhésion à un groupe découvrable
+  requestToJoinGroup: async (groupId) => {
+    try {
+      await axiosInstance.post(`/groups/request-join/${groupId}`);
+      set({
+        discoverableGroups: get().discoverableGroups.map((g) =>
+          g._id === groupId ? { ...g, requestPending: true } : g,
+        ),
+      });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Accepte la demande d'adhésion d'un utilisateur à l'un de nos groupes
+  approveJoinRequest: async (groupId, userId) => {
+    try {
+      const res = await axiosInstance.put(
+        `/groups/approve-join/${groupId}`,
+        { userId },
+      );
+      get().applyGroupUpdate(res.data);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Refuse la demande d'adhésion d'un utilisateur à l'un de nos groupes
+  rejectJoinRequest: async (groupId, userId) => {
+    try {
+      const res = await axiosInstance.put(
+        `/groups/reject-join/${groupId}`,
+        { userId },
       );
       get().applyGroupUpdate(res.data);
       return { success: true };
