@@ -1,32 +1,48 @@
 "use client";
 
-// Type décrivant la forme d'un message tel qu'il vient du backend
+// Définit la structure du message dans l'application de messagerie
 type Message = {
-  _id: string;
-  sender: string;
-  receiver: string;
-  text: string;
-  image: string;
-  audio: string;
-  status: string;
-  createdAt: string;
+  _id: string; // Identifiant unique du message
+  sender: string; // Identifiant ou nom de l'expéditeur du message
+  receiver: string; // Identifiant ou nom du destinataire (utilisateur ou groupe)
+  text: string; // Contenu textuel du message
+  image: string; // URL ou chemin vers une image jointe
+  audio: string; // URL ou chemin vers un message vocal ou fichier audio joint
+  status: string; // État du message (ex: 'sent', 'delivered', 'read')
+  createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
 };
 
-// Imports : hooks React, stores Zustand (chat + auth), composants de la conversation,
-// compression d'image et gestion du fond d'écran personnalisé
+// Définit un type d'objet personnalisé représentant un membre d'un groupe
+type GroupMember = {
+  _id: string; // Identifiant unique du membre.
+  username: string; // Nom d'utilisateur unique du membre
+};
+
+// Hooks fondamentaux de React pour la gestion du cycle de vie et des états
 import { useEffect, useRef, useState } from "react";
+
+// Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
+
+// Composant d'interface pour la saisie et l'envoi de nouveaux messages
 import MessageInput from "@/components/MessageInput";
-import imageCompression from "browser-image-compression";
-import {
-  WALLPAPERS,
-  resolveWallpaper,
-  setConversationWallpaper,
-  setConversationWallpaperImage,
-  clearConversationWallpaper,
-} from "@/lib/wallpaper";
+
+// Composant d'interface pour l'affichage visuel d'un message individuel
+// (ex: Aujourd'huit, Hier, V nouveau message)
 import MessageBubble from "./MessageBubble";
+
+// Bibliothèque tierce pour réduire la taille des images avant l'envoi
+import imageCompression from "browser-image-compression";
+
+// Constantes et fonctions utilitaires pour la gestion des arrière-plans de discussion
+import {
+  WALLPAPERS, // Liste ou objet contenant les fonds d'écran disponibles
+  resolveWallpaper, // Fonction pour identifier ou formater un fond d'écran
+  setConversationWallpaper, // Fonction pour appliquer un fond d'écran prédéfini à une discussion
+  setConversationWallpaperImage, // Fonction pour appliquer une image personnalisée en fond d'écran
+  clearConversationWallpaper, // Fonction pour supprimer le fond d'écran actuel
+} from "@/lib/wallpaper";
 
 // Transforme une date en texte lisible pour le séparateur entre deux jours
 // ("Aujourd'hui", "Hier", ou une date complète)
@@ -50,6 +66,7 @@ function formatDateSeparator(dateString: string): string {
 export default function ChatContainer() {
   // Données et actions liées à la conversation, fournies par le store de chat
   const {
+    users,
     selectedUser,
     selectedGroup,
     messages,
@@ -67,9 +84,13 @@ export default function ChatContainer() {
     setSelectedUser,
     setSelectedGroup,
     deleteGroup,
+    renameGroup,
+    addMembersToGroup,
+    removeMember,
+    toggleBlockMember,
   } = useChatStore();
 
-  // État du menu "supprimer le groupe", utilisateur connecté, socket temps réel,
+  // État du menu "gérer le groupe", utilisateur connecté, socket temps réel,
   // et références DOM utilisées pour le défilement et les gestes tactiles
   const [showGroupMenu, setShowGroupMenu] = useState(false);
   const { authUser, socket, toggleBlockUser } = useAuthStore();
@@ -94,6 +115,78 @@ export default function ChatContainer() {
     await toggleBlockUser(selectedUser._id);
     setShowUserMenu(false);
   };
+
+  // --- Gestion du groupe : renommer, ajouter des membres, gérer les membres ---
+  const [showRenameGroup, setShowRenameGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [membersToAdd, setMembersToAdd] = useState<string[]>([]);
+  const [showManageMembers, setShowManageMembers] = useState(false);
+
+  // Un membre est bloqué dans le groupe s'il figure dans blockedMembers
+  const isMemberBlockedInGroup = (memberId: string) =>
+    !!selectedGroup?.blockedMembers?.some(
+      (id: string) => id.toString() === memberId,
+    );
+
+  const handleOpenRenameGroup = () => {
+    if (!selectedGroup) return;
+    setNewGroupName(selectedGroup.name);
+    setShowRenameGroup(true);
+    setShowGroupMenu(false);
+  };
+
+  const handleRenameGroup = async () => {
+    if (!selectedGroup || !newGroupName.trim()) return;
+    const result = await renameGroup(selectedGroup._id, newGroupName.trim());
+    if (result.success) setShowRenameGroup(false);
+  };
+
+  const handleOpenAddMembers = () => {
+    setMembersToAdd([]);
+    setShowAddMembers(true);
+    setShowGroupMenu(false);
+  };
+
+  const toggleMemberToAdd = (userId: string) => {
+    setMembersToAdd((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
+    );
+  };
+
+  const handleAddMembers = async () => {
+    if (!selectedGroup || membersToAdd.length === 0) return;
+    const result = await addMembersToGroup(selectedGroup._id, membersToAdd);
+    if (result.success) {
+      setMembersToAdd([]);
+      setShowAddMembers(false);
+    }
+  };
+
+  const handleOpenManageMembers = () => {
+    setShowManageMembers(true);
+    setShowGroupMenu(false);
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!selectedGroup) return;
+    await removeMember(selectedGroup._id, memberId);
+  };
+
+  const handleToggleBlockMember = async (memberId: string) => {
+    if (!selectedGroup) return;
+    await toggleBlockMember(selectedGroup._id, memberId);
+  };
+
+  // Liste des contacts qui ne sont pas déjà membres du groupe, pour la modale d'ajout
+  const usersNotInGroup = selectedGroup
+    ? users.filter(
+        (u: GroupMember) =>
+          !selectedGroup.members.some((m: GroupMember) => m._id === u._id),
+      )
+    : [];
 
   // Gestion de l'indicateur "nouveaux messages" : sait si on regarde le bas de la
   // conversation, combien de nouveaux messages sont arrivés pendant qu'on a remonté,
@@ -213,8 +306,7 @@ export default function ChatContainer() {
     const el = scrollContainerRef.current;
     if (!el) return;
 
-    const distanceFromBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     const nearBottom = distanceFromBottom < 100;
     setIsNearBottom(nearBottom);
     if (nearBottom) setNewMessagesCount(0);
@@ -222,7 +314,12 @@ export default function ChatContainer() {
     // Scroll infini : si on est proche du haut et qu'il reste des messages plus
     // anciens à charger, on lance le chargement (le store empêche les doublons
     // d'appel grâce à isLoadingMoreMessages)
-    if (el.scrollTop < 50 && hasMoreMessages && !isLoadingMoreMessages && conversationId) {
+    if (
+      el.scrollTop < 50 &&
+      hasMoreMessages &&
+      !isLoadingMoreMessages &&
+      conversationId
+    ) {
       scrollHeightBeforeLoadRef.current = el.scrollHeight;
       loadMoreMessages(conversationId, isGroupConversation);
     }
@@ -319,6 +416,10 @@ export default function ChatContainer() {
     );
   }
 
+  // Vérifie si l'utilisateur connecté est bloqué dans le groupe actuellement sélectionné
+  const amIBlockedInThisGroup =
+    !!selectedGroup && isMemberBlockedInGroup(authUser?._id || "");
+
   return (
     <div
       className="h-full flex flex-col"
@@ -326,7 +427,7 @@ export default function ChatContainer() {
       onTouchEnd={handleTouchEnd}
     >
       {/* En-tête : bouton retour (mobile), nom de la conversation,
-          menu de fond d'écran, menu bloquer/débloquer, et menu de suppression du groupe */}
+          menu de fond d'écran, menu bloquer/débloquer, et menu de gestion du groupe */}
       <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-3">
         <button
           onClick={() => {
@@ -439,7 +540,7 @@ export default function ChatContainer() {
           </div>
         )}
 
-        {/* Menu de suppression du groupe, visible seulement pour son créateur */}
+        {/* Menu "⋮" de gestion du groupe, visible seulement pour son créateur */}
         {selectedGroup && selectedGroup.createdBy === authUser?._id && (
           <div className="relative">
             <button
@@ -454,7 +555,25 @@ export default function ChatContainer() {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowGroupMenu(false)}
                 />
-                <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-40">
+                <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+                  <button
+                    onClick={handleOpenRenameGroup}
+                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    Renommer le groupe
+                  </button>
+                  <button
+                    onClick={handleOpenAddMembers}
+                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    Ajouter des membres
+                  </button>
+                  <button
+                    onClick={handleOpenManageMembers}
+                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    Gérer les membres
+                  </button>
                   <button
                     onClick={() => {
                       deleteGroup(selectedGroup._id);
@@ -477,6 +596,11 @@ export default function ChatContainer() {
           {isBlockedByMe
             ? "Tu as bloqué cet utilisateur. Débloque-le pour reprendre la conversation."
             : "Tu ne peux pas envoyer de message à cet utilisateur."}
+        </div>
+      )}
+      {amIBlockedInThisGroup && (
+        <div className="px-4 py-2 text-center text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800">
+          Tu as été bloqué dans ce groupe et ne peux pas y écrire.
         </div>
       )}
 
@@ -516,7 +640,7 @@ export default function ChatContainer() {
             const isMine = msg.sender === authUser?._id;
             const senderName = selectedGroup
               ? selectedGroup.members.find(
-                  (m: { _id: string; username: string }) => m._id === msg.sender,
+                  (m: GroupMember) => m._id === msg.sender,
                 )?.username
               : undefined;
 
@@ -579,15 +703,132 @@ export default function ChatContainer() {
               <path d="M12 5v14M19 12l-7 7-7-7" />
             </svg>
             <span className="hidden sm:inline text-sm font-medium">
-              {newMessagesCount} nouveau{newMessagesCount > 1 ? "x" : ""} message
+              {newMessagesCount} nouveau{newMessagesCount > 1 ? "x" : ""}{" "}
+              message
               {newMessagesCount > 1 ? "s" : ""}
             </span>
           </button>
         )}
       </div>
 
-      {/* Barre de saisie du message, masquée si un blocage empêche l'envoi */}
-      {!isBlockedRelationship && <MessageInput />}
+      {/* Barre de saisie du message, masquée si un blocage (privé ou dans le groupe) empêche l'envoi */}
+      {!isBlockedRelationship && !amIBlockedInThisGroup && <MessageInput />}
+
+      {/* Modale : renommer le groupe */}
+      {showRenameGroup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Renommer le groupe</h3>
+            <input
+              type="text"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 mb-3 bg-transparent text-sm"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowRenameGroup(false)}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleRenameGroup}
+                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium"
+              >
+                Renommer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : ajouter des membres */}
+      {showAddMembers && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Ajouter des membres</h3>
+            <div className="max-h-48 overflow-y-auto mb-3">
+              {usersNotInGroup.length === 0 && (
+                <p className="text-sm text-zinc-400">
+                  Tous tes contacts sont déjà dans ce groupe.
+                </p>
+              )}
+              {usersNotInGroup.map((user: GroupMember) => (
+                <label
+                  key={user._id}
+                  className="flex items-center gap-2 py-2 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={membersToAdd.includes(user._id)}
+                    onChange={() => toggleMemberToAdd(user._id)}
+                  />
+                  {user.username}
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAddMembers(false)}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleAddMembers}
+                disabled={membersToAdd.length === 0}
+                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+              >
+                Ajouter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : gérer les membres existants (retirer / bloquer dans le groupe) */}
+      {showManageMembers && selectedGroup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Gérer les membres</h3>
+            <div className="max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
+              {selectedGroup.members
+                .filter((m: GroupMember) => m._id !== authUser?._id)
+                .map((member: GroupMember) => (
+                  <div
+                    key={member._id}
+                    className="flex items-center justify-between py-2 text-sm border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+                  >
+                    <span className="truncate">{member.username}</span>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleToggleBlockMember(member._id)}
+                        className="text-xs text-amber-600"
+                      >
+                        {isMemberBlockedInGroup(member._id)
+                          ? "Débloquer"
+                          : "Bloquer"}
+                      </button>
+                      <button
+                        onClick={() => handleRemoveMember(member._id)}
+                        className="text-xs text-red-600"
+                      >
+                        Retirer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+            <button
+              onClick={() => setShowManageMembers(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

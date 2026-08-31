@@ -193,11 +193,29 @@ export default function Sidebar() {
     };
     socket.on("newMessage", refresh);
     socket.on("messagesRead", refresh);
+
+    // Un groupe a été renommé, ou des membres y ont été ajoutés/retirés/bloqués :
+    // on rafraîchit la liste pour refléter le changement (utile même quand ce
+    // groupe n'est pas la conversation actuellement ouverte)
+    socket.on("groupUpdated", refresh);
+
+    // On a été retiré d'un groupe : on rafraîchit la liste (il disparaîtra),
+    // et si on avait cette conversation ouverte, on la referme
+    const handleRemovedFromGroup = ({ groupId }: { groupId: string }) => {
+      refresh();
+      if (selectedGroup?._id === groupId) {
+        setSelectedGroup(null);
+      }
+    };
+    socket.on("removedFromGroup", handleRemovedFromGroup);
+
     return () => {
       socket.off("newMessage", refresh);
       socket.off("messagesRead", refresh);
+      socket.off("groupUpdated", refresh);
+      socket.off("removedFromGroup", handleRemovedFromGroup);
     };
-  }, [socket, getUsers, getGroups]);
+  }, [socket, getUsers, getGroups, selectedGroup, setSelectedGroup]);
 
   const toggleMember = (userId: string) => {
     setSelectedMembers((prev) =>

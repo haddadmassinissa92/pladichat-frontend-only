@@ -318,4 +318,86 @@ export const useChatStore = create((set, get) => ({
       console.error(error);
     }
   },
+
+  // Applique la mise à jour d'un groupe (venant d'une réponse API ou d'un événement
+  // socket) à la fois dans la liste des groupes et dans la conversation actuellement
+  // ouverte si elle correspond, en conservant les champs comme lastMessage/unreadCount
+  // qui ne font pas partie de la réponse du serveur pour ces actions
+  applyGroupUpdate: (updatedGroup) => {
+    set((state) => ({
+      groups: state.groups.map((g) =>
+        g._id === updatedGroup._id ? { ...g, ...updatedGroup } : g,
+      ),
+      selectedGroup:
+        state.selectedGroup?._id === updatedGroup._id
+          ? { ...state.selectedGroup, ...updatedGroup }
+          : state.selectedGroup,
+    }));
+  },
+
+  // Renomme un groupe (réservé au créateur côté serveur)
+  renameGroup: async (groupId, name) => {
+    try {
+      const res = await axiosInstance.put(`/groups/rename/${groupId}`, {
+        name,
+      });
+      get().applyGroupUpdate(res.data);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Ajoute un ou plusieurs membres à un groupe existant
+  addMembersToGroup: async (groupId, memberIds) => {
+    try {
+      const res = await axiosInstance.put(`/groups/add-members/${groupId}`, {
+        members: memberIds,
+      });
+      get().applyGroupUpdate(res.data);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Retire définitivement un membre d'un groupe
+  removeMember: async (groupId, memberId) => {
+    try {
+      const res = await axiosInstance.put(
+        `/groups/remove-member/${groupId}`,
+        { memberId },
+      );
+      get().applyGroupUpdate(res.data);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Bloque ou débloque un membre à l'intérieur d'un groupe (bascule automatique)
+  toggleBlockMember: async (groupId, memberId) => {
+    try {
+      const res = await axiosInstance.put(
+        `/groups/block-member/${groupId}`,
+        { memberId },
+      );
+      get().applyGroupUpdate(res.data);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
 }));
