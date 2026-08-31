@@ -34,6 +34,7 @@ type DiscoverableGroup = {
   name: string;
   memberCount: number;
   requestPending: boolean;
+  createdBy: string;
 };
 
 import { useEffect, useRef, useState } from "react";
@@ -131,6 +132,7 @@ export default function Sidebar() {
     isLoadingDiscoverableGroups,
     getDiscoverableGroups,
     requestToJoinGroup,
+    previewDiscoverableGroup,
   } = useChatStore();
   const { onlineUsers, authUser, logout, updateProfile, socket, changePassword, deleteAccount } =
     useAuthStore();
@@ -165,6 +167,13 @@ export default function Sidebar() {
 
   const handleRequestToJoin = async (groupId: string) => {
     await requestToJoinGroup(groupId);
+  };
+
+  // Ouvre la conversation d'un groupe découvrable (aperçu, sans en être membre) :
+  // permet d'écrire un message de candidature, en refermant la modale de découverte
+  const handlePreviewGroup = (group: DiscoverableGroup) => {
+    previewDiscoverableGroup(group);
+    setShowDiscoverGroups(false);
   };
 
   // Thème de fond par défaut, appliqué à toutes les discussions sans réglage propre
@@ -254,9 +263,18 @@ export default function Sidebar() {
     };
     socket.on("joinRequestReceived", handleJoinRequestReceived);
 
-    // Notre demande d'adhésion a été acceptée : le groupe apparaît dans notre liste
-    const handleJoinRequestApproved = () => {
+    // Notre demande d'adhésion a été acceptée : le groupe apparaît dans notre liste,
+    // et si on avait l'aperçu de ce groupe ouvert, on bascule vers la vraie
+    // conversation (avec les vrais membres, messages, etc.)
+    const handleJoinRequestApproved = ({
+      group,
+    }: {
+      group: Group & { _id: string };
+    }) => {
       refresh();
+      if (selectedGroup?._id === group._id) {
+        setSelectedGroup(group);
+      }
     };
     socket.on("joinRequestApproved", handleJoinRequestApproved);
 
@@ -569,12 +587,16 @@ export default function Sidebar() {
                   key={group._id}
                   className="flex items-center justify-between py-2 text-sm border-b border-zinc-100 dark:border-zinc-800 last:border-0"
                 >
-                  <div className="min-w-0">
+                  <button
+                    onClick={() => handlePreviewGroup(group)}
+                    className="min-w-0 text-left hover:opacity-70 transition"
+                  >
                     <p className="font-medium truncate">{group.name}</p>
                     <p className="text-xs text-zinc-400">
                       {group.memberCount} membre{group.memberCount > 1 ? "s" : ""}
+                      {" · "}Voir la discussion
                     </p>
-                  </div>
+                  </button>
                   <button
                     onClick={() => handleRequestToJoin(group._id)}
                     disabled={group.requestPending}

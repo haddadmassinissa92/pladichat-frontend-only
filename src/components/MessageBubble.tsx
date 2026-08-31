@@ -31,6 +31,7 @@ type Message = {
     description: string;
     image: string;
   } | null;
+  pendingApproval?: boolean;
   replyTo?: {
     _id: string;
     text: string;
@@ -165,9 +166,11 @@ export default function MessageBubble({
             onTouchEnd={handleTouchEnd}
             onDoubleClick={() => handleReact("❤️")}
             className={`max-w-xs px-4 py-2 rounded-2xl cursor-pointer ${
-              isMine
-                ? "bg-indigo-600 text-white self-end"
-                : "bg-zinc-100 dark:bg-zinc-800 self-start"
+              msg.pendingApproval
+                ? "opacity-50 bg-zinc-200 dark:bg-zinc-700 self-end"
+                : isMine
+                  ? "bg-indigo-600 text-white self-end"
+                  : "bg-zinc-100 dark:bg-zinc-800 self-start"
             }`}
           >
             {!isMine && senderName && (
@@ -335,6 +338,12 @@ export default function MessageBubble({
       {isMine && isLast && msg.status === "read" && msg.readAt && (
         <div className="text-xs text-zinc-400 mt-1 text-right w-full">
           Vu à {formatReadTime(msg.readAt)}
+        </div>
+      )}
+
+      {msg.pendingApproval && (
+        <div className="text-xs text-amber-600 mt-1 text-right w-full">
+          En attente d&apos;approbation par le créateur du groupe
         </div>
       )}
 

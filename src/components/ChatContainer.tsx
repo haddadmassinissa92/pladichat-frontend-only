@@ -465,6 +465,13 @@ export default function ChatContainer() {
   // Nombre de demandes d'adhésion en attente pour ce groupe (visible pour son créateur)
   const pendingJoinRequestsCount = selectedGroup?.joinRequests?.length || 0;
 
+  // Est-on déjà membre du groupe sélectionné ? (false si on ne fait que
+  // prévisualiser un groupe découvrable avant d'y être accepté : dans ce cas,
+  // selectedGroup.members est vide côté frontend puisqu'on ne les connaît pas encore)
+  const isMemberOfSelectedGroup =
+    !!selectedGroup &&
+    selectedGroup.members.some((m: GroupMember) => m._id === authUser?._id);
+
   return (
     <div
       className="h-full flex flex-col"
@@ -647,6 +654,17 @@ export default function ChatContainer() {
           </div>
         )}
       </div>
+
+      {/* Bandeau d'information affiché quand on prévisualise un groupe découvrable
+          dont on n'est pas encore membre : on peut écrire, mais le message restera
+          grisé et invisible aux autres tant que le créateur n'a pas approuvé */}
+      {selectedGroup && !isMemberOfSelectedGroup && (
+        <div className="px-4 py-2 text-center text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950">
+          Tu n&apos;es pas encore membre de ce groupe. Envoie un message pour
+          demander à le rejoindre — il restera invisible aux membres jusqu&apos;à
+          ce que le créateur accepte ta demande.
+        </div>
+      )}
 
       {/* Bandeau d'information affiché quand un blocage empêche l'envoi de messages */}
       {isBlockedRelationship && (

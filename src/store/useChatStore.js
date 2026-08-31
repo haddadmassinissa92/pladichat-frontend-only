@@ -152,6 +152,25 @@ export const useChatStore = create((set, get) => ({
   // Fonction pour définir l'utilisateur sélectionné pour la conversation
   setSelectedUser: (user) => set({ selectedUser: user, selectedGroup: null }),
 
+  // Ouvre la conversation d'un groupe découvrable dont on n'est pas encore membre :
+  // on ne connaît pas encore ses vrais membres, mais on peut déjà tenter d'y écrire
+  // un message de "candidature" (qui restera grisé et invisible aux autres jusqu'à
+  // approbation du créateur)
+  previewDiscoverableGroup: (group) => {
+    set({
+      selectedGroup: {
+        _id: group._id,
+        name: group.name,
+        members: [],
+        blockedMembers: [],
+        joinRequests: [],
+        isDiscoverable: true,
+        createdBy: group.createdBy,
+      },
+      selectedUser: null,
+    });
+  },
+
   // connecter a un message socket pour recevoir les messages en temps réel
   subscribeToMessages: () => {
     const { selectedUser, selectedGroup } = get();
@@ -166,6 +185,14 @@ export const useChatStore = create((set, get) => ({
         : newMessage.sender === selectedUser._id;
 
       if (!isRelevant) return;
+
+      // Garde-fou : évite un doublon si ce message est déjà présent (peut arriver
+      // quand un message en attente d'approbation est révélé après acceptation,
+      // puisqu'on l'avait déjà ajouté localement à l'envoi)
+      const alreadyPresent = get().messages.some(
+        (m) => m._id === newMessage._id,
+      );
+      if (alreadyPresent) return;
 
       set({ messages: [...get().messages, newMessage] });
 
