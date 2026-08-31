@@ -129,6 +129,9 @@ export default function ChatContainer() {
   // --- Gestion des groupes découvrables et des demandes d'adhésion ---
   const [showJoinRequests, setShowJoinRequests] = useState(false);
 
+  // Confirmation avant suppression définitive d'un groupe
+  const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false);
+
   // Un membre est bloqué dans le groupe s'il figure dans blockedMembers
   const isMemberBlockedInGroup = (memberId: string) =>
     !!selectedGroup?.blockedMembers?.some(
@@ -206,6 +209,17 @@ export default function ChatContainer() {
   const handleRejectRequest = async (userId: string) => {
     if (!selectedGroup) return;
     await rejectJoinRequest(selectedGroup._id, userId);
+  };
+
+  const handleOpenDeleteGroupConfirm = () => {
+    setShowDeleteGroupConfirm(true);
+    setShowGroupMenu(false);
+  };
+
+  const handleConfirmDeleteGroup = () => {
+    if (!selectedGroup) return;
+    deleteGroup(selectedGroup._id);
+    setShowDeleteGroupConfirm(false);
   };
 
   // Liste des contacts qui ne sont pas déjà membres du groupe, pour la modale d'ajout
@@ -622,10 +636,7 @@ export default function ChatContainer() {
                     </button>
                   )}
                   <button
-                    onClick={() => {
-                      deleteGroup(selectedGroup._id);
-                      setShowGroupMenu(false);
-                    }}
+                    onClick={handleOpenDeleteGroupConfirm}
                     className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
                   >
                     Supprimer le groupe
@@ -873,6 +884,33 @@ export default function ChatContainer() {
             >
               Fermer
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation avant suppression définitive du groupe */}
+      {showDeleteGroupConfirm && selectedGroup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-2">Supprimer &quot;{selectedGroup.name}&quot; ?</h3>
+            <p className="text-sm text-zinc-500 mb-4">
+              Cette action est irréversible : le groupe et tous ses messages
+              seront définitivement supprimés pour tous les membres.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowDeleteGroupConfirm(false)}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmDeleteGroup}
+                className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-medium"
+              >
+                Supprimer
+              </button>
+            </div>
           </div>
         </div>
       )}
