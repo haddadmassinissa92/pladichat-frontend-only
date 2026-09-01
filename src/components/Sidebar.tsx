@@ -39,6 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { Search, Image as ImageIcon, Plus } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -375,26 +376,14 @@ export default function Sidebar() {
             aria-label="Découvrir des groupes"
             title="Découvrir des groupes"
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <Search size={20} strokeWidth={2} />
           </button>
           <button
             onClick={() => setShowCreateGroup(true)}
-            className="text-indigo-600 text-xl"
+            className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
             aria-label="Créer un groupe"
           >
-            +
+            <Plus size={22} strokeWidth={2} />
           </button>
         </div>
       </div>
@@ -654,9 +643,10 @@ export default function Sidebar() {
                   onClick={() =>
                     setShowGlobalWallpaperMenu(!showGlobalWallpaperMenu)
                   }
-                  className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                 >
-                  Thème de fond (toutes les discussions)
+                  <ImageIcon size={16} strokeWidth={2} className="shrink-0" />
+                  Fond d&apos;écran
                 </button>
                 {showGlobalWallpaperMenu && (
                   <>
@@ -717,7 +707,7 @@ export default function Sidebar() {
                 }}
                 className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
-                Modifier le mot de passe
+                Mot de passe
               </button>
 
               <button

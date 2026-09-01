@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import EmojiPicker from "./EmojiPicker";
+import { SmilePlus, Plus, X, Check, CheckCheck } from "lucide-react";
 
 type Reaction = {
   emoji: string;
@@ -245,8 +246,12 @@ export default function MessageBubble({
               <span className="text-xs opacity-60 ml-1">(modifié)</span>
             )}
             {isMine && (
-              <span className="text-xs ml-2 opacity-70">
-                {msg.status === "read" ? "✓✓" : "✓"}
+              <span className="inline-flex ml-2 opacity-70 align-middle">
+                {msg.status === "read" ? (
+                  <CheckCheck size={14} strokeWidth={2} />
+                ) : (
+                  <Check size={14} strokeWidth={2} />
+                )}
               </span>
             )}
           </div>
@@ -257,10 +262,10 @@ export default function MessageBubble({
           <div className="relative">
             <button
               onClick={() => setShowReactionPicker(!showReactionPicker)}
-              className="opacity-0 group-hover:opacity-100 transition text-sm px-1 self-center"
+              className="opacity-0 group-hover:opacity-100 transition px-1 self-center text-zinc-500 hover:text-indigo-600"
               aria-label="Réagir"
             >
-              🙂
+              <SmilePlus size={16} strokeWidth={2} />
             </button>
 
             {showReactionPicker && (
@@ -288,10 +293,10 @@ export default function MessageBubble({
                       setShowReactionPicker(false);
                       setShowFullEmojiPicker(true);
                     }}
-                    className="text-lg text-zinc-400 hover:text-zinc-600 px-1"
+                    className="text-zinc-400 hover:text-zinc-600 px-1"
                     aria-label="Plus d'emojis"
                   >
-                    +
+                    <Plus size={16} strokeWidth={2} />
                   </button>
                 </div>
               </>
@@ -373,10 +378,10 @@ export default function MessageBubble({
                   setShowMenu(false);
                   setShowFullEmojiPicker(true);
                 }}
-                className="text-lg text-zinc-400 hover:text-zinc-600 px-1"
+                className="text-zinc-400 hover:text-zinc-600 px-1"
                 aria-label="Plus d'emojis"
               >
-                +
+                <Plus size={16} strokeWidth={2} />
               </button>
             </div>
             <button
@@ -448,10 +453,10 @@ export default function MessageBubble({
         >
           <button
             onClick={() => setShowImagePreview(false)}
-            className="absolute top-4 right-4 text-white text-3xl leading-none"
+            className="absolute top-4 right-4 text-white"
             aria-label="Fermer l'aperçu"
           >
-            ✕
+            <X size={32} strokeWidth={2} />
           </button>
           <Image
             src={msg.image}

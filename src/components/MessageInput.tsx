@@ -5,85 +5,7 @@ import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
-
-const EMOJI_CATEGORIES: { label: string; emojis: string[] }[] = [
-  {
-    label: "😀",
-    emojis: [
-      "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
-      "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
-      "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜",
-      "🤪", "🤨", "🧐", "🤓", "😎", "🥸", "🤩", "🥳",
-      "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️",
-      "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤",
-      "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱",
-      "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫",
-      "🤥", "😶", "😐", "😑", "😬", "🙄", "😯", "😦",
-      "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵",
-      "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕",
-    ],
-  },
-  {
-    label: "👍",
-    emojis: [
-      "👋", "🤚", "🖐️", "✋", "🖖", "👌", "🤌", "🤏",
-      "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆",
-      "🖕", "👇", "☝️", "👍", "👎", "✊", "👊", "🤛",
-      "🤜", "👏", "🙌", "👐", "🤲", "🤝", "🙏", "✍️",
-      "💅", "🤳", "💪", "🦾", "🦵", "🦿", "🦶", "👂",
-    ],
-  },
-  {
-    label: "❤️",
-    emojis: [
-      "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍",
-      "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖",
-      "💘", "💝", "💟", "☮️", "✝️", "☪️", "🕉️", "☸️",
-      "💯", "💢", "💥", "💫", "💦", "💨", "🕳️", "💣",
-      "💬", "👁️‍🗨️", "🗨️", "🗯️", "💭", "💤", "🔥", "✨",
-    ],
-  },
-  {
-    label: "🐶",
-    emojis: [
-      "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼",
-      "🐻‍❄️", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵",
-      "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤",
-      "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄",
-      "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦗", "🕷️",
-    ],
-  },
-  {
-    label: "🍎",
-    emojis: [
-      "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓",
-      "🫐", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝",
-      "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🌽",
-      "🍕", "🍔", "🍟", "🌭", "🥪", "🌮", "🌯", "🥗",
-      "🍿", "🍩", "🍪", "🎂", "🍰", "🧁", "🍫", "🍬",
-      "☕", "🍵", "🧃", "🥤", "🍺", "🍷", "🥂", "🍾",
-    ],
-  },
-  {
-    label: "⚽",
-    emojis: [
-      "⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏉", "🎱",
-      "🏓", "🏸", "🥊", "🥋", "⛳", "⛸️", "🎣", "🤿",
-      "🎽", "🎿", "🛹", "🎯", "🎮", "🎲", "🧩", "🎨",
-      "🎬", "🎤", "🎧", "🎸", "🎹", "🥁", "🎺", "🎻",
-    ],
-  },
-  {
-    label: "🚗",
-    emojis: [
-      "🚗", "🚕", "🚙", "🚌", "🏎️", "🚓", "🚑", "🚒",
-      "🚲", "🛵", "🏍️", "✈️", "🚀", "🛸", "🚁", "⛵",
-      "🌍", "🌎", "🌏", "🗺️", "🏔️", "🌋", "🏖️", "🏝️",
-      "🌙", "⭐", "🌟", "☀️", "⛅", "☁️", "🌧️", "⛈️",
-      "❄️", "☃️", "🌈", "🎉", "🎊", "🎁", "🏆", "🥇",
-    ],
-  },
-];
+import { Image as ImageIcon, Mic, X, Send } from "lucide-react";
 
 export default function MessageInput() {
   // etats pour la gestion des messages, les images, la saisie et l'envoi
@@ -91,10 +13,7 @@ export default function MessageInput() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [activeEmojiCategory, setActiveEmojiCategory] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textInputRef = useRef<HTMLInputElement>(null);
 
   // etats pour la gestion des messages, modification, suppression et réponse
   const sendMessage = useChatStore((state) => state.sendMessage);
@@ -130,11 +49,6 @@ export default function MessageInput() {
         senderId: authUser?._id,
       });
     }, 1500);
-  };
-
-  const handleEmojiClick = (emoji: string) => {
-    setText((prev) => prev + emoji);
-    textInputRef.current?.focus();
   };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,9 +151,10 @@ export default function MessageInput() {
           </div>
           <button
             onClick={() => setReplyingTo(null)}
-            className="ml-2 text-zinc-400"
+            className="ml-2 text-zinc-400 hover:text-zinc-600"
+            aria-label="Annuler la réponse"
           >
-            ✕
+            <X size={16} strokeWidth={2} />
           </button>
         </div>
       )}
@@ -258,9 +173,10 @@ export default function MessageInput() {
             <button
               type="button"
               onClick={removeImage}
-              className="absolute -top-2 -right-2 bg-zinc-800 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+              className="absolute -top-2 -right-2 bg-zinc-800 text-white rounded-full w-6 h-6 flex items-center justify-center"
+              aria-label="Retirer l'image"
             >
-              ✕
+              <X size={14} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -276,78 +192,16 @@ export default function MessageInput() {
           <button
             type="button"
             onClick={removeAudio}
-            className="text-zinc-400 text-xs"
+            className="text-zinc-400 hover:text-zinc-600"
+            aria-label="Retirer l'audio"
           >
-            ✕
+            <X size={16} strokeWidth={2} />
           </button>
         </div>
       )}
 
-      <div className="p-3 flex items-end gap-2 relative">
-        {showEmojiPicker && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowEmojiPicker(false)}
-            />
-            <div className="absolute bottom-14 left-3 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg w-72 overflow-hidden">
-              <div className="flex border-b border-zinc-200 dark:border-zinc-700">
-                {EMOJI_CATEGORIES.map((cat, index) => (
-                  <button
-                    key={cat.label}
-                    type="button"
-                    onClick={() => setActiveEmojiCategory(index)}
-                    className={`flex-1 text-lg py-2 ${
-                      activeEmojiCategory === index
-                        ? "bg-zinc-100 dark:bg-zinc-800"
-                        : ""
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-8 gap-1 p-2 max-h-48 overflow-y-auto">
-                {EMOJI_CATEGORIES[activeEmojiCategory].emojis.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => handleEmojiClick(emoji)}
-                    className="text-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded p-1"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
+      <div className="p-3 flex items-end gap-2">
         <div className="flex-1 min-w-0 flex items-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-full px-3 py-2 bg-transparent">
-          <button
-            type="button"
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="text-zinc-500 shrink-0"
-            aria-label="Ajouter un emoji"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-              <line x1="9" y1="9" x2="9.01" y2="9" />
-              <line x1="15" y1="9" x2="15.01" y2="9" />
-            </svg>
-          </button>
-
           <input
             type="file"
             accept="image/*"
@@ -358,28 +212,13 @@ export default function MessageInput() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="text-zinc-500 shrink-0"
+            className="text-zinc-500 hover:text-indigo-600 transition shrink-0"
             aria-label="Ajouter une image"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 15V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2Z" />
-              <circle cx="9" cy="9" r="2" />
-              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-            </svg>
+            <ImageIcon size={22} strokeWidth={2} />
           </button>
 
           <input
-            ref={textInputRef}
             type="text"
             placeholder="Écris un message..."
             value={text}
@@ -390,33 +229,24 @@ export default function MessageInput() {
           <button
             type="button"
             onClick={isRecording ? stopRecording : startRecording}
-            className={`shrink-0 ${isRecording ? "text-red-600 animate-pulse" : "text-zinc-500"}`}
+            className={`shrink-0 transition ${
+              isRecording
+                ? "text-red-600 animate-pulse"
+                : "text-zinc-500 hover:text-indigo-600"
+            }`}
             aria-label="Enregistrer un message audio"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" y1="19" x2="12" y2="22" />
-            </svg>
+            <Mic size={22} strokeWidth={2} />
           </button>
         </div>
 
         <button
           type="submit"
           disabled={isSending}
-          className="bg-indigo-600 text-white rounded-full px-6 py-2.5 font-medium hover:bg-indigo-700 transition disabled:opacity-50 shrink-0"
+          aria-label="Envoyer"
+          className="bg-indigo-600 text-white rounded-full w-11 h-11 flex items-center justify-center hover:bg-indigo-700 transition disabled:opacity-50 shrink-0"
         >
-          {isSending ? "..." : "Envoyer"}
+          <Send size={20} strokeWidth={2} />
         </button>
       </div>
     </form>
