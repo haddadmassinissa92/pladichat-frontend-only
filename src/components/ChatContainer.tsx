@@ -21,9 +21,6 @@ type GroupMember = {
 // Hooks fondamentaux de React pour la gestion du cycle de vie et des états
 import { useEffect, useRef, useState } from "react";
 
-// Icône propre et cohérente avec le reste de l'application
-import { Palette, ArrowLeft, ArrowDown, MoreVertical } from "lucide-react";
-
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -468,13 +465,6 @@ export default function ChatContainer() {
   // Nombre de demandes d'adhésion en attente pour ce groupe (visible pour son créateur)
   const pendingJoinRequestsCount = selectedGroup?.joinRequests?.length || 0;
 
-  // Est-on déjà membre du groupe sélectionné ? (false si on ne fait que
-  // prévisualiser un groupe découvrable avant d'y être accepté : dans ce cas,
-  // selectedGroup.members est vide côté frontend puisqu'on ne les connaît pas encore)
-  const isMemberOfSelectedGroup =
-    !!selectedGroup &&
-    selectedGroup.members.some((m: GroupMember) => m._id === authUser?._id);
-
   return (
     <div
       className="h-full flex flex-col"
@@ -492,7 +482,18 @@ export default function ChatContainer() {
           className="sm:hidden p-1 -ml-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
           aria-label="Retour"
         >
-          <ArrowLeft size={22} strokeWidth={2} />
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
 
         <h2 className="font-bold flex-1">
@@ -503,10 +504,10 @@ export default function ChatContainer() {
         <div className="relative">
           <button
             onClick={() => setShowWallpaperMenu(!showWallpaperMenu)}
-            className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+            className="text-xl px-2"
             aria-label="Changer le fond de cette discussion"
           >
-            <Palette size={20} strokeWidth={2} />
+            🎨
           </button>
           {showWallpaperMenu && (
             <>
@@ -558,10 +559,10 @@ export default function ChatContainer() {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+              className="text-xl px-2"
               aria-label="Options"
             >
-              <MoreVertical size={20} strokeWidth={2} />
+              ⋮
             </button>
             {showUserMenu && (
               <>
@@ -589,10 +590,9 @@ export default function ChatContainer() {
           <div className="relative">
             <button
               onClick={() => setShowGroupMenu(!showGroupMenu)}
-              className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
-              aria-label="Options du groupe"
+              className="text-xl px-2"
             >
-              <MoreVertical size={20} strokeWidth={2} />
+              ⋮
             </button>
             {showGroupMenu && (
               <>
@@ -647,17 +647,6 @@ export default function ChatContainer() {
           </div>
         )}
       </div>
-
-      {/* Bandeau d'information affiché quand on prévisualise un groupe découvrable
-          dont on n'est pas encore membre : on peut écrire, mais le message restera
-          grisé et invisible aux autres tant que le créateur n'a pas approuvé */}
-      {selectedGroup && !isMemberOfSelectedGroup && (
-        <div className="px-4 py-2 text-center text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950">
-          Tu n&apos;es pas encore membre de ce groupe. Envoie un message pour
-          demander à le rejoindre — il restera invisible aux membres jusqu&apos;à
-          ce que le créateur accepte ta demande.
-        </div>
-      )}
 
       {/* Bandeau d'information affiché quand un blocage empêche l'envoi de messages */}
       {isBlockedRelationship && (
@@ -758,7 +747,19 @@ export default function ChatContainer() {
             aria-label="Aller aux nouveaux messages"
             className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white shadow-lg flex items-center gap-2 rounded-full sm:px-4 sm:py-2 w-10 h-10 sm:w-auto sm:h-auto justify-center"
           >
-            <ArrowDown size={18} strokeWidth={2.5} className="shrink-0" />
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="shrink-0"
+            >
+              <path d="M12 5v14M19 12l-7 7-7-7" />
+            </svg>
             <span className="hidden sm:inline text-sm font-medium">
               {newMessagesCount} nouveau{newMessagesCount > 1 ? "x" : ""}{" "}
               message
