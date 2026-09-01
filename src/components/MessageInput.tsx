@@ -250,7 +250,7 @@ export default function MessageInput() {
             className="flex-1 min-w-0 bg-transparent outline-none text-sm"
           />
 
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 flex items-center">
             <button
               type="button"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
