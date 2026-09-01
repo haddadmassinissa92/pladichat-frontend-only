@@ -22,6 +22,9 @@ export const useChatStore = create((set, get) => ({
   // Liste des groupes découvrables (dont l'utilisateur n'est pas membre), pour la recherche
   discoverableGroups: [],
   isLoadingDiscoverableGroups: false,
+  // Résultats de la recherche dans l'historique de la conversation actuelle
+  searchResults: [],
+  isSearchingMessages: false,
 
   // Fonction pour récupérer la liste des utilisateurs
   getUsers: async () => {
@@ -79,6 +82,30 @@ export const useChatStore = create((set, get) => ({
       set({ isLoadingMoreMessages: false });
     }
   },
+
+  // Recherche un mot ou une expression dans tout l'historique d'une conversation
+  // (pas seulement les messages déjà chargés). Renvoie les résultats triés du
+  // plus ancien au plus récent, pour permettre une navigation précédent/suivant.
+  searchMessages: async (id, isGroup, query) => {
+    if (!query || !query.trim()) {
+      set({ searchResults: [] });
+      return;
+    }
+    set({ isSearchingMessages: true });
+    try {
+      const res = await axiosInstance.get(
+        `/messages/search/${id}?isGroup=${isGroup}&q=${encodeURIComponent(query)}`,
+      );
+      set({ searchResults: res.data.results });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      set({ isSearchingMessages: false });
+    }
+  },
+
+  // Efface les résultats de recherche (à la fermeture de la barre de recherche)
+  clearSearchResults: () => set({ searchResults: [] }),
 
   // Fonction pour envoyer un message à l'utilisateur sélectionné
   sendMessage: async (data) => {
