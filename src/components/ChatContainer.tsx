@@ -20,6 +20,7 @@ type GroupMember = {
 
 // Hooks fondamentaux de React pour la gestion du cycle de vie et des états
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
@@ -142,6 +143,8 @@ export default function ChatContainer() {
   // Modale d'informations sur le contact ou le groupe, ouverte en cliquant
   // sur l'avatar dans l'en-tête (comme sur WhatsApp)
   const [showContactInfo, setShowContactInfo] = useState(false);
+  // Image affichée en plein écran depuis la galerie de médias de la fiche contact
+  const [fullscreenMediaUrl, setFullscreenMediaUrl] = useState<string | null>(null);
 
   // --- Recherche dans l'historique de la conversation ---
   const [showSearch, setShowSearch] = useState(false);
@@ -154,7 +157,6 @@ export default function ChatContainer() {
   // jusqu'à le trouver (ou jusqu'à ce qu'il n'y en ait plus)
   const pendingScrollTargetRef = useRef<string | null>(null);
 
-  // Calcul précoce de conversationId et isGroupConversation pour utilisation dans les handlers
   const conversationId = selectedGroup?._id || selectedUser?._id || null;
   const isGroupConversation = !!selectedGroup;
 
@@ -1186,16 +1188,53 @@ export default function ChatContainer() {
                   <p className="text-sm">{selectedUser.email}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-400 uppercase">
-                    Médias échangés (chargés)
+                  <p className="text-xs text-zinc-400 uppercase mb-1">
+                    Photos ({messages.filter((m: Message) => m.image).length})
                   </p>
-                  <p className="text-sm">
-                    {messages.filter((m: Message) => m.image).length} photo
-                    {messages.filter((m: Message) => m.image).length > 1 ? "s" : ""}
-                    {" · "}
-                    {messages.filter((m: Message) => m.audio).length} audio
-                    {messages.filter((m: Message) => m.audio).length > 1 ? "s" : ""}
+                  {messages.filter((m: Message) => m.image).length === 0 ? (
+                    <p className="text-sm text-zinc-400">Aucune photo pour le moment.</p>
+                  ) : (
+                    <div className="custom-scrollbar grid grid-cols-4 gap-1 max-h-40 overflow-y-auto">
+                      {messages
+                        .filter((m: Message) => m.image)
+                        .map((m: Message) => (
+                          <button
+                            key={m._id}
+                            onClick={() => setFullscreenMediaUrl(m.image)}
+                            className="aspect-square rounded-lg overflow-hidden"
+                          >
+                            <Image
+                              src={m.image}
+                              alt="Photo échangée"
+                              width={80}
+                              height={80}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-400 uppercase mb-1">
+                    Audios ({messages.filter((m: Message) => m.audio).length})
                   </p>
+                  {messages.filter((m: Message) => m.audio).length === 0 ? (
+                    <p className="text-sm text-zinc-400">Aucun audio pour le moment.</p>
+                  ) : (
+                    <div className="custom-scrollbar max-h-40 overflow-y-auto space-y-2">
+                      {messages
+                        .filter((m: Message) => m.audio)
+                        .map((m: Message) => (
+                          <audio
+                            key={m._id}
+                            controls
+                            src={m.audio}
+                            className="w-full h-8"
+                          />
+                        ))}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => {
@@ -1301,6 +1340,30 @@ export default function ChatContainer() {
               Fermer
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Aperçu plein écran d'une photo cliquée depuis la galerie de la fiche contact */}
+      {fullscreenMediaUrl && (
+        <div
+          className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60] p-4"
+          onClick={() => setFullscreenMediaUrl(null)}
+        >
+          <button
+            onClick={() => setFullscreenMediaUrl(null)}
+            className="absolute top-4 right-4 text-white"
+            aria-label="Fermer l'aperçu"
+          >
+            <X size={32} strokeWidth={2} />
+          </button>
+          <Image
+            src={fullscreenMediaUrl}
+            alt="Photo en plein écran"
+            width={1200}
+            height={1200}
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-full object-contain rounded-lg"
+          />
         </div>
       )}
     </div>
