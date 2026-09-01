@@ -19,7 +19,10 @@ type GroupMember = {
 };
 
 // Hooks fondamentaux de React pour la gestion du cycle de vie et des états
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+// Icône propre et cohérente avec le reste de l'application
+import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X } from "lucide-react";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
 import { useChatStore } from "@/store/useChatStore";
@@ -91,6 +94,9 @@ export default function ChatContainer() {
     toggleDiscoverable,
     approveJoinRequest,
     rejectJoinRequest,
+    searchMessages,
+    clearSearchResults,
+    searchResults,
   } = useChatStore();
 
   // État du menu "gérer le groupe", utilisateur connecté, socket temps réel,
@@ -131,6 +137,91 @@ export default function ChatContainer() {
 
   // Confirmation avant suppression définitive d'un groupe
   const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false);
+
+  // --- Recherche dans l'historique de la conversation ---
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentResultIndex, setCurrentResultIndex] = useState(0);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Le message qu'on essaie d'atteindre suite à une navigation dans les résultats ;
+  // s'il n'est pas encore chargé, on continue à charger des messages plus anciens
+  // jusqu'à le trouver (ou jusqu'à ce qu'il n'y en ait plus)
+  const pendingScrollTargetRef = useRef<string | null>(null);
+
+  const conversationId = selectedGroup?._id || selectedUser?._id || null;
+  const isGroupConversation = !!selectedGroup;
+
+  const handleOpenSearch = () => {
+    setShowSearch(true);
+  };
+
+  const handleCloseSearch = () => {
+    setShowSearch(false);
+    setSearchQuery("");
+    setCurrentResultIndex(0);
+    setHighlightedMessageId(null);
+    pendingScrollTargetRef.current = null;
+    clearSearchResults();
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentResultIndex(0);
+
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (!conversationId) return;
+
+    searchDebounceRef.current = setTimeout(() => {
+      searchMessages(conversationId, isGroupConversation, value);
+    }, 300);
+  };
+
+  // Tente de faire défiler jusqu'au message ciblé s'il est déjà chargé ; sinon,
+  // déclenche le chargement de messages plus anciens et réessaie automatiquement
+  // (via l'effet ci-dessous, qui se redéclenche quand "messages" change)
+  const scrollToMessageId = useCallback((messageId: string) => {
+    const el = document.getElementById(messageId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedMessageId(messageId);
+      pendingScrollTargetRef.current = null;
+      setTimeout(() => setHighlightedMessageId(null), 2000);
+    } else {
+      pendingScrollTargetRef.current = messageId;
+      if (hasMoreMessages && conversationId) {
+        loadMoreMessages(conversationId, isGroupConversation);
+      }
+    }
+  }, [hasMoreMessages, conversationId, isGroupConversation, loadMoreMessages]);
+
+  // Une fois que de nouveaux (anciens) messages ont été chargés, on retente
+  // d'atteindre le message ciblé par la recherche s'il y en avait un en attente
+  useEffect(() => {
+    if (pendingScrollTargetRef.current) {
+      scrollToMessageId(pendingScrollTargetRef.current);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
+
+  const goToResult = (index: number) => {
+    if (index < 0 || index >= searchResults.length) return;
+    setCurrentResultIndex(index);
+    scrollToMessageId(searchResults[index]._id);
+  };
+
+  const handleNextResult = () => goToResult(currentResultIndex + 1);
+  const handlePreviousResult = () => goToResult(currentResultIndex - 1);
+
+  // Dès que de nouveaux résultats de recherche arrivent, on saute automatiquement
+  // au premier (comportement classique d'un "Ctrl+F")
+  useEffect(() => {
+    if (searchResults.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrentResultIndex(0);
+      scrollToMessageId(searchResults[0]._id);
+    }
+  }, [searchResults, scrollToMessageId]);
 
   // Un membre est bloqué dans le groupe s'il figure dans blockedMembers
   const isMemberBlockedInGroup = (memberId: string) =>
@@ -243,9 +334,6 @@ export default function ChatContainer() {
   const scrollHeightBeforeLoadRef = useRef(0);
   const wasLoadingMoreRef = useRef(false);
 
-  const conversationId = selectedGroup?._id || selectedUser?._id || null;
-  const isGroupConversation = !!selectedGroup;
-
   // Gestion du fond d'écran spécifique à la conversation actuelle : fond choisi,
   // image personnalisée éventuelle, état du menu de sélection, et input de fichier caché
   const [wallpaper, setWallpaper] = useState("default");
@@ -325,7 +413,12 @@ export default function ChatContainer() {
     setNewMessagesCount(0);
     setIsNearBottom(true);
     previousMessagesLength.current = 0;
-  }, [selectedUser?._id, selectedGroup?._id]);
+    setShowSearch(false);
+    setSearchQuery("");
+    setCurrentResultIndex(0);
+    setHighlightedMessageId(null);
+    clearSearchResults();
+  }, [selectedUser?._id, selectedGroup?._id, clearSearchResults]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // S'abonne aux événements socket liés aux messages (nouveau, lu, supprimé, modifié)
@@ -465,6 +558,13 @@ export default function ChatContainer() {
   // Nombre de demandes d'adhésion en attente pour ce groupe (visible pour son créateur)
   const pendingJoinRequestsCount = selectedGroup?.joinRequests?.length || 0;
 
+  // Est-on déjà membre du groupe sélectionné ? (false si on ne fait que
+  // prévisualiser un groupe découvrable avant d'y être accepté : dans ce cas,
+  // selectedGroup.members est vide côté frontend puisqu'on ne les connaît pas encore)
+  const isMemberOfSelectedGroup =
+    !!selectedGroup &&
+    selectedGroup.members.some((m: GroupMember) => m._id === authUser?._id);
+
   return (
     <div
       className="h-full flex flex-col"
@@ -482,32 +582,30 @@ export default function ChatContainer() {
           className="sm:hidden p-1 -ml-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
           aria-label="Retour"
         >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
+          <ArrowLeft size={22} strokeWidth={2} />
         </button>
 
         <h2 className="font-bold flex-1">
           {selectedGroup ? selectedGroup.name : selectedUser?.username}
         </h2>
 
+        {/* Bouton pour ouvrir la recherche dans l'historique de cette conversation */}
+        <button
+          onClick={handleOpenSearch}
+          className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+          aria-label="Rechercher dans la conversation"
+        >
+          <Search size={20} strokeWidth={2} />
+        </button>
+
         {/* Menu de choix du fond d'écran de cette conversation */}
         <div className="relative">
           <button
             onClick={() => setShowWallpaperMenu(!showWallpaperMenu)}
-            className="text-xl px-2"
+            className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
             aria-label="Changer le fond de cette discussion"
           >
-            🎨
+            <Palette size={20} strokeWidth={2} />
           </button>
           {showWallpaperMenu && (
             <>
@@ -559,10 +657,10 @@ export default function ChatContainer() {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="text-xl px-2"
+              className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
               aria-label="Options"
             >
-              ⋮
+              <MoreVertical size={20} strokeWidth={2} />
             </button>
             {showUserMenu && (
               <>
@@ -590,9 +688,10 @@ export default function ChatContainer() {
           <div className="relative">
             <button
               onClick={() => setShowGroupMenu(!showGroupMenu)}
-              className="text-xl px-2"
+              className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+              aria-label="Options du groupe"
             >
-              ⋮
+              <MoreVertical size={20} strokeWidth={2} />
             </button>
             {showGroupMenu && (
               <>
@@ -647,6 +746,62 @@ export default function ChatContainer() {
           </div>
         )}
       </div>
+
+      {/* Barre de recherche dans l'historique de la conversation */}
+      {showSearch && (
+        <div className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
+          <Search size={16} strokeWidth={2} className="text-zinc-400 shrink-0" />
+          <input
+            type="text"
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Rechercher dans cette conversation..."
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm"
+          />
+          {searchQuery.trim() && (
+            <span className="text-xs text-zinc-400 shrink-0">
+              {searchResults.length > 0
+                ? `${currentResultIndex + 1}/${searchResults.length}`
+                : "0 résultat"}
+            </span>
+          )}
+          <button
+            onClick={handlePreviousResult}
+            disabled={searchResults.length === 0}
+            className="text-zinc-500 hover:text-indigo-600 disabled:opacity-30 shrink-0"
+            aria-label="Résultat précédent"
+          >
+            <ChevronUp size={18} strokeWidth={2} />
+          </button>
+          <button
+            onClick={handleNextResult}
+            disabled={searchResults.length === 0}
+            className="text-zinc-500 hover:text-indigo-600 disabled:opacity-30 shrink-0"
+            aria-label="Résultat suivant"
+          >
+            <ChevronDown size={18} strokeWidth={2} />
+          </button>
+          <button
+            onClick={handleCloseSearch}
+            className="text-zinc-500 hover:text-indigo-600 shrink-0"
+            aria-label="Fermer la recherche"
+          >
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
+      )}
+
+      {/* Bandeau d'information affiché quand on prévisualise un groupe découvrable
+          dont on n'est pas encore membre : on peut écrire, mais le message restera
+          grisé et invisible aux autres tant que le créateur n'a pas approuvé */}
+      {selectedGroup && !isMemberOfSelectedGroup && (
+        <div className="px-4 py-2 text-center text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950">
+          Tu n&apos;es pas encore membre de ce groupe. Envoie un message pour
+          demander à le rejoindre — il restera invisible aux membres jusqu&apos;à
+          ce que le créateur accepte ta demande.
+        </div>
+      )}
 
       {/* Bandeau d'information affiché quand un blocage empêche l'envoi de messages */}
       {isBlockedRelationship && (
@@ -709,7 +864,15 @@ export default function ChatContainer() {
                 new Date(msg.createdAt).toDateString();
 
             return (
-              <div key={msg._id}>
+              <div
+                key={msg._id}
+                id={msg._id}
+                className={
+                  highlightedMessageId === msg._id
+                    ? "rounded-2xl ring-2 ring-amber-400 transition-all"
+                    : ""
+                }
+              >
                 {showDateSeparator && (
                   <div className="flex justify-center my-3">
                     <span className="text-xs font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-full px-3 py-1">
@@ -747,19 +910,7 @@ export default function ChatContainer() {
             aria-label="Aller aux nouveaux messages"
             className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white shadow-lg flex items-center gap-2 rounded-full sm:px-4 sm:py-2 w-10 h-10 sm:w-auto sm:h-auto justify-center"
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="shrink-0"
-            >
-              <path d="M12 5v14M19 12l-7 7-7-7" />
-            </svg>
+            <ArrowDown size={18} strokeWidth={2.5} className="shrink-0" />
             <span className="hidden sm:inline text-sm font-medium">
               {newMessagesCount} nouveau{newMessagesCount > 1 ? "x" : ""}{" "}
               message
