@@ -127,10 +127,6 @@ export default function ChatContainer() {
   };
 
   // --- Gestion du groupe : renommer, ajouter des membres, gérer les membres ---
-  // Get conversationId and isGroupConversation early since they're needed by handlers
-  const conversationId = selectedGroup?._id || selectedUser?._id || null;
-  const isGroupConversation = !!selectedGroup;
-
   const [showRenameGroup, setShowRenameGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [showAddMembers, setShowAddMembers] = useState(false);
@@ -157,6 +153,10 @@ export default function ChatContainer() {
   // s'il n'est pas encore chargé, on continue à charger des messages plus anciens
   // jusqu'à le trouver (ou jusqu'à ce qu'il n'y en ait plus)
   const pendingScrollTargetRef = useRef<string | null>(null);
+
+  // Calcul précoce de conversationId et isGroupConversation pour utilisation dans les handlers
+  const conversationId = selectedGroup?._id || selectedUser?._id || null;
+  const isGroupConversation = !!selectedGroup;
 
   const handleOpenSearch = () => {
     setShowSearch(true);
@@ -1152,7 +1152,7 @@ export default function ChatContainer() {
           onClick={() => setShowContactInfo(false)}
         >
           <div
-            className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-sm"
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-sm max-h-[85vh] overflow-y-auto custom-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col items-center text-center mb-4">
@@ -1176,43 +1176,127 @@ export default function ChatContainer() {
                     : "Hors ligne"}
                 </p>
               )}
-              {selectedGroup && (
-                <p className="text-sm text-zinc-500 mt-1">
-                  {selectedGroup.members.length} membre
-                  {selectedGroup.members.length > 1 ? "s" : ""}
-                </p>
-              )}
             </div>
 
-            {/* Liste des membres, uniquement pour un groupe */}
+            {/* Détails supplémentaires pour un contact privé */}
+            {selectedUser && (
+              <div className="border-t border-zinc-200 dark:border-zinc-800 py-3 space-y-3">
+                <div>
+                  <p className="text-xs text-zinc-400 uppercase">Email</p>
+                  <p className="text-sm">{selectedUser.email}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-400 uppercase">
+                    Médias échangés (chargés)
+                  </p>
+                  <p className="text-sm">
+                    {messages.filter((m: Message) => m.image).length} photo
+                    {messages.filter((m: Message) => m.image).length > 1 ? "s" : ""}
+                    {" · "}
+                    {messages.filter((m: Message) => m.audio).length} audio
+                    {messages.filter((m: Message) => m.audio).length > 1 ? "s" : ""}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    handleToggleBlock();
+                    setShowContactInfo(false);
+                  }}
+                  className="w-full text-left text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg px-2 py-2 transition"
+                >
+                  {isBlockedByMe
+                    ? `Débloquer ${selectedUser.username}`
+                    : `Bloquer ${selectedUser.username}`}
+                </button>
+              </div>
+            )}
+
+            {/* Détails et actions supplémentaires pour un groupe */}
             {selectedGroup && (
-              <div className="custom-scrollbar max-h-56 overflow-y-auto border-t border-zinc-200 dark:border-zinc-800 pt-3">
-                {selectedGroup.members.map((member: GroupMember) => (
-                  <div
-                    key={member._id}
-                    className="flex items-center gap-3 py-2"
-                  >
-                    <Avatar
-                      fallback={member.username[0]?.toUpperCase()}
-                      colorClass="bg-indigo-600"
-                      size="w-8 h-8 text-sm"
-                    />
-                    <span className="text-sm truncate">
-                      {member.username}
-                      {member._id === selectedGroup.createdBy && (
-                        <span className="text-xs text-zinc-400 ml-1">
-                          (créateur)
-                        </span>
+              <div className="border-t border-zinc-200 dark:border-zinc-800 py-3">
+                <p className="text-sm text-zinc-500 mb-3">
+                  {selectedGroup.members.length} membre
+                  {selectedGroup.members.length > 1 ? "s" : ""}
+                  {selectedGroup.createdAt && (
+                    <>
+                      {" · "}Créé le{" "}
+                      {new Date(selectedGroup.createdAt).toLocaleDateString(
+                        "fr-FR",
                       )}
-                    </span>
+                    </>
+                  )}
+                </p>
+
+                <p className="text-xs text-zinc-400 uppercase mb-1">Membres</p>
+                <div className="custom-scrollbar max-h-48 overflow-y-auto mb-3">
+                  {selectedGroup.members.map((member: GroupMember) => (
+                    <div
+                      key={member._id}
+                      className="flex items-center gap-3 py-2"
+                    >
+                      <Avatar
+                        fallback={member.username[0]?.toUpperCase()}
+                        colorClass="bg-indigo-600"
+                        size="w-8 h-8 text-sm"
+                      />
+                      <span className="text-sm truncate">
+                        {member.username}
+                        {member._id === selectedGroup.createdBy && (
+                          <span className="text-xs text-zinc-400 ml-1">
+                            (créateur)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Actions rapides réservées au créateur du groupe */}
+                {selectedGroup.createdBy === authUser?._id && (
+                  <div className="border-t border-zinc-200 dark:border-zinc-800 pt-3 space-y-1">
+                    <button
+                      onClick={() => {
+                        setShowContactInfo(false);
+                        handleOpenRenameGroup();
+                      }}
+                      className="block w-full text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    >
+                      Renommer le groupe
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowContactInfo(false);
+                        handleOpenAddMembers();
+                      }}
+                      className="block w-full text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    >
+                      Ajouter des membres
+                    </button>
+                    <button
+                      onClick={handleToggleDiscoverable}
+                      className="block w-full text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    >
+                      {selectedGroup.isDiscoverable
+                        ? "Rendre le groupe privé"
+                        : "Rendre le groupe découvrable"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowContactInfo(false);
+                        handleOpenDeleteGroupConfirm();
+                      }}
+                      className="block w-full text-left text-sm px-2 py-2 rounded-lg text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                    >
+                      Supprimer le groupe
+                    </button>
                   </div>
-                ))}
+                )}
               </div>
             )}
 
             <button
               onClick={() => setShowContactInfo(false)}
-              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-4"
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
             >
               Fermer
             </button>
