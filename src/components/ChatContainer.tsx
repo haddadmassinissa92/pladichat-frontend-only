@@ -20,6 +20,7 @@ type GroupMember = {
 
 // Hooks fondamentaux de React pour la gestion du cycle de vie et des états
 import { useEffect, useRef, useState } from "react";
+import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
 import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X } from "lucide-react";
@@ -107,7 +108,6 @@ export default function ChatContainer() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const pendingScrollTargetRef = useRef<string | null>(null);
 
   // Gestion du menu et du statut de blocage pour une conversation privée
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -139,18 +139,44 @@ export default function ChatContainer() {
   // Confirmation avant suppression définitive d'un groupe
   const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false);
 
-  // Gestion de la recherche dans l'historique des messages
+  // --- Recherche dans l'historique de la conversation ---
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
-  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(
-    null,
-  );
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Le message qu'on essaie d'atteindre suite à une navigation dans les résultats ;
+  // s'il n'est pas encore chargé, on continue à charger des messages plus anciens
+  // jusqu'à le trouver (ou jusqu'à ce qu'il n'y en ait plus)
+  const pendingScrollTargetRef = useRef<string | null>(null);
 
-  // Déclarer conversationId et isGroupConversation ici pour qu'ils soient disponibles
-  // dans scrollToMessageId qui est appelée au-dessous
   const conversationId = selectedGroup?._id || selectedUser?._id || null;
   const isGroupConversation = !!selectedGroup;
+
+  const handleOpenSearch = () => {
+    setShowSearch(true);
+  };
+
+  const handleCloseSearch = () => {
+    setShowSearch(false);
+    setSearchQuery("");
+    setCurrentResultIndex(0);
+    setHighlightedMessageId(null);
+    pendingScrollTargetRef.current = null;
+    clearSearchResults();
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentResultIndex(0);
+
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (!conversationId) return;
+
+    searchDebounceRef.current = setTimeout(() => {
+      searchMessages(conversationId, isGroupConversation, value);
+    }, 300);
+  };
 
   // Tente de faire défiler jusqu'au message ciblé s'il est déjà chargé ; sinon,
   // déclenche le chargement de messages plus anciens et réessaie automatiquement
@@ -372,30 +398,6 @@ export default function ChatContainer() {
     setShowWallpaperMenu(false);
   };
 
-  // Ouverture de la barre de recherche dans l'historique
-  const handleOpenSearch = () => {
-    setShowSearch(true);
-  };
-
-  // Fermeture de la barre de recherche
-  const handleCloseSearch = () => {
-    setShowSearch(false);
-    setSearchQuery("");
-    setCurrentResultIndex(0);
-    setHighlightedMessageId(null);
-    clearSearchResults();
-  };
-
- // Gère les changements dans la barre de recherche
-const handleSearchChange = (query: string) => {
-  setSearchQuery(query);
-  if (query.trim() && conversationId) {
-    searchMessages(conversationId, isGroupConversation, query.trim());
-  } else {
-    clearSearchResults();
-  }
-};
-
   // Au changement de conversation : charge la première page de messages
   // (les plus récents) et les marque comme lus
   useEffect(() => {
@@ -587,6 +589,19 @@ const handleSearchChange = (query: string) => {
         >
           <ArrowLeft size={22} strokeWidth={2} />
         </button>
+
+        {/* Avatar de la conversation : photo de profil pour un contact,
+            rond avec initiale pour un groupe (composant partagé avec la sidebar) */}
+        <Avatar
+          src={selectedGroup ? undefined : selectedUser?.avatar}
+          fallback={
+            selectedGroup
+              ? selectedGroup.name[0]?.toUpperCase()
+              : selectedUser?.username[0]?.toUpperCase() || "?"
+          }
+          colorClass={selectedGroup ? "bg-emerald-600" : "bg-indigo-600"}
+          size="w-9 h-9"
+        />
 
         <h2 className="font-bold flex-1">
           {selectedGroup ? selectedGroup.name : selectedUser?.username}
@@ -1117,4 +1132,3 @@ const handleSearchChange = (query: string) => {
     </div>
   );
 }
-

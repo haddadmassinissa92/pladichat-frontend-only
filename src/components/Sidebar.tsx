@@ -38,48 +38,17 @@ type DiscoverableGroup = {
 };
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { Search, Plus, Palette } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import Avatar from "./Avatar";
 import {
   WALLPAPERS,
   getGlobalWallpaper,
   setGlobalWallpaper,
   setGlobalWallpaperImage,
 } from "@/lib/wallpaper";
-
-function Avatar({
-  src,
-  fallback,
-  colorClass,
-  size = "w-10 h-10",
-}: {
-  src?: string;
-  fallback: string;
-  colorClass: string;
-  size?: string;
-}) {
-  if (src) {
-    return (
-      <Image
-        src={src}
-        alt={fallback}
-        width={40}
-        height={40}
-        className={`${size} rounded-full object-cover`}
-      />
-    );
-  }
-  return (
-    <div
-      className={`${size} rounded-full ${colorClass} text-white flex items-center justify-center font-semibold`}
-    >
-      {fallback}
-    </div>
-  );
-}
 
 function formatLastMessage(
   msg:
