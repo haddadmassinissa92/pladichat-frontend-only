@@ -633,7 +633,7 @@ export default function Sidebar() {
             <div className="absolute left-3 bottom-16 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-56">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
                 Changer la photo
               </button>
@@ -705,14 +705,14 @@ export default function Sidebar() {
                   setShowChangePassword(true);
                   setShowProfileMenu(false);
                 }}
-                className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
                 Mot de passe
               </button>
 
               <button
                 onClick={logout}
-                className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
+                className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
               >
                 Se déconnecter
               </button>
@@ -722,7 +722,7 @@ export default function Sidebar() {
                   setShowDeleteAccount(true);
                   setShowProfileMenu(false);
                 }}
-                className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
+                className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
               >
                 Supprimer mon compte
               </button>
