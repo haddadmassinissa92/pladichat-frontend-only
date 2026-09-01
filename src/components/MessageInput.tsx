@@ -5,7 +5,8 @@ import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
-import { Image as ImageIcon, Mic, X, Send } from "lucide-react";
+import { Image as ImageIcon, Mic, X, Send, Smile } from "lucide-react";
+import EmojiPicker from "./EmojiPicker";
 
 export default function MessageInput() {
   // etats pour la gestion des messages, les images, la saisie et l'envoi
@@ -14,6 +15,10 @@ export default function MessageInput() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
+
+  // état pour l'affichage du sélecteur d'emojis complet
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // etats pour la gestion des messages, modification, suppression et réponse
   const sendMessage = useChatStore((state) => state.sendMessage);
@@ -111,6 +116,24 @@ export default function MessageInput() {
     setImageFile(null);
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Insère l'emoji choisi dans le champ texte, à la position actuelle du
+  // curseur (ou à la fin si on ne connaît pas cette position)
+  const handleEmojiSelect = (emoji: string) => {
+    const input = textInputRef.current;
+    const cursorPos = input?.selectionStart ?? text.length;
+
+    const newText = text.slice(0, cursorPos) + emoji + text.slice(cursorPos);
+    setText(newText);
+    setShowEmojiPicker(false);
+
+    // Replace le curseur juste après l'emoji inséré, une fois le champ mis à jour
+    requestAnimationFrame(() => {
+      const newCursorPos = cursorPos + emoji.length;
+      input?.focus();
+      input?.setSelectionRange(newCursorPos, newCursorPos);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -220,11 +243,35 @@ export default function MessageInput() {
 
           <input
             type="text"
+            ref={textInputRef}
             placeholder="Écris un message..."
             value={text}
             onChange={handleChange}
             className="flex-1 min-w-0 bg-transparent outline-none text-sm"
           />
+
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="text-zinc-500 hover:text-indigo-600 transition"
+              aria-label="Ajouter un emoji"
+            >
+              <Smile size={22} strokeWidth={2} />
+            </button>
+
+            {showEmojiPicker && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowEmojiPicker(false)}
+                />
+                <div className="absolute z-20 bottom-full right-0 mb-2">
+                  <EmojiPicker onSelect={handleEmojiSelect} />
+                </div>
+              </>
+            )}
+          </div>
 
           <button
             type="button"
