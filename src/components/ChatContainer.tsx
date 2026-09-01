@@ -103,7 +103,7 @@ export default function ChatContainer() {
   // État du menu "gérer le groupe", utilisateur connecté, socket temps réel,
   // et références DOM utilisées pour le défilement et les gestes tactiles
   const [showGroupMenu, setShowGroupMenu] = useState(false);
-  const { authUser, socket, toggleBlockUser } = useAuthStore();
+  const { authUser, socket, toggleBlockUser, onlineUsers } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
@@ -127,6 +127,10 @@ export default function ChatContainer() {
   };
 
   // --- Gestion du groupe : renommer, ajouter des membres, gérer les membres ---
+  // Get conversationId and isGroupConversation early since they're needed by handlers
+  const conversationId = selectedGroup?._id || selectedUser?._id || null;
+  const isGroupConversation = !!selectedGroup;
+
   const [showRenameGroup, setShowRenameGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [showAddMembers, setShowAddMembers] = useState(false);
@@ -139,6 +143,10 @@ export default function ChatContainer() {
   // Confirmation avant suppression définitive d'un groupe
   const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false);
 
+  // Modale d'informations sur le contact ou le groupe, ouverte en cliquant
+  // sur l'avatar dans l'en-tête (comme sur WhatsApp)
+  const [showContactInfo, setShowContactInfo] = useState(false);
+
   // --- Recherche dans l'historique de la conversation ---
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -149,9 +157,6 @@ export default function ChatContainer() {
   // s'il n'est pas encore chargé, on continue à charger des messages plus anciens
   // jusqu'à le trouver (ou jusqu'à ce qu'il n'y en ait plus)
   const pendingScrollTargetRef = useRef<string | null>(null);
-
-  const conversationId = selectedGroup?._id || selectedUser?._id || null;
-  const isGroupConversation = !!selectedGroup;
 
   const handleOpenSearch = () => {
     setShowSearch(true);
@@ -591,19 +596,29 @@ export default function ChatContainer() {
         </button>
 
         {/* Avatar de la conversation : photo de profil pour un contact,
-            rond avec initiale pour un groupe (composant partagé avec la sidebar) */}
-        <Avatar
-          src={selectedGroup ? undefined : selectedUser?.avatar}
-          fallback={
-            selectedGroup
-              ? selectedGroup.name[0]?.toUpperCase()
-              : selectedUser?.username[0]?.toUpperCase() || "?"
-          }
-          colorClass={selectedGroup ? "bg-emerald-600" : "bg-indigo-600"}
-          size="w-9 h-9"
-        />
+            rond avec initiale pour un groupe (composant partagé avec la sidebar).
+            Cliquable pour ouvrir les infos, comme sur WhatsApp. */}
+        <button
+          onClick={() => setShowContactInfo(true)}
+          aria-label="Voir les informations"
+          className="shrink-0"
+        >
+          <Avatar
+            src={selectedGroup ? undefined : selectedUser?.avatar}
+            fallback={
+              selectedGroup
+                ? selectedGroup.name[0]?.toUpperCase()
+                : selectedUser?.username[0]?.toUpperCase() || "?"
+            }
+            colorClass={selectedGroup ? "bg-emerald-600" : "bg-indigo-600"}
+            size="w-9 h-9"
+          />
+        </button>
 
-        <h2 className="font-bold flex-1">
+        <h2
+          onClick={() => setShowContactInfo(true)}
+          className="font-bold flex-1 cursor-pointer"
+        >
           {selectedGroup ? selectedGroup.name : selectedUser?.username}
         </h2>
 
@@ -842,7 +857,7 @@ export default function ChatContainer() {
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className={`h-full overflow-y-auto p-4 flex flex-col gap-3 ${
+          className={`custom-scrollbar h-full overflow-y-auto p-4 flex flex-col gap-3 ${
             WALLPAPERS.find((w) => w.id === activeWallpaper)?.className || ""
           }`}
           style={
@@ -975,7 +990,7 @@ export default function ChatContainer() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
             <h3 className="font-bold mb-3">Ajouter des membres</h3>
-            <div className="max-h-48 overflow-y-auto mb-3">
+            <div className="custom-scrollbar max-h-48 overflow-y-auto mb-3">
               {usersNotInGroup.length === 0 && (
                 <p className="text-sm text-zinc-400">
                   Tous tes contacts sont déjà dans ce groupe.
@@ -1019,7 +1034,7 @@ export default function ChatContainer() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
             <h3 className="font-bold mb-3">Gérer les membres</h3>
-            <div className="max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
+            <div className="custom-scrollbar max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
               {selectedGroup.members
                 .filter((m: GroupMember) => m._id !== authUser?._id)
                 .map((member: GroupMember) => (
@@ -1089,7 +1104,7 @@ export default function ChatContainer() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
             <h3 className="font-bold mb-3">Demandes d&apos;adhésion</h3>
-            <div className="max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
+            <div className="custom-scrollbar max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
               {(selectedGroup.joinRequests || []).length === 0 && (
                 <p className="text-sm text-zinc-400">
                   Aucune demande en attente.
@@ -1123,6 +1138,81 @@ export default function ChatContainer() {
             <button
               onClick={() => setShowJoinRequests(false)}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Modale : informations sur le contact ou le groupe (ouverte en
+          cliquant sur l'avatar ou le nom, comme la fiche contact de WhatsApp) */}
+      {showContactInfo && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowContactInfo(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center text-center mb-4">
+              <Avatar
+                src={selectedGroup ? undefined : selectedUser?.avatar}
+                fallback={
+                  selectedGroup
+                    ? selectedGroup.name[0]?.toUpperCase()
+                    : selectedUser?.username[0]?.toUpperCase() || "?"
+                }
+                colorClass={selectedGroup ? "bg-emerald-600" : "bg-indigo-600"}
+                size="w-24 h-24 text-3xl"
+              />
+              <h3 className="font-bold text-xl mt-3">
+                {selectedGroup ? selectedGroup.name : selectedUser?.username}
+              </h3>
+              {selectedUser && (
+                <p className="text-sm text-zinc-500 mt-1">
+                  {onlineUsers.includes(selectedUser._id)
+                    ? "En ligne"
+                    : "Hors ligne"}
+                </p>
+              )}
+              {selectedGroup && (
+                <p className="text-sm text-zinc-500 mt-1">
+                  {selectedGroup.members.length} membre
+                  {selectedGroup.members.length > 1 ? "s" : ""}
+                </p>
+              )}
+            </div>
+
+            {/* Liste des membres, uniquement pour un groupe */}
+            {selectedGroup && (
+              <div className="custom-scrollbar max-h-56 overflow-y-auto border-t border-zinc-200 dark:border-zinc-800 pt-3">
+                {selectedGroup.members.map((member: GroupMember) => (
+                  <div
+                    key={member._id}
+                    className="flex items-center gap-3 py-2"
+                  >
+                    <Avatar
+                      fallback={member.username[0]?.toUpperCase()}
+                      colorClass="bg-indigo-600"
+                      size="w-8 h-8 text-sm"
+                    />
+                    <span className="text-sm truncate">
+                      {member.username}
+                      {member._id === selectedGroup.createdBy && (
+                        <span className="text-xs text-zinc-400 ml-1">
+                          (créateur)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowContactInfo(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-4"
             >
               Fermer
             </button>
