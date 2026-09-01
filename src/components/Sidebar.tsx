@@ -367,7 +367,7 @@ export default function Sidebar() {
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="custom-scrollbar flex-1 overflow-y-auto">
         {groups.length > 0 && (
           <div className="px-3 pt-2 text-xs font-semibold text-zinc-400 uppercase">
             Groupes
@@ -493,7 +493,7 @@ export default function Sidebar() {
               onChange={(e) => setGroupName(e.target.value)}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 mb-3 bg-transparent text-sm"
             />
-            <div className="max-h-48 overflow-y-auto mb-3">
+            <div className="custom-scrollbar max-h-48 overflow-y-auto mb-3">
               {users.map((user: User) => (
                 <label
                   key={user._id}
@@ -531,7 +531,7 @@ export default function Sidebar() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
             <h3 className="font-bold mb-3">Découvrir des groupes</h3>
-            <div className="max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
+            <div className="custom-scrollbar max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
               {isLoadingDiscoverableGroups && (
                 <p className="text-sm text-zinc-400">Chargement...</p>
               )}
