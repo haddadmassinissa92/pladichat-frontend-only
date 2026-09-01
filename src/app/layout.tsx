@@ -13,8 +13,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://pladine-chat.vercel.app"),
   title: "PladiChat",
   description: "Application de chat en temps réel",
+  openGraph: {
+    title: "PladiChat",
+    description: "Messagerie instantanée en temps réel — messages privés, groupes, appels et bien plus.",
+    url: "https://pladine-chat.vercel.app",
+    siteName: "PladiChat",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "PladiChat - Messagerie instantanée en temps réel",
+      },
+    ],
+    locale: "fr_FR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PladiChat",
+    description: "Messagerie instantanée en temps réel — messages privés, groupes, appels et bien plus.",
+    images: ["/og-image.png"],
+  },
 };
 
 const themeScript = `
