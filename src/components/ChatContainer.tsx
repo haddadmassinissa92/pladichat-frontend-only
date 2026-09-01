@@ -19,7 +19,7 @@ type GroupMember = {
 };
 
 // Hooks fondamentaux de React pour la gestion du cycle de vie et des états
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Icône propre et cohérente avec le reste de l'application
 import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X } from "lucide-react";
@@ -107,6 +107,7 @@ export default function ChatContainer() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const pendingScrollTargetRef = useRef<string | null>(null);
 
   // Gestion du menu et du statut de blocage pour une conversation privée
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -138,49 +139,23 @@ export default function ChatContainer() {
   // Confirmation avant suppression définitive d'un groupe
   const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false);
 
-  // --- Recherche dans l'historique de la conversation ---
+  // Gestion de la recherche dans l'historique des messages
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
-  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Le message qu'on essaie d'atteindre suite à une navigation dans les résultats ;
-  // s'il n'est pas encore chargé, on continue à charger des messages plus anciens
-  // jusqu'à le trouver (ou jusqu'à ce qu'il n'y en ait plus)
-  const pendingScrollTargetRef = useRef<string | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(
+    null,
+  );
 
+  // Déclarer conversationId et isGroupConversation ici pour qu'ils soient disponibles
+  // dans scrollToMessageId qui est appelée au-dessous
   const conversationId = selectedGroup?._id || selectedUser?._id || null;
   const isGroupConversation = !!selectedGroup;
-
-  const handleOpenSearch = () => {
-    setShowSearch(true);
-  };
-
-  const handleCloseSearch = () => {
-    setShowSearch(false);
-    setSearchQuery("");
-    setCurrentResultIndex(0);
-    setHighlightedMessageId(null);
-    pendingScrollTargetRef.current = null;
-    clearSearchResults();
-  };
-
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-    setCurrentResultIndex(0);
-
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    if (!conversationId) return;
-
-    searchDebounceRef.current = setTimeout(() => {
-      searchMessages(conversationId, isGroupConversation, value);
-    }, 300);
-  };
 
   // Tente de faire défiler jusqu'au message ciblé s'il est déjà chargé ; sinon,
   // déclenche le chargement de messages plus anciens et réessaie automatiquement
   // (via l'effet ci-dessous, qui se redéclenche quand "messages" change)
-  const scrollToMessageId = useCallback((messageId: string) => {
+  const scrollToMessageId = (messageId: string) => {
     const el = document.getElementById(messageId);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -193,16 +168,18 @@ export default function ChatContainer() {
         loadMoreMessages(conversationId, isGroupConversation);
       }
     }
-  }, [hasMoreMessages, conversationId, isGroupConversation, loadMoreMessages]);
+  };
 
   // Une fois que de nouveaux (anciens) messages ont été chargés, on retente
   // d'atteindre le message ciblé par la recherche s'il y en avait un en attente
+
   useEffect(() => {
     if (pendingScrollTargetRef.current) {
       scrollToMessageId(pendingScrollTargetRef.current);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
+
 
   const goToResult = (index: number) => {
     if (index < 0 || index >= searchResults.length) return;
@@ -215,13 +192,15 @@ export default function ChatContainer() {
 
   // Dès que de nouveaux résultats de recherche arrivent, on saute automatiquement
   // au premier (comportement classique d'un "Ctrl+F")
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (searchResults.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentResultIndex(0);
       scrollToMessageId(searchResults[0]._id);
     }
-  }, [searchResults, scrollToMessageId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchResults]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Un membre est bloqué dans le groupe s'il figure dans blockedMembers
   const isMemberBlockedInGroup = (memberId: string) =>
@@ -392,6 +371,30 @@ export default function ChatContainer() {
     setCustomWallpaper(resolved.image);
     setShowWallpaperMenu(false);
   };
+
+  // Ouverture de la barre de recherche dans l'historique
+  const handleOpenSearch = () => {
+    setShowSearch(true);
+  };
+
+  // Fermeture de la barre de recherche
+  const handleCloseSearch = () => {
+    setShowSearch(false);
+    setSearchQuery("");
+    setCurrentResultIndex(0);
+    setHighlightedMessageId(null);
+    clearSearchResults();
+  };
+
+ // Gère les changements dans la barre de recherche
+const handleSearchChange = (query: string) => {
+  setSearchQuery(query);
+  if (query.trim() && conversationId) {
+    searchMessages(conversationId, isGroupConversation, query.trim());
+  } else {
+    clearSearchResults();
+  }
+};
 
   // Au changement de conversation : charge la première page de messages
   // (les plus récents) et les marque comme lus
@@ -625,7 +628,7 @@ export default function ChatContainer() {
                         ? wallpaperFileInputRef.current?.click()
                         : handleWallpaperChange(w.id)
                     }
-                    className={`block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${
+                    className={`block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
                       activeWallpaper === w.id ? "font-semibold" : ""
                     }`}
                   >
@@ -635,7 +638,7 @@ export default function ChatContainer() {
                 <div className="border-t border-zinc-200 dark:border-zinc-700 mt-1">
                   <button
                     onClick={handleResetWallpaper}
-                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+                    className="block w-full text-left px-4 py-2 text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     Utiliser le fond par défaut
                   </button>
@@ -671,7 +674,7 @@ export default function ChatContainer() {
                 <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
                   <button
                     onClick={handleToggleBlock}
-                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
+                    className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
                     {isBlockedByMe
                       ? `Débloquer ${selectedUser.username}`
@@ -702,25 +705,25 @@ export default function ChatContainer() {
                 <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-52">
                   <button
                     onClick={handleOpenRenameGroup}
-                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     Renommer le groupe
                   </button>
                   <button
                     onClick={handleOpenAddMembers}
-                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     Ajouter des membres
                   </button>
                   <button
                     onClick={handleOpenManageMembers}
-                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     Gérer les membres
                   </button>
                   <button
                     onClick={handleToggleDiscoverable}
-                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     {selectedGroup.isDiscoverable
                       ? "Rendre le groupe privé"
@@ -729,14 +732,14 @@ export default function ChatContainer() {
                   {pendingJoinRequestsCount > 0 && (
                     <button
                       onClick={handleOpenJoinRequests}
-                      className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
                       Demandes d&apos;adhésion ({pendingJoinRequestsCount})
                     </button>
                   )}
                   <button
                     onClick={handleOpenDeleteGroupConfirm}
-                    className="block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600"
+                    className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
                     Supprimer le groupe
                   </button>
@@ -1114,3 +1117,4 @@ export default function ChatContainer() {
     </div>
   );
 }
+

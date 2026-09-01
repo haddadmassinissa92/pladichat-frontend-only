@@ -663,7 +663,7 @@ export default function Sidebar() {
                               ? globalWallpaperFileInputRef.current?.click()
                               : handleGlobalWallpaperChange(w.id)
                           }
-                          className={`block w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${
+                          className={`block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
                             globalWallpaper === w.id ? "font-semibold" : ""
                           }`}
                         >
