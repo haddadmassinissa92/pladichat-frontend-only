@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Image as ImageIcon, Plus } from "lucide-react";
+import { Search, Plus, Palette } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -643,9 +643,9 @@ export default function Sidebar() {
                   onClick={() =>
                     setShowGlobalWallpaperMenu(!showGlobalWallpaperMenu)
                   }
-                  className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                 >
-                  <ImageIcon size={16} strokeWidth={2} className="shrink-0" />
+                  <Palette size={16} strokeWidth={2} className="shrink-0" />
                   Fond d&apos;écran
                 </button>
                 {showGlobalWallpaperMenu && (

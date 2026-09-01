@@ -22,7 +22,7 @@ type GroupMember = {
 import { useEffect, useRef, useState } from "react";
 
 // Icône propre et cohérente avec le reste de l'application
-import { Image as ImageIcon, ArrowLeft, ArrowDown, MoreVertical } from "lucide-react";
+import { Palette, ArrowLeft, ArrowDown, MoreVertical } from "lucide-react";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
 import { useChatStore } from "@/store/useChatStore";
@@ -506,7 +506,7 @@ export default function ChatContainer() {
             className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
             aria-label="Changer le fond de cette discussion"
           >
-            <ImageIcon size={20} strokeWidth={2} />
+            <Palette size={20} strokeWidth={2} />
           </button>
           {showWallpaperMenu && (
             <>
