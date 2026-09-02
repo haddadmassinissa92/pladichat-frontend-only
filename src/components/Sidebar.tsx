@@ -38,7 +38,7 @@ type DiscoverableGroup = {
 };
 
 import { useEffect, useRef, useState } from "react";
-import { Search, Plus, Palette } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2 } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -49,6 +49,11 @@ import {
   setGlobalWallpaper,
   setGlobalWallpaperImage,
 } from "@/lib/wallpaper";
+import {
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
+  isPushSubscribed,
+} from "@/lib/push";
 
 function formatLastMessage(
   msg:
@@ -130,6 +135,30 @@ export default function Sidebar() {
       document.documentElement.classList.contains("dark"),
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // État des notifications push : vérifie au chargement si on est déjà abonné
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+
+  useEffect(() => {
+    isPushSubscribed().then(setPushEnabled);
+  }, []);
+
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    if (pushEnabled) {
+      const result = await unsubscribeFromPushNotifications();
+      if (result.success) setPushEnabled(false);
+    } else {
+      const result = await subscribeToPushNotifications();
+      if (result.success) {
+        setPushEnabled(true);
+      } else if (result.message) {
+        alert(result.message);
+      }
+    }
+    setPushLoading(false);
+  };
 
   // Découverte de groupes publics et demandes d'adhésion
   const [showDiscoverGroups, setShowDiscoverGroups] = useState(false);
@@ -631,8 +660,9 @@ export default function Sidebar() {
             <div className="absolute left-3 bottom-16 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-56">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
+                <Camera size={16} strokeWidth={2} className="shrink-0" />
                 Changer la photo
               </button>
 
@@ -681,7 +711,10 @@ export default function Sidebar() {
               </div>
 
               <div className="flex items-center justify-between px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                <span>Mode sombre</span>
+                <span className="flex items-center gap-2">
+                  <Moon size={16} strokeWidth={2} />
+                  Mode sombre
+                </span>
                 <button
                   type="button"
                   onClick={() => setIsDarkMode(toggleTheme())}
@@ -698,20 +731,44 @@ export default function Sidebar() {
                 </button>
               </div>
 
+              <div className="flex items-center justify-between px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                <span className="flex items-center gap-2">
+                  <Bell size={16} strokeWidth={2} />
+                  Notifications push
+                </span>
+                <button
+                  type="button"
+                  onClick={handleTogglePush}
+                  disabled={pushLoading}
+                  aria-label="Basculer les notifications push"
+                  className={`relative w-10 h-5 rounded-full transition-colors disabled:opacity-50 ${
+                    pushEnabled ? "bg-indigo-600" : "bg-zinc-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                      pushEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
               <button
                 onClick={() => {
                   setShowChangePassword(true);
                   setShowProfileMenu(false);
                 }}
-                className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
+                <Lock size={16} strokeWidth={2} className="shrink-0" />
                 Mot de passe
               </button>
 
               <button
                 onClick={logout}
-                className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
               >
+                <LogOut size={16} strokeWidth={2} className="shrink-0" />
                 Se déconnecter
               </button>
 
@@ -720,8 +777,9 @@ export default function Sidebar() {
                   setShowDeleteAccount(true);
                   setShowProfileMenu(false);
                 }}
-                className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
               >
+                <Trash2 size={16} strokeWidth={2} className="shrink-0" />
                 Supprimer mon compte
               </button>
             </div>

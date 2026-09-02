@@ -24,7 +24,7 @@ import Image from "next/image";
 import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
-import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X } from "lucide-react";
+import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2 } from "lucide-react";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
 import { useChatStore } from "@/store/useChatStore";
@@ -157,6 +157,7 @@ export default function ChatContainer() {
   // jusqu'à le trouver (ou jusqu'à ce qu'il n'y en ait plus)
   const pendingScrollTargetRef = useRef<string | null>(null);
 
+  // Define conversationId and isGroupConversation early so they can be used in handlers
   const conversationId = selectedGroup?._id || selectedUser?._id || null;
   const isGroupConversation = !!selectedGroup;
 
@@ -706,8 +707,9 @@ export default function ChatContainer() {
                 <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
                   <button
                     onClick={handleToggleBlock}
-                    className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
+                    <Ban size={16} strokeWidth={2} className="shrink-0" />
                     {isBlockedByMe
                       ? `Débloquer ${selectedUser.username}`
                       : `Bloquer ${selectedUser.username}`}
@@ -737,26 +739,34 @@ export default function ChatContainer() {
                 <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-52">
                   <button
                     onClick={handleOpenRenameGroup}
-                    className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
+                    <Pencil size={16} strokeWidth={2} className="shrink-0" />
                     Renommer le groupe
                   </button>
                   <button
                     onClick={handleOpenAddMembers}
-                    className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
+                    <UserPlus size={16} strokeWidth={2} className="shrink-0" />
                     Ajouter des membres
                   </button>
                   <button
                     onClick={handleOpenManageMembers}
-                    className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
+                    <Users size={16} strokeWidth={2} className="shrink-0" />
                     Gérer les membres
                   </button>
                   <button
                     onClick={handleToggleDiscoverable}
-                    className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
+                    {selectedGroup.isDiscoverable ? (
+                      <EyeOff size={16} strokeWidth={2} className="shrink-0" />
+                    ) : (
+                      <Eye size={16} strokeWidth={2} className="shrink-0" />
+                    )}
                     {selectedGroup.isDiscoverable
                       ? "Rendre le groupe privé"
                       : "Rendre le groupe découvrable"}
@@ -764,15 +774,17 @@ export default function ChatContainer() {
                   {pendingJoinRequestsCount > 0 && (
                     <button
                       onClick={handleOpenJoinRequests}
-                      className="block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
+                      <UserCheck size={16} strokeWidth={2} className="shrink-0" />
                       Demandes d&apos;adhésion ({pendingJoinRequestsCount})
                     </button>
                   )}
                   <button
                     onClick={handleOpenDeleteGroupConfirm}
-                    className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
+                    <Trash2 size={16} strokeWidth={2} className="shrink-0" />
                     Supprimer le groupe
                   </button>
                 </div>
@@ -1241,8 +1253,9 @@ export default function ChatContainer() {
                     handleToggleBlock();
                     setShowContactInfo(false);
                   }}
-                  className="w-full text-left text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg px-2 py-2 transition"
+                  className="w-full flex items-center gap-2 text-left text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg px-2 py-2 transition"
                 >
+                  <Ban size={15} strokeWidth={2} className="shrink-0" />
                   {isBlockedByMe
                     ? `Débloquer ${selectedUser.username}`
                     : `Bloquer ${selectedUser.username}`}
@@ -1298,8 +1311,9 @@ export default function ChatContainer() {
                         setShowContactInfo(false);
                         handleOpenRenameGroup();
                       }}
-                      className="block w-full text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
+                      <Pencil size={15} strokeWidth={2} className="shrink-0" />
                       Renommer le groupe
                     </button>
                     <button
@@ -1307,14 +1321,20 @@ export default function ChatContainer() {
                         setShowContactInfo(false);
                         handleOpenAddMembers();
                       }}
-                      className="block w-full text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
+                      <UserPlus size={15} strokeWidth={2} className="shrink-0" />
                       Ajouter des membres
                     </button>
                     <button
                       onClick={handleToggleDiscoverable}
-                      className="block w-full text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
+                      {selectedGroup.isDiscoverable ? (
+                        <EyeOff size={15} strokeWidth={2} className="shrink-0" />
+                      ) : (
+                        <Eye size={15} strokeWidth={2} className="shrink-0" />
+                      )}
                       {selectedGroup.isDiscoverable
                         ? "Rendre le groupe privé"
                         : "Rendre le groupe découvrable"}
@@ -1324,8 +1344,9 @@ export default function ChatContainer() {
                         setShowContactInfo(false);
                         handleOpenDeleteGroupConfirm();
                       }}
-                      className="block w-full text-left text-sm px-2 py-2 rounded-lg text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                     >
+                      <Trash2 size={15} strokeWidth={2} className="shrink-0" />
                       Supprimer le groupe
                     </button>
                   </div>
