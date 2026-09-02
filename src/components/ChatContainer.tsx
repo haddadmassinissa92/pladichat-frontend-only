@@ -24,7 +24,8 @@ import Image from "next/image";
 import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
-import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2 } from "lucide-react";
+import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video } from "lucide-react";
+import { useCallStore } from "@/store/useCallStore";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
 import { useChatStore } from "@/store/useChatStore";
@@ -105,6 +106,7 @@ export default function ChatContainer() {
   // et références DOM utilisées pour le défilement et les gestes tactiles
   const [showGroupMenu, setShowGroupMenu] = useState(false);
   const { authUser, socket, toggleBlockUser, onlineUsers } = useAuthStore();
+  const { startCall, startGroupCall, callStatus } = useCallStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
@@ -151,15 +153,13 @@ export default function ChatContainer() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const conversationId = selectedGroup?._id || selectedUser?._id || null;
+  const isGroupConversation = !!selectedGroup;
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Le message qu'on essaie d'atteindre suite à une navigation dans les résultats ;
   // s'il n'est pas encore chargé, on continue à charger des messages plus anciens
   // jusqu'à le trouver (ou jusqu'à ce qu'il n'y en ait plus)
   const pendingScrollTargetRef = useRef<string | null>(null);
-
-  // Define conversationId and isGroupConversation early so they can be used in handlers
-  const conversationId = selectedGroup?._id || selectedUser?._id || null;
-  const isGroupConversation = !!selectedGroup;
 
   const handleOpenSearch = () => {
     setShowSearch(true);
@@ -318,6 +318,16 @@ export default function ChatContainer() {
   const handleOpenDeleteGroupConfirm = () => {
     setShowDeleteGroupConfirm(true);
     setShowGroupMenu(false);
+  };
+
+  // Démarre un appel (audio ou vidéo), privé ou de groupe selon la conversation
+  const handleStartCall = (type: "audio" | "video") => {
+    if (callStatus !== "idle") return;
+    if (selectedGroup) {
+      startGroupCall(selectedGroup, type);
+    } else if (selectedUser) {
+      startCall(selectedUser, type);
+    }
   };
 
   const handleConfirmDeleteGroup = () => {
@@ -624,6 +634,27 @@ export default function ChatContainer() {
         >
           {selectedGroup ? selectedGroup.name : selectedUser?.username}
         </h2>
+
+        {/* Boutons pour démarrer un appel audio/vidéo, masqués si un blocage
+            empêche déjà l'envoi de messages ou si un appel est déjà en cours */}
+        {!isBlockedRelationship && !amIBlockedInThisGroup && callStatus === "idle" && (
+          <>
+            <button
+              onClick={() => handleStartCall("audio")}
+              className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+              aria-label="Appel audio"
+            >
+              <Phone size={20} strokeWidth={2} />
+            </button>
+            <button
+              onClick={() => handleStartCall("video")}
+              className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+              aria-label="Appel vidéo"
+            >
+              <Video size={20} strokeWidth={2} />
+            </button>
+          </>
+        )}
 
         {/* Bouton pour ouvrir la recherche dans l'historique de cette conversation */}
         <button

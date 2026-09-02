@@ -42,7 +42,9 @@ import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2 } from 
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useCallStore } from "@/store/useCallStore";
 import Avatar from "./Avatar";
+import CallModal from "./CallModal";
 import {
   WALLPAPERS,
   getGlobalWallpaper,
@@ -114,6 +116,21 @@ export default function Sidebar() {
   } = useChatStore();
   const { onlineUsers, authUser, logout, updateProfile, socket, changePassword, deleteAccount } =
     useAuthStore();
+  const {
+    handleIncomingCall,
+    handleCallAccepted,
+    handleIceCandidate,
+    handleCallRejected,
+    handleCallEnded,
+    handleCallUnavailable,
+    handleIncomingGroupCall,
+    handleGroupCallParticipants,
+    handleGroupCallOffer,
+    handleGroupCallAnswer,
+    handleGroupIceCandidate,
+    handleUserJoinedGroupCall,
+    handleUserLeftGroupCall,
+  } = useCallStore();
 
   const [search, setSearch] = useState("");
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -319,6 +336,23 @@ export default function Sidebar() {
     };
     socket.on("joinRequestRejected", handleJoinRequestRejected);
 
+    // --- Écouteurs d'appel privé (1-à-1) ---
+    socket.on("incomingCall", handleIncomingCall);
+    socket.on("callAccepted", handleCallAccepted);
+    socket.on("iceCandidate", handleIceCandidate);
+    socket.on("callRejected", handleCallRejected);
+    socket.on("callEnded", handleCallEnded);
+    socket.on("callUnavailable", handleCallUnavailable);
+
+    // --- Écouteurs d'appel de groupe ---
+    socket.on("incomingGroupCall", handleIncomingGroupCall);
+    socket.on("groupCallParticipants", handleGroupCallParticipants);
+    socket.on("incomingGroupCallOffer", handleGroupCallOffer);
+    socket.on("groupCallAnswerReceived", handleGroupCallAnswer);
+    socket.on("groupIceCandidate", handleGroupIceCandidate);
+    socket.on("userJoinedGroupCall", handleUserJoinedGroupCall);
+    socket.on("userLeftGroupCall", handleUserLeftGroupCall);
+
     return () => {
       socket.off("newMessage", refresh);
       socket.off("messagesRead", refresh);
@@ -327,8 +361,40 @@ export default function Sidebar() {
       socket.off("joinRequestReceived", handleJoinRequestReceived);
       socket.off("joinRequestApproved", handleJoinRequestApproved);
       socket.off("joinRequestRejected", handleJoinRequestRejected);
+      socket.off("incomingCall", handleIncomingCall);
+      socket.off("callAccepted", handleCallAccepted);
+      socket.off("iceCandidate", handleIceCandidate);
+      socket.off("callRejected", handleCallRejected);
+      socket.off("callEnded", handleCallEnded);
+      socket.off("callUnavailable", handleCallUnavailable);
+      socket.off("incomingGroupCall", handleIncomingGroupCall);
+      socket.off("groupCallParticipants", handleGroupCallParticipants);
+      socket.off("incomingGroupCallOffer", handleGroupCallOffer);
+      socket.off("groupCallAnswerReceived", handleGroupCallAnswer);
+      socket.off("groupIceCandidate", handleGroupIceCandidate);
+      socket.off("userJoinedGroupCall", handleUserJoinedGroupCall);
+      socket.off("userLeftGroupCall", handleUserLeftGroupCall);
     };
-  }, [socket, getUsers, getGroups, selectedGroup, setSelectedGroup]);
+  }, [
+    socket,
+    getUsers,
+    getGroups,
+    selectedGroup,
+    setSelectedGroup,
+    handleIncomingCall,
+    handleCallAccepted,
+    handleIceCandidate,
+    handleCallRejected,
+    handleCallEnded,
+    handleCallUnavailable,
+    handleIncomingGroupCall,
+    handleGroupCallParticipants,
+    handleGroupCallOffer,
+    handleGroupCallAnswer,
+    handleGroupIceCandidate,
+    handleUserJoinedGroupCall,
+    handleUserLeftGroupCall,
+  ]);
 
   const toggleMember = (userId: string) => {
     setSelectedMembers((prev) =>
@@ -384,6 +450,7 @@ export default function Sidebar() {
 
   return (
     <aside className="w-full h-full border-r border-zinc-200 dark:border-zinc-800 flex flex-col">
+      <CallModal />
       <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-pink-600 text-white flex items-center justify-center font-bold text-sm">
