@@ -655,70 +655,8 @@ export default function ChatContainer() {
           </>
         )}
 
-        {/* Bouton pour ouvrir la recherche dans l'historique de cette conversation */}
-        <button
-          onClick={handleOpenSearch}
-          className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
-          aria-label="Rechercher dans la conversation"
-        >
-          <Search size={20} strokeWidth={2} />
-        </button>
-
-        {/* Menu de choix du fond d'écran de cette conversation */}
-        <div className="relative">
-          <button
-            onClick={() => setShowWallpaperMenu(!showWallpaperMenu)}
-            className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
-            aria-label="Changer le fond de cette discussion"
-          >
-            <Palette size={20} strokeWidth={2} />
-          </button>
-          {showWallpaperMenu && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setShowWallpaperMenu(false)}
-              />
-              <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-52">
-                <div className="px-4 py-1 text-xs text-zinc-400 uppercase">
-                  Fond de cette discussion
-                </div>
-                {WALLPAPERS.map((w) => (
-                  <button
-                    key={w.id}
-                    onClick={() =>
-                      w.id === "custom"
-                        ? wallpaperFileInputRef.current?.click()
-                        : handleWallpaperChange(w.id)
-                    }
-                    className={`block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
-                      activeWallpaper === w.id ? "font-semibold" : ""
-                    }`}
-                  >
-                    {w.label}
-                  </button>
-                ))}
-                <div className="border-t border-zinc-200 dark:border-zinc-700 mt-1">
-                  <button
-                    onClick={handleResetWallpaper}
-                    className="block w-full text-left px-4 py-2 text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                  >
-                    Utiliser le fond par défaut
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-          <input
-            ref={wallpaperFileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleWallpaperImageSelect}
-          />
-        </div>
-
-        {/* Menu "⋮" pour bloquer/débloquer, visible uniquement en conversation privée */}
+        {/* Menu "⋮" pour bloquer/débloquer, changer le thème et la recherche,
+            visible uniquement en conversation privée */}
         {selectedUser && (
           <div className="relative">
             <button
@@ -736,6 +674,26 @@ export default function ChatContainer() {
                 />
                 <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
                   <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      handleOpenSearch();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Search size={16} strokeWidth={2} className="shrink-0" />
+                    Recherche
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      setShowWallpaperMenu(true);
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Palette size={16} strokeWidth={2} className="shrink-0" />
+                    Thème
+                  </button>
+                  <button
                     onClick={handleToggleBlock}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
@@ -750,8 +708,9 @@ export default function ChatContainer() {
           </div>
         )}
 
-        {/* Menu "⋮" de gestion du groupe, visible seulement pour son créateur */}
-        {selectedGroup && selectedGroup.createdBy === authUser?._id && (
+        {/* Menu "⋮" du groupe : recherche et thème accessibles à tous les
+            membres, actions d'administration réservées au créateur */}
+        {selectedGroup && (
           <div className="relative">
             <button
               onClick={() => setShowGroupMenu(!showGroupMenu)}
@@ -768,55 +727,79 @@ export default function ChatContainer() {
                 />
                 <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-52">
                   <button
-                    onClick={handleOpenRenameGroup}
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      handleOpenSearch();
+                    }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Pencil size={16} strokeWidth={2} className="shrink-0" />
-                    Renommer le groupe
+                    <Search size={16} strokeWidth={2} className="shrink-0" />
+                    Recherche
                   </button>
                   <button
-                    onClick={handleOpenAddMembers}
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      setShowWallpaperMenu(true);
+                    }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <UserPlus size={16} strokeWidth={2} className="shrink-0" />
-                    Ajouter des membres
+                    <Palette size={16} strokeWidth={2} className="shrink-0" />
+                    Thème
                   </button>
-                  <button
-                    onClick={handleOpenManageMembers}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                  >
-                    <Users size={16} strokeWidth={2} className="shrink-0" />
-                    Gérer les membres
-                  </button>
-                  <button
-                    onClick={handleToggleDiscoverable}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                  >
-                    {selectedGroup.isDiscoverable ? (
-                      <EyeOff size={16} strokeWidth={2} className="shrink-0" />
-                    ) : (
-                      <Eye size={16} strokeWidth={2} className="shrink-0" />
-                    )}
-                    {selectedGroup.isDiscoverable
-                      ? "Rendre le groupe privé"
-                      : "Rendre le groupe découvrable"}
-                  </button>
-                  {pendingJoinRequestsCount > 0 && (
-                    <button
-                      onClick={handleOpenJoinRequests}
-                      className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                    >
-                      <UserCheck size={16} strokeWidth={2} className="shrink-0" />
-                      Demandes d&apos;adhésion ({pendingJoinRequestsCount})
-                    </button>
+                  {selectedGroup.createdBy === authUser?._id && (
+                    <>
+                      <button
+                        onClick={handleOpenRenameGroup}
+                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      >
+                        <Pencil size={16} strokeWidth={2} className="shrink-0" />
+                        Renommer le groupe
+                      </button>
+                      <button
+                        onClick={handleOpenAddMembers}
+                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      >
+                        <UserPlus size={16} strokeWidth={2} className="shrink-0" />
+                        Ajouter des membres
+                      </button>
+                      <button
+                        onClick={handleOpenManageMembers}
+                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      >
+                        <Users size={16} strokeWidth={2} className="shrink-0" />
+                        Gérer les membres
+                      </button>
+                      <button
+                        onClick={handleToggleDiscoverable}
+                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      >
+                        {selectedGroup.isDiscoverable ? (
+                          <EyeOff size={16} strokeWidth={2} className="shrink-0" />
+                        ) : (
+                          <Eye size={16} strokeWidth={2} className="shrink-0" />
+                        )}
+                        {selectedGroup.isDiscoverable
+                          ? "Rendre le groupe privé"
+                          : "Rendre le groupe découvrable"}
+                      </button>
+                      {pendingJoinRequestsCount > 0 && (
+                        <button
+                          onClick={handleOpenJoinRequests}
+                          className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                        >
+                          <UserCheck size={16} strokeWidth={2} className="shrink-0" />
+                          Demandes d&apos;adhésion ({pendingJoinRequestsCount})
+                        </button>
+                      )}
+                      <button
+                        onClick={handleOpenDeleteGroupConfirm}
+                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                      >
+                        <Trash2 size={16} strokeWidth={2} className="shrink-0" />
+                        Supprimer le groupe
+                      </button>
+                    </>
                   )}
-                  <button
-                    onClick={handleOpenDeleteGroupConfirm}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
-                  >
-                    <Trash2 size={16} strokeWidth={2} className="shrink-0" />
-                    Supprimer le groupe
-                  </button>
                 </div>
               </>
             )}
@@ -999,6 +982,54 @@ export default function ChatContainer() {
 
       {/* Barre de saisie du message, masquée si un blocage (privé ou dans le groupe) empêche l'envoi */}
       {!isBlockedRelationship && !amIBlockedInThisGroup && <MessageInput />}
+
+      {/* Input caché pour l'upload d'une image de fond personnalisée,
+          déclenché depuis la modale "Thème" ci-dessous */}
+      <input
+        ref={wallpaperFileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleWallpaperImageSelect}
+      />
+
+      {/* Modale : fond de cette discussion (déplacée dans le menu "⋮" du contact/groupe) */}
+      {showWallpaperMenu && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Chat Thème</h3>
+            <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
+              {WALLPAPERS.map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() =>
+                    w.id === "custom"
+                      ? wallpaperFileInputRef.current?.click()
+                      : handleWallpaperChange(w.id)
+                  }
+                  className={`block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
+                    activeWallpaper === w.id ? "font-semibold" : ""
+                  }`}
+                >
+                  {w.label}
+                </button>
+              ))}
+              <button
+                onClick={handleResetWallpaper}
+                className="block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              >
+                Utiliser le fond par défaut
+              </button>
+            </div>
+            <button
+              onClick={() => setShowWallpaperMenu(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modale : renommer le groupe */}
       {showRenameGroup && (
