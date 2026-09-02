@@ -106,12 +106,7 @@ export default function ChatContainer() {
   // et références DOM utilisées pour le défilement et les gestes tactiles
   const [showGroupMenu, setShowGroupMenu] = useState(false);
   const { authUser, socket, toggleBlockUser, onlineUsers } = useAuthStore();
-  const { startCall, startGroupCall, callStatus } = useCallStore();
-
-  // Sélection des participants avant de lancer un appel de groupe
-  const [showCallMemberSelect, setShowCallMemberSelect] = useState(false);
-  const [pendingCallType, setPendingCallType] = useState<"audio" | "video" | null>(null);
-  const [selectedCallMembers, setSelectedCallMembers] = useState<string[]>([]);
+  const { startCall, callStatus } = useCallStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
@@ -325,30 +320,12 @@ export default function ChatContainer() {
     setShowGroupMenu(false);
   };
 
-  // Démarre un appel (audio ou vidéo) : direct pour un contact privé, mais
-  // ouvre d'abord une sélection des participants pour un groupe
+  // Démarre un appel privé (audio ou vidéo) avec le contact de cette
+  // conversation. Les appels de groupe se font désormais uniquement via le
+  // bouton "Nouvel appel" de la sidebar, indépendant des groupes créés.
   const handleStartCall = (type: "audio" | "video") => {
-    if (callStatus !== "idle") return;
-    if (selectedGroup) {
-      setPendingCallType(type);
-      setSelectedCallMembers([]);
-      setShowCallMemberSelect(true);
-    } else if (selectedUser) {
-      startCall(selectedUser, type);
-    }
-  };
-
-  const toggleCallMember = (userId: string) => {
-    setSelectedCallMembers((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
-    );
-  };
-
-  const handleConfirmGroupCall = () => {
-    if (!selectedGroup || !pendingCallType || selectedCallMembers.length === 0) return;
-    startGroupCall(selectedGroup, pendingCallType, selectedCallMembers);
-    setShowCallMemberSelect(false);
-    setPendingCallType(null);
+    if (callStatus !== "idle" || !selectedUser) return;
+    startCall(selectedUser, type);
   };
 
   const handleConfirmDeleteGroup = () => {
@@ -656,9 +633,10 @@ export default function ChatContainer() {
           {selectedGroup ? selectedGroup.name : selectedUser?.username}
         </h2>
 
-        {/* Boutons pour démarrer un appel audio/vidéo, masqués si un blocage
-            empêche déjà l'envoi de messages ou si un appel est déjà en cours */}
-        {!isBlockedRelationship && !amIBlockedInThisGroup && callStatus === "idle" && (
+        {/* Boutons pour démarrer un appel audio/vidéo : uniquement en
+            conversation privée (pas pour les groupes créés), masqués si un
+            blocage empêche déjà l'envoi de messages ou si un appel est en cours */}
+        {selectedUser && !isBlockedRelationship && callStatus === "idle" && (
           <>
             <button
               onClick={() => handleStartCall("audio")}
@@ -1412,52 +1390,6 @@ export default function ChatContainer() {
             >
               Fermer
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modale : sélection des participants avant de lancer un appel de groupe */}
-      {showCallMemberSelect && selectedGroup && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
-            <h3 className="font-bold mb-3">
-              Appeler {pendingCallType === "video" ? "en vidéo" : "en audio"}
-            </h3>
-            <p className="text-sm text-zinc-500 mb-3">
-              Choisis qui inviter à cet appel :
-            </p>
-            <div className="custom-scrollbar max-h-56 overflow-y-auto mb-3">
-              {selectedGroup.members
-                .filter((m: GroupMember) => m._id !== authUser?._id)
-                .map((member: GroupMember) => (
-                  <label
-                    key={member._id}
-                    className="flex items-center gap-2 py-2 text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedCallMembers.includes(member._id)}
-                      onChange={() => toggleCallMember(member._id)}
-                    />
-                    {member.username}
-                  </label>
-                ))}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowCallMemberSelect(false)}
-                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleConfirmGroupCall}
-                disabled={selectedCallMembers.length === 0}
-                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
-              >
-                Appeler ({selectedCallMembers.length})
-              </button>
-            </div>
           </div>
         </div>
       )}
