@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
+import { useSyncExternalStore } from "react";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import imageCompression from "browser-image-compression";
@@ -19,6 +21,16 @@ export default function MessageInput() {
 
   // état pour l'affichage du sélecteur d'emojis complet
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  // Le panneau d'emojis mobile est téléporté directement dans <body> via un
+  // portail (voir plus bas) pour garantir un vrai positionnement "fixed" par
+  // rapport à l'écran, sans être affecté par les animations de la page
+  // (transform sur les conteneurs parents) qui casseraient sinon son ancrage
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   // etats pour la gestion des messages, modification, suppression et réponse
   const sendMessage = useChatStore((state) => state.sendMessage);
@@ -187,7 +199,7 @@ export default function MessageInput() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-zinc-200 dark:border-zinc-800"
+      className="relative border-t border-zinc-200 dark:border-zinc-800"
     >
       {replyingTo && (
         <div className="px-4 py-2 flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 text-sm">
@@ -306,35 +318,60 @@ export default function MessageInput() {
         </button>
       </div>
 
-      {/* Panneau d'emojis façon WhatsApp : glisse depuis le bas de l'écran,
-          prend toute la largeur, et se referme (glisse vers le bas) au choix
-          d'un emoji ou à la fermeture manuelle */}
-      {showEmojiPicker && (
-        <div
-          className="fixed inset-0 z-30"
-          onClick={() => setShowEmojiPicker(false)}
-        />
-      )}
-      <div
-        className={`fixed inset-x-0 bottom-0 z-40 transition-transform duration-300 ease-in-out ${
-          showEmojiPicker ? "translate-y-0" : "translate-y-full"
-        }`}
-      >
-        <div className="rounded-t-2xl border-t border-x border-zinc-200 dark:border-zinc-700 shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700">
-            <span className="text-sm font-medium text-zinc-500">Emojis</span>
-            <button
-              type="button"
-              onClick={() => setShowEmojiPicker(false)}
-              className="text-zinc-500 hover:text-indigo-600 transition"
-              aria-label="Fermer les emojis"
+      {/* Panneau d'emojis mobile, façon WhatsApp : téléporté dans <body> via
+          un portail pour un vrai positionnement fixe (non affecté par les
+          animations de la page), glisse depuis le bas de l'écran, prend
+          toute la largeur, et ne pousse jamais le reste du contenu. Masqué
+          à partir de la taille "sm" (tablette/desktop), où le popover
+          classique ci-dessous est utilisé à la place. */}
+      {mounted &&
+        createPortal(
+          <div className="sm:hidden">
+            {showEmojiPicker && (
+              <div
+                className="fixed inset-0 z-30"
+                onClick={() => setShowEmojiPicker(false)}
+              />
+            )}
+            <div
+              className={`fixed inset-x-0 bottom-0 z-40 transition-transform duration-300 ease-in-out ${
+                showEmojiPicker ? "translate-y-0" : "translate-y-full"
+              }`}
             >
-              <X size={18} strokeWidth={2} />
-            </button>
+              <div className="rounded-t-2xl border-t border-x border-zinc-200 dark:border-zinc-700 shadow-lg overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700">
+                  <span className="text-sm font-medium text-zinc-500">
+                    Emojis
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(false)}
+                    className="text-zinc-500 hover:text-indigo-600 transition"
+                    aria-label="Fermer les emojis"
+                  >
+                    <X size={18} strokeWidth={2} />
+                  </button>
+                </div>
+                <EmojiPicker onSelect={handleEmojiSelect} fullWidth />
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Popover d'emojis desktop : petit panneau centré au-dessus du champ
+          de saisie, visible seulement à partir de la taille "sm" */}
+      {showEmojiPicker && (
+        <div className="hidden sm:block">
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setShowEmojiPicker(false)}
+          />
+          <div className="absolute z-40 bottom-full left-1/2 -translate-x-1/2 mb-2">
+            <EmojiPicker onSelect={handleEmojiSelect} />
           </div>
-          <EmojiPicker onSelect={handleEmojiSelect} fullWidth />
         </div>
-      </div>
+      )}
     </form>
   );
 }
