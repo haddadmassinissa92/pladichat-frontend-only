@@ -133,6 +133,7 @@ export default function Sidebar() {
     handleGroupIceCandidate,
     handleUserJoinedGroupCall,
     handleUserLeftGroupCall,
+    handleCallUpgradedToGroup,
   } = useCallStore();
 
   const [search, setSearch] = useState("");
@@ -391,6 +392,7 @@ export default function Sidebar() {
     socket.on("groupIceCandidate", handleGroupIceCandidate);
     socket.on("userJoinedGroupCall", handleUserJoinedGroupCall);
     socket.on("userLeftGroupCall", handleUserLeftGroupCall);
+    socket.on("callUpgradedToGroup", handleCallUpgradedToGroup);
 
     return () => {
       socket.off("newMessage", refresh);
@@ -413,6 +415,7 @@ export default function Sidebar() {
       socket.off("groupIceCandidate", handleGroupIceCandidate);
       socket.off("userJoinedGroupCall", handleUserJoinedGroupCall);
       socket.off("userLeftGroupCall", handleUserLeftGroupCall);
+      socket.off("callUpgradedToGroup", handleCallUpgradedToGroup);
     };
   }, [
     socket,
@@ -433,6 +436,7 @@ export default function Sidebar() {
     handleGroupIceCandidate,
     handleUserJoinedGroupCall,
     handleUserLeftGroupCall,
+    handleCallUpgradedToGroup,
   ]);
 
   const toggleMember = (userId: string) => {

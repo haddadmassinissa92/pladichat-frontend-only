@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Phone, PhoneOff, Video, Mic, MicOff, VideoOff } from "lucide-react";
+import { Phone, PhoneOff, Video, Mic, MicOff, VideoOff, UserPlus } from "lucide-react";
 import { useCallStore } from "@/store/useCallStore";
+import { useChatStore } from "@/store/useChatStore";
 import Avatar from "./Avatar";
+
+type SimpleUser = { _id: string; username: string; avatar?: string };
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -77,7 +80,10 @@ export default function CallModal() {
     endCall,
     toggleMute,
     toggleCamera,
+    addParticipantsToCall,
   } = useCallStore();
+
+  const { users } = useChatStore();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -85,6 +91,10 @@ export default function CallModal() {
   const ringtoneRef = useRef<HTMLAudioElement>(null);
   const durationRef = useRef(0);
   const [duration, setDuration] = useState(0);
+
+  // Modale d'ajout de participant(s) en cours d'appel
+  const [showAddParticipant, setShowAddParticipant] = useState(false);
+  const [selectedNewUsers, setSelectedNewUsers] = useState<SimpleUser[]>([]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -102,7 +112,8 @@ export default function CallModal() {
   useEffect(() => {
     if (callStatus !== "active") {
       durationRef.current = 0;
-      return;
+      const resetTimeout = setTimeout(() => setDuration(0), 0);
+      return () => clearTimeout(resetTimeout);
     }
     const interval = setInterval(() => {
       durationRef.current += 1;
@@ -111,18 +122,15 @@ export default function CallModal() {
     return () => clearInterval(interval);
   }, [callStatus]);
 
-  // Joue la sonnerie en boucle tant que ça sonne (côté appelant "calling"
-  // comme côté appelé "ringing"), et l'arrête dès que l'appel démarre ou se termine
+  // Joue la sonnerie en boucle tant que ça sonne, et l'arrête dès que
+  // l'appel démarre ou se termine
   useEffect(() => {
     const audio = ringtoneRef.current;
     if (!audio) return;
 
     if (callStatus === "calling" || callStatus === "ringing") {
       audio.currentTime = 0;
-      audio.play().catch(() => {
-        // Le navigateur peut bloquer la lecture automatique sans interaction
-        // préalable ; sans conséquence grave, la sonnerie visuelle reste affichée
-      });
+      audio.play().catch(() => {});
     } else {
       audio.pause();
       audio.currentTime = 0;
@@ -136,9 +144,31 @@ export default function CallModal() {
 
   const participantList = Object.entries(participants) as [
     string,
-    { username: string; avatar?: string; stream: MediaStream | null }
+    { username: string; avatar?: string; stream: MediaStream | null },
   ][];
   const isGroupRinging = callMode === "group" && callStatus === "ringing";
+
+  // Contacts pas déjà dans l'appel, disponibles pour être ajoutés
+  const alreadyInCallIds = new Set([
+    ...(remoteUser ? [remoteUser._id] : []),
+    ...Object.keys(participants),
+  ]);
+  const availableToAdd = users.filter((u: SimpleUser) => !alreadyInCallIds.has(u._id));
+
+  const toggleNewUser = (user: SimpleUser) => {
+    setSelectedNewUsers((prev) =>
+      prev.some((u) => u._id === user._id)
+        ? prev.filter((u) => u._id !== user._id)
+        : [...prev, user],
+    );
+  };
+
+  const handleConfirmAddParticipants = () => {
+    if (selectedNewUsers.length === 0) return;
+    addParticipantsToCall(selectedNewUsers);
+    setShowAddParticipant(false);
+    setSelectedNewUsers([]);
+  };
 
   return (
     <>
@@ -313,6 +343,14 @@ export default function CallModal() {
                 )}
 
                 <button
+                  onClick={() => setShowAddParticipant(true)}
+                  className="bg-white/20 hover:bg-white/30 transition rounded-full w-14 h-14 flex items-center justify-center"
+                  aria-label="Ajouter un participant"
+                >
+                  <UserPlus size={22} />
+                </button>
+
+                <button
                   onClick={endCall}
                   className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label={callMode === "group" ? "Quitter l'appel" : "Raccrocher"}
@@ -322,6 +360,56 @@ export default function CallModal() {
               </>
             )}
           </div>
+
+          {/* Modale : ajouter un ou plusieurs participants à l'appel en cours */}
+          {showAddParticipant && (
+            <div
+              className="absolute inset-0 bg-black/70 flex items-center justify-center z-20 p-4"
+              onClick={() => setShowAddParticipant(false)}
+            >
+              <div
+                className="bg-white dark:bg-zinc-900 text-black dark:text-white rounded-2xl p-4 w-full max-w-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="font-bold mb-3">Ajouter à l&apos;appel</h3>
+                <div className="custom-scrollbar max-h-56 overflow-y-auto mb-3">
+                  {availableToAdd.length === 0 && (
+                    <p className="text-sm text-zinc-400">
+                      Tous tes contacts sont déjà dans cet appel.
+                    </p>
+                  )}
+                  {availableToAdd.map((user: SimpleUser) => (
+                    <label key={user._id} className="flex items-center gap-2 py-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedNewUsers.some((u) => u._id === user._id)}
+                        onChange={() => toggleNewUser(user)}
+                      />
+                      {user.username}
+                    </label>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setShowAddParticipant(false);
+                      setSelectedNewUsers([]);
+                    }}
+                    className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleConfirmAddParticipants}
+                    disabled={selectedNewUsers.length === 0}
+                    className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+                  >
+                    Ajouter ({selectedNewUsers.length})
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>

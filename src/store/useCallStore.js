@@ -200,6 +200,103 @@ export const useCallStore = create((set, get) => ({
     get().resetCallState();
   },
 
+  // Ajoute une ou plusieurs personnes à l'appel en cours (comme sur
+  // WhatsApp/Messenger). Si l'appel était encore privé (1-à-1), il est
+  // d'abord converti en appel de groupe : le partenaire actuel est prévenu
+  // pour qu'il rejoigne lui aussi la nouvelle "salle" d'appel.
+  addParticipantsToCall: (newUsers) => {
+    const state = get();
+    const authUser = useAuthStore.getState().authUser;
+    const socket = useAuthStore.getState().socket;
+    let { groupId, callType } = state;
+
+    if (state.callMode === "private" && state.remoteUser) {
+      // Conversion : le partenaire actuel devient le premier "participant"
+      // d'un appel de groupe, en réutilisant sa connexion déjà établie
+      groupId = crypto.randomUUID();
+      const previousPartner = state.remoteUser;
+
+      set({
+        callMode: "group",
+        groupId,
+        groupName: [authUser.username, previousPartner.username, ...newUsers.map((u) => u.username)].join(", "),
+        participants: {
+          [previousPartner._id]: {
+            username: previousPartner.username,
+            avatar: previousPartner.avatar,
+            stream: state.remoteStream,
+            peerConnection: state.peerConnection,
+            pendingCandidates: [],
+          },
+        },
+        remoteUser: null,
+        remoteStream: null,
+        peerConnection: null,
+      });
+
+      // On rejoint la nouvelle salle nous-même, et on prévient l'ancien
+      // partenaire qu'il doit la rejoindre aussi (sans casser sa connexion actuelle)
+      socket?.emit("joinGroupCall", {
+        groupId,
+        userId: authUser._id,
+        username: authUser.username,
+        avatar: authUser.avatar,
+      });
+      socket?.emit("callUpgradedToGroup", {
+        to: previousPartner._id,
+        groupId,
+        groupName: get().groupName,
+      });
+    }
+
+    // Invite les nouvelles personnes à rejoindre cette salle
+    socket?.emit("startGroupCall", {
+      groupId,
+      targetUserIds: newUsers.map((u) => u._id),
+      callType,
+      callerName: authUser.username,
+      callerAvatar: authUser.avatar,
+      callerId: authUser._id,
+    });
+  },
+
+  // Reçu par le partenaire d'un appel privé quand l'autre personne vient
+  // d'ajouter quelqu'un : on rejoint la même salle nous aussi, en gardant
+  // notre connexion déjà établie (sans la recréer)
+  handleCallUpgradedToGroup: ({ groupId, groupName }) => {
+    const state = get();
+    if (state.callMode !== "private" || !state.remoteUser) return;
+
+    const authUser = useAuthStore.getState().authUser;
+    const socket = useAuthStore.getState().socket;
+    const previousPartner = state.remoteUser;
+
+    set({
+      callMode: "group",
+      groupId,
+      groupName: groupName || null,
+      participants: {
+        [previousPartner._id]: {
+          username: previousPartner.username,
+          avatar: previousPartner.avatar,
+          stream: state.remoteStream,
+          peerConnection: state.peerConnection,
+          pendingCandidates: [],
+        },
+      },
+      remoteUser: null,
+      remoteStream: null,
+      peerConnection: null,
+    });
+
+    socket?.emit("joinGroupCall", {
+      groupId,
+      userId: authUser._id,
+      username: authUser.username,
+      avatar: authUser.avatar,
+    });
+  },
+
   // ============================================================
   // APPELS DE GROUPE (mesh : une connexion directe par paire)
   // ============================================================
@@ -299,13 +396,16 @@ export const useCallStore = create((set, get) => ({
   },
 
   // Reçoit la liste de ceux déjà présents dans la salle : on initie une
-  // connexion (offre) vers chacun d'eux
+  // connexion (offre) vers chacun d'eux, sauf si on est déjà connecté à
+  // cette personne (cas d'une conversion d'appel privé en appel de groupe)
   handleGroupCallParticipants: async ({ participants }) => {
     const { localStream, groupId } = get();
     const socket = useAuthStore.getState().socket;
     const authUser = useAuthStore.getState().authUser;
 
     for (const p of participants) {
+      if (get().participants[p.userId]) continue;
+
       const pc = get().createPeerConnection(
         (candidate) =>
           socket?.emit("groupIceCandidate", { to: p.userId, from: authUser._id, candidate }),
