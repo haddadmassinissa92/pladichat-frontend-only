@@ -70,7 +70,17 @@ export default function MessageBubble({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
+  const [isTextExpanded, setIsTextExpanded] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Longueur au-delà de laquelle un message texte est raccourci avec
+  // un bouton "Lire la suite" (comme sur WhatsApp/Messenger)
+  const TEXT_TRUNCATE_LENGTH = 300;
+  const isLongText = msg.text && msg.text.length > TEXT_TRUNCATE_LENGTH;
+  const displayedText =
+    isLongText && !isTextExpanded
+      ? `${msg.text.slice(0, TEXT_TRUNCATE_LENGTH)}...`
+      : msg.text;
 
   const { deleteMessage, editMessage, setReplyingTo, reactToMessage } =
     useChatStore();
@@ -200,7 +210,29 @@ export default function MessageBubble({
               <audio controls src={msg.audio} className="max-w-full mb-1" />
             )}
 
-            {msg.text}
+            {msg.text && (
+              <span className="whitespace-pre-wrap break-words">
+                {displayedText}
+                {isLongText && (
+                  <>
+                    {" "}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsTextExpanded(!isTextExpanded);
+                      }}
+                      className={`font-semibold underline underline-offset-2 ${
+                        isMine
+                          ? "text-indigo-100 hover:text-white"
+                          : "text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+                      }`}
+                    >
+                      {isTextExpanded ? "Réduire" : "Lire la suite"}
+                    </button>
+                  </>
+                )}
+              </span>
+            )}
 
             {/* Carte d'aperçu du lien, affichée si le message contient une URL
                 dont on a pu récupérer les métadonnées (titre, description, image) */}

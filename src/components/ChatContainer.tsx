@@ -628,7 +628,7 @@ export default function ChatContainer() {
 
         <h2
           onClick={() => setShowContactInfo(true)}
-          className="font-bold flex-1 cursor-pointer"
+          className="font-bold flex-1 min-w-0 truncate cursor-pointer"
         >
           {selectedGroup ? selectedGroup.name : selectedUser?.username}
         </h2>
@@ -640,17 +640,17 @@ export default function ChatContainer() {
           <>
             <button
               onClick={() => handleStartCall("audio")}
-              className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+              className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
               aria-label="Appel audio"
             >
-              <Phone size={20} strokeWidth={2} />
+              <Phone size={22} strokeWidth={2} />
             </button>
             <button
               onClick={() => handleStartCall("video")}
-              className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+              className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
               aria-label="Appel vidéo"
             >
-              <Video size={20} fill="currentColor" stroke="none" />
+              <Video size={24} fill="currentColor" stroke="none" />
             </button>
           </>
         )}
@@ -658,7 +658,7 @@ export default function ChatContainer() {
         {/* Bouton pour ouvrir la recherche dans l'historique de cette conversation */}
         <button
           onClick={handleOpenSearch}
-          className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+          className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
           aria-label="Rechercher dans la conversation"
         >
           <Search size={20} strokeWidth={2} />
