@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://pladine-chat.vercel.app"),
   title: "PladiChat",
   description: "Application de chat en temps réel",
+  manifest: "/manifest.json",
   openGraph: {
     title: "PladiChat",
     description: "Messagerie instantanée en temps réel — messages privés, groupes, appels et bien plus.",
@@ -38,6 +39,20 @@ export const metadata: Metadata = {
     description: "Messagerie instantanée en temps réel — messages privés, groupes, appels et bien plus.",
     images: ["/og-image.png"],
   },
+  // Balises spécifiques à iOS : Safari ne lit pas bien manifest.json tout
+  // seul, ces réglages permettent "Ajouter à l'écran d'accueil" avec une
+  // vraie icône et un affichage plein écran (sans barre d'adresse)
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PladiChat",
+  },
+};
+
+// Couleur de la barre d'adresse/barre de statut du navigateur quand l'app
+// est installée (correspond à l'indigo utilisé dans le reste de l'interface)
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
 };
 
 const themeScript = `
