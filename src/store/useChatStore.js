@@ -19,6 +19,8 @@ export const useChatStore = create((set, get) => ({
   usersPage: 1,
   hasMoreUsers: true,
   isLoadingMoreUsers: false,
+  // Terme de recherche actuellement appliqué à la liste des contacts (recherche côté serveur)
+  usersSearch: "",
   // true s'il existe encore des messages plus anciens à charger dans la conversation actuelle
   hasMoreMessages: true,
   // true pendant le chargement d'une page supplémentaire de messages anciens
@@ -30,15 +32,20 @@ export const useChatStore = create((set, get) => ({
   searchResults: [],
   isSearchingMessages: false,
 
-  // Fonction pour récupérer la première page de la liste des utilisateurs
-  getUsers: async () => {
+  // Fonction pour récupérer la première page de la liste des utilisateurs,
+  // avec un terme de recherche optionnel (recherche sur toute la base, pas
+  // seulement les contacts déjà chargés)
+  getUsers: async (search = "") => {
     set({ isUsersLoading: true });
     try {
-      const res = await axiosInstance.get("/users?page=1");
+      const res = await axiosInstance.get(
+        `/users?page=1&search=${encodeURIComponent(search)}`,
+      );
       set({
         users: res.data.users,
         hasMoreUsers: res.data.hasMore,
         usersPage: 1,
+        usersSearch: search,
       });
     } catch (error) {
       console.error(error);
@@ -47,17 +54,21 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // Fonction pour charger une page supplémentaire de contacts
-  // (appelée en arrivant en bas de la liste des contacts)
+  // Fonction pour charger une page supplémentaire de contacts, en conservant
+  // le terme de recherche actuellement appliqué (appelée en arrivant en bas
+  // de la liste des contacts)
   loadMoreUsers: async () => {
-    const { hasMoreUsers, isLoadingMoreUsers, usersPage, users } = get();
+    const { hasMoreUsers, isLoadingMoreUsers, usersPage, users, usersSearch } =
+      get();
 
     if (!hasMoreUsers || isLoadingMoreUsers) return;
 
     set({ isLoadingMoreUsers: true });
     try {
       const nextPage = usersPage + 1;
-      const res = await axiosInstance.get(`/users?page=${nextPage}`);
+      const res = await axiosInstance.get(
+        `/users?page=${nextPage}&search=${encodeURIComponent(usersSearch)}`,
+      );
       set({
         users: [...users, ...res.data.users],
         hasMoreUsers: res.data.hasMore,

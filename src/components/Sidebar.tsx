@@ -111,6 +111,7 @@ export default function Sidebar() {
     useAuthStore();
 
   const [search, setSearch] = useState("");
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
@@ -132,6 +133,16 @@ export default function Sidebar() {
 
   // Découverte de groupes publics et demandes d'adhésion
   const [showDiscoverGroups, setShowDiscoverGroups] = useState(false);
+
+  // Déclenche une recherche côté serveur (sur toute la base) à chaque
+  // changement du champ, avec un léger délai pour ne pas spammer l'API
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      getUsers(value);
+    }, 300);
+  };
 
   const handleOpenDiscoverGroups = () => {
     setShowDiscoverGroups(true);
@@ -375,7 +386,7 @@ export default function Sidebar() {
           type="text"
           placeholder="Rechercher un contact..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="w-full border border-zinc-300 dark:border-zinc-700 rounded-full px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-sm"
         />
       </div>
@@ -448,11 +459,7 @@ export default function Sidebar() {
           </div>
         )}
 
-        {users
-          .filter((user: User) =>
-            user.username.toLowerCase().includes(search.toLowerCase()),
-          )
-          .map((user: User) => (
+        {users.map((user: User) => (
             <button
               key={user._id}
               onClick={() => setSelectedUser(user)}
