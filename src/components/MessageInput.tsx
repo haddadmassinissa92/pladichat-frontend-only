@@ -287,7 +287,7 @@ export default function MessageInput() {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowEmojiPicker(false)}
                 />
-                <div className="absolute z-20 bottom-full right-0 mb-2">
+                <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2">
                   <EmojiPicker onSelect={handleEmojiSelect} />
                 </div>
               </>

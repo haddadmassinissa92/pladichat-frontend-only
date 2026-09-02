@@ -753,7 +753,7 @@ export default function Sidebar() {
                       className="fixed inset-0 z-10"
                       onClick={() => setShowGlobalWallpaperMenu(false)}
                     />
-                    <div className="absolute left-full ml-2 bottom-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+                    <div className="absolute right-0 top-full mt-1 sm:top-auto sm:mt-0 sm:right-auto sm:bottom-0 sm:left-full sm:ml-2 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
                       {WALLPAPERS.map((w) => (
                         <button
                           key={w.id}
