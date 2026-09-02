@@ -15,6 +15,10 @@ export const useChatStore = create((set, get) => ({
   selectedGroup: null,
   isUsersLoading: false,
   isMessagesLoading: false,
+  // Pagination de la liste des contacts : page actuelle, et s'il en reste d'autres à charger
+  usersPage: 1,
+  hasMoreUsers: true,
+  isLoadingMoreUsers: false,
   // true s'il existe encore des messages plus anciens à charger dans la conversation actuelle
   hasMoreMessages: true,
   // true pendant le chargement d'une page supplémentaire de messages anciens
@@ -26,16 +30,43 @@ export const useChatStore = create((set, get) => ({
   searchResults: [],
   isSearchingMessages: false,
 
-  // Fonction pour récupérer la liste des utilisateurs
+  // Fonction pour récupérer la première page de la liste des utilisateurs
   getUsers: async () => {
     set({ isUsersLoading: true });
     try {
-      const res = await axiosInstance.get("/users");
-      set({ users: res.data });
+      const res = await axiosInstance.get("/users?page=1");
+      set({
+        users: res.data.users,
+        hasMoreUsers: res.data.hasMore,
+        usersPage: 1,
+      });
     } catch (error) {
       console.error(error);
     } finally {
       set({ isUsersLoading: false });
+    }
+  },
+
+  // Fonction pour charger une page supplémentaire de contacts
+  // (appelée en arrivant en bas de la liste des contacts)
+  loadMoreUsers: async () => {
+    const { hasMoreUsers, isLoadingMoreUsers, usersPage, users } = get();
+
+    if (!hasMoreUsers || isLoadingMoreUsers) return;
+
+    set({ isLoadingMoreUsers: true });
+    try {
+      const nextPage = usersPage + 1;
+      const res = await axiosInstance.get(`/users?page=${nextPage}`);
+      set({
+        users: [...users, ...res.data.users],
+        hasMoreUsers: res.data.hasMore,
+        usersPage: nextPage,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      set({ isLoadingMoreUsers: false });
     }
   },
 

@@ -90,6 +90,9 @@ export default function Sidebar() {
   const {
     users,
     getUsers,
+    hasMoreUsers,
+    isLoadingMoreUsers,
+    loadMoreUsers,
     selectedUser,
     setSelectedUser,
     isUsersLoading,
@@ -137,6 +140,16 @@ export default function Sidebar() {
 
   const handleRequestToJoin = async (groupId: string) => {
     await requestToJoinGroup(groupId);
+  };
+
+  // Détecte l'arrivée en bas de la liste des contacts/groupes, pour charger
+  // automatiquement la page de contacts suivante (défilement infini)
+  const handleContactsScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 100 && hasMoreUsers && !isLoadingMoreUsers) {
+      loadMoreUsers();
+    }
   };
 
   // Ouvre la conversation d'un groupe découvrable (aperçu, sans en être membre) :
@@ -367,7 +380,10 @@ export default function Sidebar() {
         />
       </div>
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto">
+      <div
+        className="custom-scrollbar flex-1 overflow-y-auto"
+        onScroll={handleContactsScroll}
+      >
         {groups.length > 0 && (
           <div className="px-3 pt-2 text-xs font-semibold text-zinc-400 uppercase">
             Groupes
@@ -480,6 +496,12 @@ export default function Sidebar() {
               </div>
             </button>
           ))}
+
+        {isLoadingMoreUsers && (
+          <p className="text-center text-xs text-zinc-400 py-3">
+            Chargement d&apos;autres contacts...
+          </p>
+        )}
       </div>
 
       {showCreateGroup && (
