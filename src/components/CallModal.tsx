@@ -82,21 +82,22 @@ export default function CallModal() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
-  const [duration, setDuration] = useState(0);
+  const ringtoneRef = useRef<HTMLAudioElement>(null);
   const durationRef = useRef(0);
+  const [duration, setDuration] = useState(0);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
     }
-  }, [localStream]);
+  }, [localStream, callStatus]);
 
   useEffect(() => {
     if (remoteStream) {
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
       if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
     }
-  }, [remoteStream]);
+  }, [remoteStream, callStatus]);
 
   useEffect(() => {
     if (callStatus !== "active") {
@@ -110,193 +111,219 @@ export default function CallModal() {
     return () => clearInterval(interval);
   }, [callStatus]);
 
-  if (callStatus === "idle") return null;
-  if (callMode === "private" && !remoteUser) return null;
-  if (callMode === "group" && callStatus === "ringing" && !incomingGroupCallData) return null;
+  // Joue la sonnerie en boucle tant que ça sonne (côté appelant "calling"
+  // comme côté appelé "ringing"), et l'arrête dès que l'appel démarre ou se termine
+  useEffect(() => {
+    const audio = ringtoneRef.current;
+    if (!audio) return;
+
+    if (callStatus === "calling" || callStatus === "ringing") {
+      audio.currentTime = 0;
+      audio.play().catch(() => {
+        // Le navigateur peut bloquer la lecture automatique sans interaction
+        // préalable ; sans conséquence grave, la sonnerie visuelle reste affichée
+      });
+    } else {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  }, [callStatus]);
+
+  const showModal =
+    callStatus !== "idle" &&
+    !(callMode === "private" && !remoteUser) &&
+    !(callMode === "group" && callStatus === "ringing" && !incomingGroupCallData);
 
   const participantList = Object.entries(participants) as [
     string,
-    { username: string; avatar?: string; stream: MediaStream | null },
+    { username: string; avatar?: string; stream: MediaStream | null }
   ][];
   const isGroupRinging = callMode === "group" && callStatus === "ringing";
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-[100] flex flex-col items-center justify-between text-white p-6">
-      {/* --- Mode privé : flux distant en fond --- */}
-      {callMode === "private" && callType === "video" && callStatus === "active" ? (
-        <video
-          ref={remoteVideoRef}
-          autoPlay
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      ) : (
-        callMode === "private" && <audio ref={remoteAudioRef} autoPlay />
-      )}
+    <>
+      {/* Sonnerie, toujours montée pour pouvoir démarrer dès que le statut change */}
+      <audio ref={ringtoneRef} src="/ringtone.wav" loop />
 
-      {/* --- En-tête --- */}
-      <div className="relative z-10 flex flex-col items-center mt-12">
-        {callMode === "private" && remoteUser && (
-          <>
-            <Avatar
-              src={remoteUser.avatar}
-              fallback={remoteUser.username?.[0]?.toUpperCase() || "?"}
-              colorClass="bg-indigo-600"
-              size="w-24 h-24 text-3xl"
+      {showModal && (
+        <div className="fixed inset-0 bg-black/90 z-[100] flex flex-col items-center justify-between text-white p-6">
+          {/* --- Mode privé : flux distant en fond --- */}
+          {callMode === "private" && callType === "video" && callStatus === "active" ? (
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
             />
-            <h2 className="text-xl font-bold mt-4">{remoteUser.username}</h2>
-          </>
-        )}
-
-        {isGroupRinging && incomingGroupCallData && (
-          <>
-            <Avatar
-              src={incomingGroupCallData.callerAvatar}
-              fallback={incomingGroupCallData.callerName?.[0]?.toUpperCase() || "?"}
-              colorClass="bg-emerald-600"
-              size="w-24 h-24 text-3xl"
-            />
-            <h2 className="text-xl font-bold mt-4">
-              {incomingGroupCallData.callerName} appelle le groupe
-            </h2>
-          </>
-        )}
-
-        {callMode === "group" && callStatus === "active" && (
-          <h2 className="text-xl font-bold">{groupName || "Appel de groupe"}</h2>
-        )}
-
-        <p className="text-sm text-zinc-300 mt-1">
-          {callStatus === "calling" && "Appel en cours..."}
-          {callMode === "private" &&
-            callStatus === "ringing" &&
-            `Appel ${callType === "video" ? "vidéo" : "audio"} entrant...`}
-          {isGroupRinging &&
-            `Appel de groupe ${callType === "video" ? "vidéo" : "audio"} entrant...`}
-          {callStatus === "active" && callMode === "private" && formatDuration(duration)}
-          {callStatus === "active" &&
-            callMode === "group" &&
-            `${formatDuration(duration)} · ${participantList.length + 1} participant${
-              participantList.length > 0 ? "s" : ""
-            }`}
-        </p>
-      </div>
-
-      {/* --- Grille des participants, en appel de groupe actif --- */}
-      {callMode === "group" && callStatus === "active" && (
-        <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-3xl my-6 overflow-y-auto custom-scrollbar max-h-[50vh]">
-          {participantList.length === 0 && (
-            <p className="col-span-full text-center text-zinc-400 text-sm py-8">
-              En attente que d&apos;autres personnes rejoignent...
-            </p>
+          ) : (
+            callMode === "private" && <audio ref={remoteAudioRef} autoPlay />
           )}
-          {participantList.map(([userId, p]) => (
-            <ParticipantTile
-              key={userId}
-              username={p.username}
-              avatar={p.avatar}
-              stream={p.stream}
-              callType={callType}
-            />
-          ))}
-        </div>
-      )}
 
-      {/* Miniature de la caméra locale */}
-      {callType === "video" && callStatus === "active" && (
-        <video
-          ref={localVideoRef}
-          autoPlay
-          playsInline
-          muted
-          className="absolute top-6 right-6 w-28 h-40 object-cover rounded-xl border-2 border-white/20 z-10"
-        />
-      )}
+          {/* --- En-tête --- */}
+          <div className="relative z-10 flex flex-col items-center mt-12">
+            {callMode === "private" && remoteUser && (
+              <>
+                <Avatar
+                  src={remoteUser.avatar}
+                  fallback={remoteUser.username?.[0]?.toUpperCase() || "?"}
+                  colorClass="bg-indigo-600"
+                  size="w-24 h-24 text-3xl"
+                />
+                <h2 className="text-xl font-bold mt-4">{remoteUser.username}</h2>
+              </>
+            )}
 
-      {/* --- Contrôles --- */}
-      <div className="relative z-10 flex items-center gap-6 mb-8">
-        {callStatus === "ringing" && callMode === "private" && (
-          <>
-            <button
-              onClick={rejectCall}
-              className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
-              aria-label="Refuser"
-            >
-              <PhoneOff size={26} strokeWidth={2} />
-            </button>
-            <button
-              onClick={acceptCall}
-              className="bg-emerald-600 hover:bg-emerald-700 transition rounded-full w-16 h-16 flex items-center justify-center"
-              aria-label="Accepter"
-            >
-              <Phone size={26} strokeWidth={2} />
-            </button>
-          </>
-        )}
+            {isGroupRinging && incomingGroupCallData && (
+              <>
+                <Avatar
+                  src={incomingGroupCallData.callerAvatar}
+                  fallback={incomingGroupCallData.callerName?.[0]?.toUpperCase() || "?"}
+                  colorClass="bg-emerald-600"
+                  size="w-24 h-24 text-3xl"
+                />
+                <h2 className="text-xl font-bold mt-4">
+                  {incomingGroupCallData.callerName} appelle le groupe
+                </h2>
+              </>
+            )}
 
-        {isGroupRinging && (
-          <>
-            <button
-              onClick={rejectGroupCall}
-              className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
-              aria-label="Refuser"
-            >
-              <PhoneOff size={26} strokeWidth={2} />
-            </button>
-            <button
-              onClick={acceptGroupCall}
-              className="bg-emerald-600 hover:bg-emerald-700 transition rounded-full w-16 h-16 flex items-center justify-center"
-              aria-label="Rejoindre"
-            >
-              <Phone size={26} strokeWidth={2} />
-            </button>
-          </>
-        )}
+            {callMode === "group" && callStatus === "active" && (
+              <h2 className="text-xl font-bold">{groupName || "Appel de groupe"}</h2>
+            )}
 
-        {callStatus === "calling" && (
-          <button
-            onClick={endCall}
-            className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
-            aria-label="Annuler l'appel"
-          >
-            <PhoneOff size={26} strokeWidth={2} />
-          </button>
-        )}
-
-        {callStatus === "active" && (
-          <>
-            <button
-              onClick={toggleMute}
-              className={`rounded-full w-14 h-14 flex items-center justify-center transition ${
-                isMuted ? "bg-white text-black" : "bg-white/20 hover:bg-white/30"
-              }`}
-              aria-label="Couper/réactiver le micro"
-            >
-              {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
-            </button>
-
-            {callType === "video" && (
-              <button
-                onClick={toggleCamera}
-                className={`rounded-full w-14 h-14 flex items-center justify-center transition ${
-                  isCameraOff ? "bg-white text-black" : "bg-white/20 hover:bg-white/30"
+            <p className="text-sm text-zinc-300 mt-1">
+              {callStatus === "calling" && "Appel en cours..."}
+              {callMode === "private" &&
+                callStatus === "ringing" &&
+                `Appel ${callType === "video" ? "vidéo" : "audio"} entrant...`}
+              {isGroupRinging &&
+                `Appel de groupe ${callType === "video" ? "vidéo" : "audio"} entrant...`}
+              {callStatus === "active" && callMode === "private" && formatDuration(duration)}
+              {callStatus === "active" &&
+                callMode === "group" &&
+                `${formatDuration(duration)} · ${participantList.length + 1} participant${
+                  participantList.length > 0 ? "s" : ""
                 }`}
-                aria-label="Couper/réactiver la caméra"
+            </p>
+          </div>
+
+          {/* --- Grille des participants, en appel de groupe actif --- */}
+          {callMode === "group" && callStatus === "active" && (
+            <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-3xl my-6 overflow-y-auto custom-scrollbar max-h-[50vh]">
+              {participantList.length === 0 && (
+                <p className="col-span-full text-center text-zinc-400 text-sm py-8">
+                  En attente que d&apos;autres personnes rejoignent...
+                </p>
+              )}
+              {participantList.map(([userId, p]) => (
+                <ParticipantTile
+                  key={userId}
+                  username={p.username}
+                  avatar={p.avatar}
+                  stream={p.stream}
+                  callType={callType}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Miniature de la caméra locale */}
+          {callType === "video" && callStatus === "active" && (
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="absolute top-6 right-6 w-28 h-40 object-cover rounded-xl border-2 border-white/20 z-10"
+            />
+          )}
+
+          {/* --- Contrôles --- */}
+          <div className="relative z-10 flex items-center gap-6 mb-8">
+            {callStatus === "ringing" && callMode === "private" && (
+              <>
+                <button
+                  onClick={rejectCall}
+                  className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
+                  aria-label="Refuser"
+                >
+                  <PhoneOff size={26} strokeWidth={2} />
+                </button>
+                <button
+                  onClick={acceptCall}
+                  className="bg-emerald-600 hover:bg-emerald-700 transition rounded-full w-16 h-16 flex items-center justify-center"
+                  aria-label="Accepter"
+                >
+                  <Phone size={26} strokeWidth={2} />
+                </button>
+              </>
+            )}
+
+            {isGroupRinging && (
+              <>
+                <button
+                  onClick={rejectGroupCall}
+                  className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
+                  aria-label="Refuser"
+                >
+                  <PhoneOff size={26} strokeWidth={2} />
+                </button>
+                <button
+                  onClick={acceptGroupCall}
+                  className="bg-emerald-600 hover:bg-emerald-700 transition rounded-full w-16 h-16 flex items-center justify-center"
+                  aria-label="Rejoindre"
+                >
+                  <Phone size={26} strokeWidth={2} />
+                </button>
+              </>
+            )}
+
+            {callStatus === "calling" && (
+              <button
+                onClick={endCall}
+                className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
+                aria-label="Annuler l'appel"
               >
-                {isCameraOff ? <VideoOff size={22} /> : <Video size={22} />}
+                <PhoneOff size={26} strokeWidth={2} />
               </button>
             )}
 
-            <button
-              onClick={endCall}
-              className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
-              aria-label={callMode === "group" ? "Quitter l'appel" : "Raccrocher"}
-            >
-              <PhoneOff size={26} strokeWidth={2} />
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+            {callStatus === "active" && (
+              <>
+                <button
+                  onClick={toggleMute}
+                  className={`rounded-full w-14 h-14 flex items-center justify-center transition ${
+                    isMuted ? "bg-white text-black" : "bg-white/20 hover:bg-white/30"
+                  }`}
+                  aria-label="Couper/réactiver le micro"
+                >
+                  {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
+                </button>
+
+                {callType === "video" && (
+                  <button
+                    onClick={toggleCamera}
+                    className={`rounded-full w-14 h-14 flex items-center justify-center transition ${
+                      isCameraOff ? "bg-white text-black" : "bg-white/20 hover:bg-white/30"
+                    }`}
+                    aria-label="Couper/réactiver la caméra"
+                  >
+                    {isCameraOff ? <VideoOff size={22} /> : <Video size={22} />}
+                  </button>
+                )}
+
+                <button
+                  onClick={endCall}
+                  className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
+                  aria-label={callMode === "group" ? "Quitter l'appel" : "Raccrocher"}
+                >
+                  <PhoneOff size={26} strokeWidth={2} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

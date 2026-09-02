@@ -205,8 +205,8 @@ export const useCallStore = create((set, get) => ({
   // ============================================================
 
   // Lance un appel de groupe : rejoint immédiatement la salle (seul pour
-  // l'instant), et prévient les autres membres du groupe
-  startGroupCall: async (group, callType) => {
+  // l'instant), et invite uniquement les membres sélectionnés (targetUserIds)
+  startGroupCall: async (group, callType, targetUserIds) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -232,10 +232,6 @@ export const useCallStore = create((set, get) => ({
         username: authUser.username,
         avatar: authUser.avatar,
       });
-
-      const targetUserIds = group.members
-        .map((m) => (typeof m === "string" ? m : m._id))
-        .filter((id) => id !== authUser._id);
 
       socket?.emit("startGroupCall", {
         groupId: group._id,
