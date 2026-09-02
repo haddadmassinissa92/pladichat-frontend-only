@@ -38,7 +38,7 @@ type DiscoverableGroup = {
 };
 
 import { useEffect, useRef, useState } from "react";
-import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2, Phone } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2 } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -117,9 +117,6 @@ export default function Sidebar() {
   const { onlineUsers, authUser, logout, updateProfile, socket, changePassword, deleteAccount } =
     useAuthStore();
   const {
-    startCall,
-    startGroupCall,
-    callStatus,
     handleIncomingCall,
     handleCallAccepted,
     handleIceCandidate,
@@ -197,42 +194,6 @@ export default function Sidebar() {
   const handleOpenDiscoverGroups = () => {
     setShowDiscoverGroups(true);
     getDiscoverableGroups();
-  };
-
-  // Nouvel appel : sélection libre de contacts, indépendante de tout groupe existant
-  const [showNewCall, setShowNewCall] = useState(false);
-  const [selectedCallUsers, setSelectedCallUsers] = useState<User[]>([]);
-
-  const toggleCallUser = (user: User) => {
-    setSelectedCallUsers((prev) =>
-      prev.some((u) => u._id === user._id)
-        ? prev.filter((u) => u._id !== user._id)
-        : [...prev, user],
-    );
-  };
-
-  const handleConfirmNewCall = (type: "audio" | "video") => {
-    if (selectedCallUsers.length === 0 || callStatus !== "idle") return;
-
-    if (selectedCallUsers.length === 1) {
-      // Une seule personne sélectionnée : appel privé classique
-      startCall(selectedCallUsers[0], type);
-    } else {
-      // Plusieurs personnes : appel de groupe à la volée (pas besoin d'un
-      // vrai groupe en base, juste un identifiant unique pour cette session)
-      const adHocCall = {
-        _id: crypto.randomUUID(),
-        name: [authUser?.username, ...selectedCallUsers.map((u) => u.username)].join(", "),
-      };
-      startGroupCall(
-        adHocCall,
-        type,
-        selectedCallUsers.map((u) => u._id),
-      );
-    }
-
-    setShowNewCall(false);
-    setSelectedCallUsers([]);
   };
 
   const handleRequestToJoin = async (groupId: string) => {
@@ -503,14 +464,6 @@ export default function Sidebar() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowNewCall(true)}
-            className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
-            aria-label="Nouvel appel"
-            title="Nouvel appel"
-          >
-            <Phone size={20} strokeWidth={2} />
-          </button>
-          <button
             onClick={handleOpenDiscoverGroups}
             className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
             aria-label="Découvrir des groupes"
@@ -696,55 +649,6 @@ export default function Sidebar() {
                 className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium"
               >
                 Créer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modale : nouvel appel, sélection libre de contacts */}
-      {showNewCall && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
-            <h3 className="font-bold mb-3">Nouvel appel</h3>
-            <div className="custom-scrollbar max-h-56 overflow-y-auto mb-3">
-              {users.map((user: User) => (
-                <label
-                  key={user._id}
-                  className="flex items-center gap-2 py-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedCallUsers.some((u) => u._id === user._id)}
-                    onChange={() => toggleCallUser(user)}
-                  />
-                  {user.username}
-                </label>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setShowNewCall(false);
-                  setSelectedCallUsers([]);
-                }}
-                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={() => handleConfirmNewCall("audio")}
-                disabled={selectedCallUsers.length === 0}
-                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
-              >
-                Audio
-              </button>
-              <button
-                onClick={() => handleConfirmNewCall("video")}
-                disabled={selectedCallUsers.length === 0}
-                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
-              >
-                Vidéo
               </button>
             </div>
           </div>

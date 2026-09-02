@@ -24,7 +24,7 @@ import Image from "next/image";
 import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
-import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video } from "lucide-react";
+import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, PhoneCall, Camera } from "lucide-react";
 import { useCallStore } from "@/store/useCallStore";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
@@ -643,14 +643,14 @@ export default function ChatContainer() {
               className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
               aria-label="Appel audio"
             >
-              <Phone size={20} strokeWidth={2} />
+              <PhoneCall size={20} strokeWidth={2} />
             </button>
             <button
               onClick={() => handleStartCall("video")}
               className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
               aria-label="Appel vidéo"
             >
-              <Video size={20} strokeWidth={2} />
+              <Camera size={20} strokeWidth={2} />
             </button>
           </>
         )}
