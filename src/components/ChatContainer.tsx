@@ -901,7 +901,7 @@ export default function ChatContainer() {
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className={`custom-scrollbar h-full overflow-y-auto p-4 flex flex-col gap-3 ${
+          className={`custom-scrollbar h-full overflow-y-auto overscroll-contain p-4 flex flex-col gap-3 ${
             WALLPAPERS.find((w) => w.id === activeWallpaper)?.className || ""
           }`}
           style={

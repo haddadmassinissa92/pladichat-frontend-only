@@ -18,6 +18,18 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html,
+body {
+  height: 100%;
+  /* Empêche la page elle-même de scroller : seules les zones internes
+     prévues pour ça (liste de messages, sidebar...) doivent scroller.
+     C'est ce qui garantit que l'en-tête et le champ de saisie restent
+     fixes, même sur mobile où la barre d'adresse dynamique perturbe
+     souvent le calcul de la hauteur de la page. */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

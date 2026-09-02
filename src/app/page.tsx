@@ -33,7 +33,7 @@ export default function Home() {
   const hasSelection = selectedUser || selectedGroup;
 
   return (
-    <div className="relative h-screen overflow-hidden sm:flex">
+    <div className="relative h-screen h-dvh overflow-hidden sm:flex">
       <div
         className={`absolute inset-0 sm:relative sm:w-72 transition-transform duration-300 ease-in-out ${
           hasSelection ? "-translate-x-full sm:translate-x-0" : "translate-x-0"
