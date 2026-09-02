@@ -83,13 +83,21 @@ const EMOJI_CATEGORIES: { label: string; emojis: string[] }[] = [
 
 export default function EmojiPicker({
   onSelect,
+  fullWidth = false,
 }: {
   onSelect: (emoji: string) => void;
+  fullWidth?: boolean;
 }) {
   const [activeCategory, setActiveCategory] = useState(0);
 
   return (
-    <div className="w-72 max-w-[85vw] rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+    <div
+      className={
+        fullWidth
+          ? "w-full bg-white dark:bg-zinc-900 overflow-hidden"
+          : "w-72 max-w-[85vw] rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden"
+      }
+    >
       {/* Onglets de catégories, avec un indicateur clair pour la catégorie active */}
       <div className="flex border-b border-zinc-200 dark:border-zinc-700 px-1">
         {EMOJI_CATEGORIES.map((cat, index) => (
@@ -109,7 +117,11 @@ export default function EmojiPicker({
       </div>
 
       {/* Grille des emojis de la catégorie active, avec la scrollbar fine commune à l'app */}
-      <div className="custom-scrollbar grid grid-cols-8 gap-0.5 p-2 max-h-52 overflow-y-auto">
+      <div
+        className={`custom-scrollbar grid grid-cols-8 gap-0.5 p-2 overflow-y-auto ${
+          fullWidth ? "max-h-64" : "max-h-52"
+        }`}
+      >
         {EMOJI_CATEGORIES[activeCategory].emojis.map((emoji) => (
           <button
             key={emoji}

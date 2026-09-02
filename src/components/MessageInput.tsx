@@ -147,7 +147,9 @@ export default function MessageInput() {
 
     const newText = text.slice(0, cursorPos) + emoji + text.slice(cursorPos);
     setText(newText);
-    setShowEmojiPicker(false);
+
+    // Le panneau reste ouvert : on peut enchaîner plusieurs emojis
+    // d'affilée, il faut le fermer explicitement (bouton ou clic à côté)
 
     // Replace le curseur juste après l'emoji inséré, une fois le champ mis à jour
     requestAnimationFrame(() => {
@@ -244,7 +246,7 @@ export default function MessageInput() {
         </div>
       )}
 
-      <div className="p-3 flex items-end gap-2">
+      <div className="relative p-3 flex items-end gap-2">
         <div className="flex-1 min-w-0 flex items-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-full px-3 py-2 bg-transparent">
           <input
             type="file"
@@ -271,28 +273,14 @@ export default function MessageInput() {
             className="flex-1 min-w-0 bg-transparent outline-none text-sm"
           />
 
-          <div className="relative shrink-0 flex items-center">
-            <button
-              type="button"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="text-zinc-500 hover:text-indigo-600 transition"
-              aria-label="Ajouter un emoji"
-            >
-              <Smile size={22} strokeWidth={2} />
-            </button>
-
-            {showEmojiPicker && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowEmojiPicker(false)}
-                />
-                <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2">
-                  <EmojiPicker onSelect={handleEmojiSelect} />
-                </div>
-              </>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="shrink-0 text-zinc-500 hover:text-indigo-600 transition"
+            aria-label="Ajouter un emoji"
+          >
+            <Smile size={22} strokeWidth={2} />
+          </button>
 
           <button
             type="button"
@@ -316,6 +304,36 @@ export default function MessageInput() {
         >
           <SendHorizontal size={20} strokeWidth={2} />
         </button>
+      </div>
+
+      {/* Panneau d'emojis façon WhatsApp : glisse depuis le bas de l'écran,
+          prend toute la largeur, et se referme (glisse vers le bas) au choix
+          d'un emoji ou à la fermeture manuelle */}
+      {showEmojiPicker && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setShowEmojiPicker(false)}
+        />
+      )}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-40 transition-transform duration-300 ease-in-out ${
+          showEmojiPicker ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
+        <div className="rounded-t-2xl border-t border-x border-zinc-200 dark:border-zinc-700 shadow-lg overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700">
+            <span className="text-sm font-medium text-zinc-500">Emojis</span>
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker(false)}
+              className="text-zinc-500 hover:text-indigo-600 transition"
+              aria-label="Fermer les emojis"
+            >
+              <X size={18} strokeWidth={2} />
+            </button>
+          </div>
+          <EmojiPicker onSelect={handleEmojiSelect} fullWidth />
+        </div>
       </div>
     </form>
   );
