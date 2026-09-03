@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { Phone, PhoneOff, Video, Mic, MicOff, VideoOff, UserPlus } from "lucide-react";
 import { useCallStore } from "@/store/useCallStore";
 import { useChatStore } from "@/store/useChatStore";
@@ -142,6 +143,17 @@ export default function CallModal() {
     !(callMode === "private" && !remoteUser) &&
     !(callMode === "group" && callStatus === "ringing" && !incomingGroupCallData);
 
+  // Téléporté directement dans <body> via un portail (voir plus bas) : la
+  // page a des conteneurs animés (transform CSS, pour le glissement
+  // sidebar/chat sur mobile), ce qui casse le "position: fixed" de la
+  // modale d'appel si elle reste dans cette hiérarchie — elle se comportait
+  // alors comme encastrée dans la page au lieu de couvrir tout l'écran
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
   const participantList = Object.entries(participants) as [
     string,
     { username: string; avatar?: string; stream: MediaStream | null },
@@ -170,7 +182,9 @@ export default function CallModal() {
     setSelectedNewUsers([]);
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
       {/* Sonnerie, toujours montée pour pouvoir démarrer dès que le statut change */}
       <audio ref={ringtoneRef} src="/ringtone.wav" loop />
@@ -412,6 +426,7 @@ export default function CallModal() {
           )}
         </div>
       )}
-    </>
+    </>,
+    document.body,
   );
 }
