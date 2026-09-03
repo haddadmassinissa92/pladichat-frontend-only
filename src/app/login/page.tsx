@@ -7,14 +7,21 @@ import { useAuthStore } from "@/store/useAuthStore";
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
+  const resendVerification = useAuthStore((state) => state.resendVerification);
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Affiché uniquement si la connexion échoue parce que l'email n'a pas
+  // encore été confirmé, pour proposer directement de le renvoyer
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setResendMessage("");
+    setNeedsVerification(false);
     setLoading(true);
 
     const result = await login(form);
@@ -25,7 +32,15 @@ export default function LoginPage() {
       router.push("/");
     } else {
       setError(result.message);
+      setNeedsVerification(!!result.needsVerification);
     }
+  };
+
+  const handleResend = async () => {
+    setLoading(true);
+    const result = await resendVerification(form.email);
+    setLoading(false);
+    setResendMessage(result.message);
   };
 
   return (
@@ -50,7 +65,30 @@ export default function LoginPage() {
           className="border border-zinc-300 rounded-lg px-4 py-3"
         />
 
+        <a
+          href="/forgot-password"
+          className="text-indigo-600 text-sm font-medium self-end -mt-2"
+        >
+          Mot de passe oublié ?
+        </a>
+
         {error && <p className="text-red-600 text-sm">{error}</p>}
+
+        {needsVerification && (
+          <div className="text-sm bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded-lg p-3">
+            {resendMessage || "Ton email n'est pas encore confirmé."}
+            {!resendMessage && (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={loading}
+                className="block mt-1 font-medium underline disabled:opacity-50"
+              >
+                Renvoyer l&apos;email de confirmation
+              </button>
+            )}
+          </div>
+        )}
 
         <button
           type="submit"

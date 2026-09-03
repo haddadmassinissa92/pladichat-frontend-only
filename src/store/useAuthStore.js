@@ -27,12 +27,12 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // Fonction pour inscrire un nouvel utilisateur
+  // Fonction pour inscrire un nouvel utilisateur : ne connecte plus
+  // automatiquement, un email de confirmation doit d'abord être validé
   signup: async (data) => {
     try {
       const res = await axiosInstance.post("/auth/signup", data);
-      set({ authUser: res.data });
-      return { success: true };
+      return { success: true, message: res.data.message };
     } catch (error) {
       return {
         success: false,
@@ -47,6 +47,62 @@ export const useAuthStore = create((set, get) => ({
       const res = await axiosInstance.post("/auth/login", data);
       set({ authUser: res.data });
       return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+        needsVerification: error.response?.data?.needsVerification || false,
+      };
+    }
+  },
+
+  // Confirme l'adresse email via le jeton reçu par lien, et connecte
+  // directement l'utilisateur si c'est valide
+  verifyEmail: async (token) => {
+    try {
+      const res = await axiosInstance.get(`/auth/verify-email/${token}`);
+      set({ authUser: res.data });
+      get().connectSocket();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Redemande un email de confirmation (compte créé mais email jamais reçu)
+  resendVerification: async (email) => {
+    try {
+      const res = await axiosInstance.post("/auth/resend-verification", { email });
+      return { success: true, message: res.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Demande l'envoi d'un email de réinitialisation de mot de passe
+  forgotPassword: async (email) => {
+    try {
+      const res = await axiosInstance.post("/auth/forgot-password", { email });
+      return { success: true, message: res.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Définit le nouveau mot de passe via le jeton reçu par lien
+  resetPassword: async (token, password) => {
+    try {
+      const res = await axiosInstance.post(`/auth/reset-password/${token}`, { password });
+      return { success: true, message: res.data.message };
     } catch (error) {
       return {
         success: false,
