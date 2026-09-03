@@ -56,6 +56,11 @@ import {
   unsubscribeFromPushNotifications,
   isPushSubscribed,
 } from "@/lib/push";
+import {
+  isConversationHidden,
+  isConversationPinned,
+  unhideConversation,
+} from "@/lib/conversationSettings";
 
 function formatLastMessage(
   msg:
@@ -264,7 +269,13 @@ export default function Sidebar() {
       getUsers();
       getGroups();
     };
-    socket.on("newMessage", refresh);
+    const handleNewMessage = (msg: { sender?: string; group?: string }) => {
+      refresh();
+      // Une conversation "supprimée" localement réapparaît dès qu'un
+      // nouveau message y arrive, comme sur WhatsApp
+      unhideConversation(msg.group || msg.sender || "");
+    };
+    socket.on("newMessage", handleNewMessage);
     socket.on("messagesRead", refresh);
 
     // Un groupe a été renommé, ou des membres y ont été ajoutés/retirés/bloqués :
@@ -356,7 +367,7 @@ export default function Sidebar() {
     socket.on("callUpgradedToGroup", handleCallUpgradedToGroup);
 
     return () => {
-      socket.off("newMessage", refresh);
+      socket.off("newMessage", handleNewMessage);
       socket.off("messagesRead", refresh);
       socket.off("groupUpdated", refresh);
       socket.off("removedFromGroup", handleRemovedFromGroup);
@@ -452,6 +463,38 @@ export default function Sidebar() {
     }
   };
 
+  // Les préférences par conversation (masquée/épinglée) vivent dans le
+  // localStorage (lib/conversationSettings), donc pas réactives par défaut :
+  // ce compteur est incrémenté à chaque changement ailleurs dans l'app
+  // (voir l'évènement "chatSettingsChanged") pour forcer le recalcul du tri
+  // et du filtrage ci-dessous.
+  const [settingsVersion, setSettingsVersion] = useState(0);
+  useEffect(() => {
+    const onSettingsChanged = () => setSettingsVersion((v) => v + 1);
+    window.addEventListener("chatSettingsChanged", onSettingsChanged);
+    return () =>
+      window.removeEventListener("chatSettingsChanged", onSettingsChanged);
+  }, []);
+
+  // Groupes et contacts visibles dans la liste : les conversations masquées
+  // ("supprimées" localement) sont exclues, et les épinglées remontent en
+  // premier au sein de chaque section
+
+  const visibleGroups = groups
+    .filter((g: Group) => !isConversationHidden(g._id))
+    .sort((a: Group, b: Group) => {
+      const pinnedDiff = Number(isConversationPinned(b._id)) - Number(isConversationPinned(a._id));
+      return pinnedDiff;
+    });
+
+  const visibleUsers = users
+    .filter((u: User) => !isConversationHidden(u._id))
+    .sort((a: User, b: User) => {
+      const pinnedDiff = Number(isConversationPinned(b._id)) - Number(isConversationPinned(a._id));
+      return pinnedDiff;
+    });
+  void settingsVersion; // force le recalcul ci-dessus à chaque changement
+
   return (
     <aside className="w-full h-full border-r border-zinc-200 dark:border-zinc-800 flex flex-col">
       <CallModal />
@@ -495,12 +538,12 @@ export default function Sidebar() {
         className="custom-scrollbar flex-1 overflow-y-auto"
         onScroll={handleContactsScroll}
       >
-        {groups.length > 0 && (
+        {visibleGroups.length > 0 && (
           <div className="px-3 pt-2 text-xs font-semibold text-zinc-400 uppercase">
             Groupes
           </div>
         )}
-        {groups.map((group: Group) => (
+        {visibleGroups.map((group: Group) => (
           <button
             key={group._id}
             onClick={() => setSelectedGroup(group)}
@@ -547,19 +590,19 @@ export default function Sidebar() {
           </p>
         )}
 
-        {!isUsersLoading && users.length === 0 && (
+        {!isUsersLoading && visibleUsers.length === 0 && (
           <p className="text-center text-sm text-zinc-400 mt-4">
             Aucun contact.
           </p>
         )}
 
-        {users.length > 0 && (
+        {visibleUsers.length > 0 && (
           <div className="px-3 pt-2 text-xs font-semibold text-zinc-400 uppercase">
             Contacts
           </div>
         )}
 
-        {users.map((user: User) => (
+        {visibleUsers.map((user: User) => (
             <button
               key={user._id}
               onClick={() => setSelectedUser(user)}
@@ -737,49 +780,23 @@ export default function Sidebar() {
                 Changer la photo
               </button>
 
-              <div className="relative">
-                <button
-                  onClick={() =>
-                    setShowGlobalWallpaperMenu(!showGlobalWallpaperMenu)
-                  }
-                  className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                >
-                  <Palette size={16} strokeWidth={2} className="shrink-0" />
-                  Fond d&apos;écran
-                </button>
-                {showGlobalWallpaperMenu && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowGlobalWallpaperMenu(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-1 sm:top-auto sm:mt-0 sm:right-auto sm:bottom-0 sm:left-full sm:ml-2 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
-                      {WALLPAPERS.map((w) => (
-                        <button
-                          key={w.id}
-                          onClick={() =>
-                            w.id === "custom"
-                              ? globalWallpaperFileInputRef.current?.click()
-                              : handleGlobalWallpaperChange(w.id)
-                          }
-                          className={`block w-full text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
-                            globalWallpaper === w.id ? "font-semibold" : ""
-                          }`}
-                        >
-                          {w.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-                <input
-                  ref={globalWallpaperFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleGlobalWallpaperImageSelect}
-                />
-              </div>
+              <button
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  setShowGlobalWallpaperMenu(true);
+                }}
+                className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              >
+                <Palette size={16} strokeWidth={2} className="shrink-0" />
+                Fond d&apos;écran
+              </button>
+              <input
+                ref={globalWallpaperFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleGlobalWallpaperImageSelect}
+              />
 
               <div className="flex items-center justify-between px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
                 <span className="flex items-center gap-2">
@@ -865,6 +882,38 @@ export default function Sidebar() {
           onChange={handleAvatarChange}
         />
       </div>
+
+      {/* Modale : fond d'écran par défaut de l'application, centrée à l'écran */}
+      {showGlobalWallpaperMenu && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Fond d&apos;écran</h3>
+            <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
+              {WALLPAPERS.map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() =>
+                    w.id === "custom"
+                      ? globalWallpaperFileInputRef.current?.click()
+                      : handleGlobalWallpaperChange(w.id)
+                  }
+                  className={`block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
+                    globalWallpaper === w.id ? "font-semibold" : ""
+                  }`}
+                >
+                  {w.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowGlobalWallpaperMenu(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
 
       {showChangePassword && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

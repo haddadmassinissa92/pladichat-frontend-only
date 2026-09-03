@@ -8,6 +8,10 @@ type Message = {
   text: string; // Contenu textuel du message
   image: string; // URL ou chemin vers une image jointe
   audio: string; // URL ou chemin vers un message vocal ou fichier audio joint
+  linkPreview?: {
+    url: string;
+    title?: string;
+  }; // Aperçu du lien partagé
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
 };
@@ -19,12 +23,12 @@ type GroupMember = {
 };
 
 // Hooks fondamentaux de React pour la gestion du cycle de vie et des états
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
-import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video } from "lucide-react";
+import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video, Bell, BellOff, Pin, Download, Link2 } from "lucide-react";
 import { useCallStore } from "@/store/useCallStore";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
@@ -49,6 +53,15 @@ import {
   setConversationWallpaperImage, // Fonction pour appliquer une image personnalisée en fond d'écran
   clearConversationWallpaper, // Fonction pour supprimer le fond d'écran actuel
 } from "@/lib/wallpaper";
+
+// Préférences par conversation (notifications coupées, épinglage, masquage)
+import {
+  isConversationMuted,
+  toggleConversationMuted,
+  isConversationPinned,
+  toggleConversationPinned,
+  hideConversation,
+} from "@/lib/conversationSettings";
 
 // Transforme une date en texte lisible pour le séparateur entre deux jours
 // ("Aujourd'hui", "Hier", ou une date complète)
@@ -100,6 +113,7 @@ export default function ChatContainer() {
     searchMessages,
     clearSearchResults,
     searchResults,
+    deleteMessage,
   } = useChatStore();
 
   // État du menu "gérer le groupe", utilisateur connecté, socket temps réel,
@@ -160,6 +174,82 @@ export default function ChatContainer() {
   const pendingScrollTargetRef = useRef<string | null>(null);
   const conversationId = selectedGroup?._id || selectedUser?._id || null;
   const isGroupConversation = !!selectedGroup;
+
+  // Notifications coupées / conversation épinglée : préférences locales
+  // (voir lib/conversationSettings), synchronisées à chaque changement de
+  // conversation puisque ce ne sont pas des valeurs React réactives par nature
+  const subscribeToChatSettings = useCallback((onStoreChange: () => void) => {
+    window.addEventListener("chatSettingsChanged", onStoreChange);
+    return () => window.removeEventListener("chatSettingsChanged", onStoreChange);
+  }, []);
+  const getMutedSnapshot = useCallback(
+    () => isConversationMuted(conversationId),
+    [conversationId],
+  );
+  const getPinnedSnapshot = useCallback(
+    () => isConversationPinned(conversationId),
+    [conversationId],
+  );
+  const isMuted = useSyncExternalStore(subscribeToChatSettings, getMutedSnapshot, () => false);
+  const isPinned = useSyncExternalStore(subscribeToChatSettings, getPinnedSnapshot, () => false);
+
+  const handleToggleMute = () => {
+    if (!conversationId) return;
+    toggleConversationMuted(conversationId);
+    window.dispatchEvent(new Event("chatSettingsChanged"));
+  };
+
+  const handleTogglePin = () => {
+    if (!conversationId) return;
+    toggleConversationPinned(conversationId);
+    window.dispatchEvent(new Event("chatSettingsChanged"));
+  };
+
+  // Supprime la conversation de sa propre liste (elle réapparaîtra
+  // automatiquement si un nouveau message arrive, comme sur WhatsApp)
+  const handleDeleteConversation = () => {
+    if (!conversationId) return;
+    hideConversation(conversationId);
+    window.dispatchEvent(new Event("chatSettingsChanged"));
+    setShowContactInfo(false);
+    setSelectedUser(null);
+    setSelectedGroup(null);
+  };
+
+  // Vide tous les messages de cette conversation (les supprime un par un via
+  // l'API existante), sans supprimer le contact/groupe lui-même
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const handleClearMessages = async () => {
+    setIsClearing(true);
+    for (const m of messages) {
+      await deleteMessage(m._id);
+    }
+    setIsClearing(false);
+    setShowClearConfirm(false);
+  };
+
+  // Télécharge un export texte de la conversation actuelle
+  const handleExportConversation = () => {
+    const title = selectedGroup ? selectedGroup.name : selectedUser?.username;
+    const lines = messages.map((m: Message) => {
+      const senderName = selectedGroup
+        ? selectedGroup.members.find((mem: GroupMember) => mem._id === m.sender)?.username || m.sender
+        : m.sender === authUser?._id
+          ? "Moi"
+          : selectedUser?.username;
+      const date = new Date(m.createdAt).toLocaleString("fr-FR");
+      const content = m.text || (m.image ? "[Image]" : m.audio ? "[Audio]" : "");
+      return `[${date}] ${senderName}: ${content}`;
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title || "conversation"}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleOpenSearch = () => {
     setShowSearch(true);
@@ -694,6 +784,50 @@ export default function ChatContainer() {
                     Thème
                   </button>
                   <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      handleToggleMute();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    {isMuted ? (
+                      <BellOff size={16} strokeWidth={2} className="shrink-0" />
+                    ) : (
+                      <Bell size={16} strokeWidth={2} className="shrink-0" />
+                    )}
+                    {isMuted ? "Réactiver les notifications" : "Couper les notifications"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      handleTogglePin();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Pin size={16} strokeWidth={2} className="shrink-0" />
+                    {isPinned ? "Désépingler" : "Épingler cette conversation"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      handleExportConversation();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Download size={16} strokeWidth={2} className="shrink-0" />
+                    Exporter la conversation
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      setShowClearConfirm(true);
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Trash2 size={16} strokeWidth={2} className="shrink-0" />
+                    Vider les messages
+                  </button>
+                  <button
                     onClick={handleToggleBlock}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
@@ -745,6 +879,50 @@ export default function ChatContainer() {
                   >
                     <Palette size={16} strokeWidth={2} className="shrink-0" />
                     Thème
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      handleToggleMute();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    {isMuted ? (
+                      <BellOff size={16} strokeWidth={2} className="shrink-0" />
+                    ) : (
+                      <Bell size={16} strokeWidth={2} className="shrink-0" />
+                    )}
+                    {isMuted ? "Réactiver les notifications" : "Couper les notifications"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      handleTogglePin();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Pin size={16} strokeWidth={2} className="shrink-0" />
+                    {isPinned ? "Désépingler" : "Épingler cette conversation"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      handleExportConversation();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Download size={16} strokeWidth={2} className="shrink-0" />
+                    Exporter la conversation
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      setShowClearConfirm(true);
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Trash2 size={16} strokeWidth={2} className="shrink-0" />
+                    Vider les messages
                   </button>
                   {selectedGroup.createdBy === authUser?._id && (
                     <>
@@ -941,7 +1119,17 @@ export default function ChatContainer() {
                   </div>
                 )}
                 <MessageBubble
-                  msg={msg}
+                  msg={{
+                    ...msg,
+                    linkPreview: msg.linkPreview
+                      ? {
+                          url: msg.linkPreview.url,
+                          title: msg.linkPreview.title ?? "",
+                          description: "",
+                          image: "",
+                        }
+                      : undefined,
+                  }}
                   isMine={isMine}
                   senderName={senderName}
                   isLast={index === messages.length - 1}
@@ -997,7 +1185,7 @@ export default function ChatContainer() {
       {showWallpaperMenu && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
-            <h3 className="font-bold mb-3">Chat Thème</h3>
+            <h3 className="font-bold mb-3">Thème</h3>
             <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
               {WALLPAPERS.map((w) => (
                 <button
@@ -1174,6 +1362,36 @@ export default function ChatContainer() {
         </div>
       )}
 
+      {/* Modale : confirmation avant de vider tous les messages de la
+          conversation (contact ou groupe), sans supprimer le contact/groupe */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-2">Vider cette conversation ?</h3>
+            <p className="text-sm text-zinc-500 mb-4">
+              Tous les messages seront définitivement supprimés pour tout le
+              monde. Le contact reste dans ta liste.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                disabled={isClearing}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleClearMessages}
+                disabled={isClearing}
+                className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+              >
+                {isClearing ? "Suppression..." : "Vider"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modale : demandes d'adhésion en attente pour ce groupe */}
       {showJoinRequests && selectedGroup && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -1253,6 +1471,31 @@ export default function ChatContainer() {
               )}
             </div>
 
+            {/* Actions communes aux contacts et aux groupes : notifications
+                et suppression locale de la conversation */}
+            <div className="border-t border-zinc-200 dark:border-zinc-800 py-3 space-y-1">
+              <button
+                onClick={handleToggleMute}
+                className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              >
+                {isMuted ? (
+                  <BellOff size={15} strokeWidth={2} className="shrink-0" />
+                ) : (
+                  <Bell size={15} strokeWidth={2} className="shrink-0" />
+                )}
+                {isMuted
+                  ? "Réactiver les notifications"
+                  : "Couper les notifications"}
+              </button>
+              <button
+                onClick={handleDeleteConversation}
+                className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+              >
+                <Trash2 size={15} strokeWidth={2} className="shrink-0" />
+                Supprimer la conversation
+              </button>
+            </div>
+
             {/* Détails supplémentaires pour un contact privé */}
             {selectedUser && (
               <div className="border-t border-zinc-200 dark:border-zinc-800 py-3 space-y-3">
@@ -1305,6 +1548,34 @@ export default function ChatContainer() {
                             src={m.audio}
                             className="w-full h-8"
                           />
+                        ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-400 uppercase mb-1">
+                    Liens partagés (
+                    {messages.filter((m: Message) => m.linkPreview).length})
+                  </p>
+                  {messages.filter((m: Message) => m.linkPreview).length === 0 ? (
+                    <p className="text-sm text-zinc-400">Aucun lien pour le moment.</p>
+                  ) : (
+                    <div className="custom-scrollbar max-h-40 overflow-y-auto space-y-1">
+                      {messages
+                        .filter((m: Message) => m.linkPreview)
+                        .map((m: Message) => (
+                          <a
+                            key={m._id}
+                            href={m.linkPreview?.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline truncate"
+                          >
+                            <Link2 size={14} strokeWidth={2} className="shrink-0" />
+                            <span className="truncate">
+                              {m.linkPreview?.title || m.linkPreview?.url}
+                            </span>
+                          </a>
                         ))}
                     </div>
                   )}

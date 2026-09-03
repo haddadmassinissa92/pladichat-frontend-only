@@ -3,12 +3,29 @@
 import { create } from "zustand";
 import { useAuthStore } from "@/store/useAuthStore";
 
-// Serveur STUN public (gratuit, sans inscription) : aide les navigateurs à
-// se joindre directement, même derrière un routeur/NAT. Limitation connue :
-// sans serveur TURN (payant), l'appel peut échouer sur certains réseaux très
-// restrictifs (grandes entreprises, certains réseaux mobiles).
+// Serveurs ICE : le serveur STUN public de Google aide à la connexion directe
+// entre deux navigateurs. Mais seul, il échoue silencieusement sur certains
+// réseaux (4G/5G, NAT strict d'entreprise) : l'appel semble "décroché" côté
+// UI mais aucun flux audio/vidéo n'arrive jamais, car la connexion directe
+// n'a pas pu s'établir. Un serveur TURN sert de relais de secours dans ce
+// cas. Freestun.net est un service TURN gratuit tiers (sans inscription) —
+// suffisant pour un projet perso/portfolio, mais à remplacer par un
+// fournisseur TURN payant (Metered, Twilio...) en production réelle.
 const ICE_SERVERS = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:freestun.net:3478" },
+    { urls: "turn:freestun.net:3478", username: "free", credential: "free" },
+  ],
+};
+
+// Contraintes du micro communes à tous les appels : l'annulation d'écho est
+// essentielle ici (sans elle, chaque participant peut entendre sa propre
+// voix renvoyée par les autres, en plus de parasites/bruits de fond)
+const AUDIO_CONSTRAINTS = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
 };
 
 export const useCallStore = create((set, get) => ({
@@ -55,7 +72,7 @@ export const useCallStore = create((set, get) => ({
   startCall: async (targetUser, callType) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: AUDIO_CONSTRAINTS,
         video: callType === "video",
       });
 
@@ -110,7 +127,7 @@ export const useCallStore = create((set, get) => ({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: AUDIO_CONSTRAINTS,
         video: callType === "video",
       });
 
@@ -306,7 +323,7 @@ export const useCallStore = create((set, get) => ({
   startGroupCall: async (group, callType, targetUserIds) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: AUDIO_CONSTRAINTS,
         video: callType === "video",
       });
 
@@ -365,7 +382,7 @@ export const useCallStore = create((set, get) => ({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: AUDIO_CONSTRAINTS,
         video: callType === "video",
       });
 
