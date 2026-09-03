@@ -276,6 +276,7 @@ export default function Sidebar() {
       unhideConversation(msg.group || msg.sender || "");
     };
     socket.on("newMessage", handleNewMessage);
+    socket.on("conversationCleared", refresh);
     socket.on("messagesRead", refresh);
 
     // Un groupe a été renommé, ou des membres y ont été ajoutés/retirés/bloqués :
@@ -368,6 +369,7 @@ export default function Sidebar() {
 
     return () => {
       socket.off("newMessage", handleNewMessage);
+      socket.off("conversationCleared", refresh);
       socket.off("messagesRead", refresh);
       socket.off("groupUpdated", refresh);
       socket.off("removedFromGroup", handleRemovedFromGroup);
@@ -479,14 +481,14 @@ export default function Sidebar() {
   // Groupes et contacts visibles dans la liste : les conversations masquées
   // ("supprimées" localement) sont exclues, et les épinglées remontent en
   // premier au sein de chaque section
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const visibleGroups = groups
     .filter((g: Group) => !isConversationHidden(g._id))
     .sort((a: Group, b: Group) => {
       const pinnedDiff = Number(isConversationPinned(b._id)) - Number(isConversationPinned(a._id));
       return pinnedDiff;
     });
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const visibleUsers = users
     .filter((u: User) => !isConversationHidden(u._id))
     .sort((a: User, b: User) => {

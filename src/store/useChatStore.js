@@ -187,6 +187,25 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Vide entièrement la conversation actuelle : supprime TOUS les messages
+  // (les siens et ceux de l'autre/des autres), pas seulement les siens
+  deleteConversation: async () => {
+    const { selectedUser, selectedGroup } = get();
+    const conversationId = selectedGroup?._id || selectedUser?._id;
+    if (!conversationId) return { success: false };
+
+    try {
+      await axiosInstance.delete(`/messages/conversation/${conversationId}`, {
+        params: { isGroup: !!selectedGroup },
+      });
+      set({ messages: [] });
+      return { success: true };
+    } catch (error) {
+      console.error(error);
+      return { success: false };
+    }
+  },
+
   // Fonction pour modifier un message
   editMessage: async (messageId, newText) => {
     try {
@@ -286,6 +305,18 @@ export const useChatStore = create((set, get) => ({
       }
     });
 
+    // Quelqu'un (nous depuis un autre appareil, ou l'autre participant) a
+    // vidé cette conversation : on efface aussi l'affichage local si elle
+    // est actuellement ouverte
+    socket.on("conversationCleared", ({ senderId, groupId }) => {
+      const isRelevantClear = selectedGroup
+        ? groupId === selectedGroup._id
+        : senderId === selectedUser?._id;
+      if (isRelevantClear) {
+        set({ messages: [] });
+      }
+    });
+
     socket.on("messagesRead", ({ readBy, groupId }) => {
       const myId = useAuthStore.getState().authUser?._id;
       const now = new Date().toISOString();
@@ -334,6 +365,7 @@ export const useChatStore = create((set, get) => ({
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
     socket?.off("newMessage");
+    socket?.off("conversationCleared");
     socket?.off("messagesRead");
     socket?.off("messageDeleted");
     socket?.off("messageEdited");

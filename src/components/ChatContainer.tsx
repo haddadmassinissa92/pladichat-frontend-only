@@ -23,7 +23,7 @@ type GroupMember = {
 };
 
 // Hooks fondamentaux de React pour la gestion du cycle de vie et des états
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Avatar from "./Avatar";
 
@@ -113,7 +113,7 @@ export default function ChatContainer() {
     searchMessages,
     clearSearchResults,
     searchResults,
-    deleteMessage,
+    deleteConversation,
   } = useChatStore();
 
   // État du menu "gérer le groupe", utilisateur connecté, socket temps réel,
@@ -178,20 +178,16 @@ export default function ChatContainer() {
   // Notifications coupées / conversation épinglée : préférences locales
   // (voir lib/conversationSettings), synchronisées à chaque changement de
   // conversation puisque ce ne sont pas des valeurs React réactives par nature
-  const subscribeToChatSettings = useCallback((onStoreChange: () => void) => {
-    window.addEventListener("chatSettingsChanged", onStoreChange);
-    return () => window.removeEventListener("chatSettingsChanged", onStoreChange);
+  const [, setConversationSettingsVersion] = useState(0);
+  const isMuted = isConversationMuted(conversationId);
+  const isPinned = isConversationPinned(conversationId);
+  useEffect(() => {
+    const handleSettingsChanged = () => {
+      setConversationSettingsVersion((version) => version + 1);
+    };
+    window.addEventListener("chatSettingsChanged", handleSettingsChanged);
+    return () => window.removeEventListener("chatSettingsChanged", handleSettingsChanged);
   }, []);
-  const getMutedSnapshot = useCallback(
-    () => isConversationMuted(conversationId),
-    [conversationId],
-  );
-  const getPinnedSnapshot = useCallback(
-    () => isConversationPinned(conversationId),
-    [conversationId],
-  );
-  const isMuted = useSyncExternalStore(subscribeToChatSettings, getMutedSnapshot, () => false);
-  const isPinned = useSyncExternalStore(subscribeToChatSettings, getPinnedSnapshot, () => false);
 
   const handleToggleMute = () => {
     if (!conversationId) return;
@@ -205,9 +201,10 @@ export default function ChatContainer() {
     window.dispatchEvent(new Event("chatSettingsChanged"));
   };
 
-  // Supprime la conversation de sa propre liste (elle réapparaîtra
-  // automatiquement si un nouveau message arrive, comme sur WhatsApp)
-  const handleDeleteConversation = () => {
+  // Retire la conversation de sa propre liste seulement (les messages
+  // restent intacts pour l'autre côté) ; elle réapparaît automatiquement si
+  // un nouveau message arrive, comme sur WhatsApp
+  const handleHideConversation = () => {
     if (!conversationId) return;
     hideConversation(conversationId);
     window.dispatchEvent(new Event("chatSettingsChanged"));
@@ -216,15 +213,13 @@ export default function ChatContainer() {
     setSelectedGroup(null);
   };
 
-  // Vide tous les messages de cette conversation (les supprime un par un via
-  // l'API existante), sans supprimer le contact/groupe lui-même
+  // Supprime définitivement TOUS les messages de cette conversation, pour
+  // tout le monde (pas seulement les siens) ; le contact/groupe reste
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const handleClearMessages = async () => {
     setIsClearing(true);
-    for (const m of messages) {
-      await deleteMessage(m._id);
-    }
+    await deleteConversation();
     setIsClearing(false);
     setShowClearConfirm(false);
   };
@@ -822,10 +817,10 @@ export default function ChatContainer() {
                       setShowUserMenu(false);
                       setShowClearConfirm(true);
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
                     <Trash2 size={16} strokeWidth={2} className="shrink-0" />
-                    Vider les messages
+                    Supprimer la conversation
                   </button>
                   <button
                     onClick={handleToggleBlock}
@@ -919,10 +914,10 @@ export default function ChatContainer() {
                       setShowGroupMenu(false);
                       setShowClearConfirm(true);
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
                     <Trash2 size={16} strokeWidth={2} className="shrink-0" />
-                    Vider les messages
+                    Supprimer la conversation
                   </button>
                   {selectedGroup.createdBy === authUser?._id && (
                     <>
@@ -1123,12 +1118,12 @@ export default function ChatContainer() {
                     ...msg,
                     linkPreview: msg.linkPreview
                       ? {
-                          url: msg.linkPreview.url,
+                          ...msg.linkPreview,
                           title: msg.linkPreview.title ?? "",
                           description: "",
                           image: "",
                         }
-                      : undefined,
+                      : msg.linkPreview,
                   }}
                   isMine={isMine}
                   senderName={senderName}
@@ -1367,7 +1362,7 @@ export default function ChatContainer() {
       {showClearConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
-            <h3 className="font-bold mb-2">Vider cette conversation ?</h3>
+            <h3 className="font-bold mb-2">Supprimer cette conversation ?</h3>
             <p className="text-sm text-zinc-500 mb-4">
               Tous les messages seront définitivement supprimés pour tout le
               monde. Le contact reste dans ta liste.
@@ -1385,7 +1380,7 @@ export default function ChatContainer() {
                 disabled={isClearing}
                 className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
               >
-                {isClearing ? "Suppression..." : "Vider"}
+                {isClearing ? "Suppression..." : "Supprimer"}
               </button>
             </div>
           </div>
@@ -1488,11 +1483,11 @@ export default function ChatContainer() {
                   : "Couper les notifications"}
               </button>
               <button
-                onClick={handleDeleteConversation}
-                className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                onClick={handleHideConversation}
+                className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
-                <Trash2 size={15} strokeWidth={2} className="shrink-0" />
-                Supprimer la conversation
+                <EyeOff size={15} strokeWidth={2} className="shrink-0" />
+                Masquer cette conversation
               </button>
             </div>
 
