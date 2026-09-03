@@ -52,6 +52,9 @@ export const useCallStore = create((set, get) => ({
   localStream: null,
   isMuted: false,
   isCameraOff: false,
+  // true si la personne avec qui on parle (appel privé) a coupé SA caméra —
+  // permet d'afficher son avatar plutôt qu'un écran noir sans explication
+  remoteCameraOff: false,
 
   // Crée une connexion peer-to-peer générique, avec ses gestionnaires
   // d'événements. `onIceCandidate` et `onTrack` sont fournis par l'appelant
@@ -601,6 +604,7 @@ export const useCallStore = create((set, get) => ({
       incomingGroupCallData: null,
       isMuted: false,
       isCameraOff: false,
+      remoteCameraOff: false,
     });
   },
 
@@ -613,10 +617,24 @@ export const useCallStore = create((set, get) => ({
   },
 
   toggleCamera: () => {
-    const { localStream, isCameraOff } = get();
+    const { localStream, isCameraOff, callMode, remoteUser } = get();
+    const newIsCameraOff = !isCameraOff;
     localStream?.getVideoTracks().forEach((track) => {
       track.enabled = isCameraOff;
     });
-    set({ isCameraOff: !isCameraOff });
+    set({ isCameraOff: newIsCameraOff });
+
+    // Prévient l'autre participant, en appel privé, pour qu'il sache que
+    // c'est nous qui avons coupé la caméra (et pas un problème de son côté)
+    if (callMode === "private" && remoteUser) {
+      const socket = useAuthStore.getState().socket;
+      socket?.emit("cameraToggled", { to: remoteUser._id, isCameraOff: newIsCameraOff });
+    }
+  },
+
+  // Reçoit le signal de l'autre participant (appel privé) indiquant qu'il
+  // vient de couper ou réactiver sa caméra
+  handleRemoteCameraToggled: ({ isCameraOff }) => {
+    set({ remoteCameraOff: isCameraOff });
   },
 }));

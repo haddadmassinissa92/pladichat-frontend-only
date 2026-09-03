@@ -132,6 +132,7 @@ export default function Sidebar() {
     handleIceCandidate,
     handleCallRejected,
     handleCallEnded,
+    handleRemoteCameraToggled,
     handleCallUnavailable,
     handleIncomingGroupCall,
     handleGroupCallParticipants,
@@ -377,6 +378,7 @@ export default function Sidebar() {
     socket.on("callRejected", handleCallRejected);
     socket.on("callEnded", handleCallEnded);
     socket.on("callUnavailable", handleCallUnavailable);
+    socket.on("cameraToggled", handleRemoteCameraToggled);
 
     // --- Écouteurs d'appel de groupe ---
     socket.on("incomingGroupCall", handleIncomingGroupCall);
@@ -403,6 +405,7 @@ export default function Sidebar() {
       socket.off("callRejected", handleCallRejected);
       socket.off("callEnded", handleCallEnded);
       socket.off("callUnavailable", handleCallUnavailable);
+      socket.off("cameraToggled", handleRemoteCameraToggled);
       socket.off("incomingGroupCall", handleIncomingGroupCall);
       socket.off("groupCallParticipants", handleGroupCallParticipants);
       socket.off("incomingGroupCallOffer", handleGroupCallOffer);
@@ -424,6 +427,7 @@ export default function Sidebar() {
     handleCallRejected,
     handleCallEnded,
     handleCallUnavailable,
+    handleRemoteCameraToggled,
     handleIncomingGroupCall,
     handleGroupCallParticipants,
     handleGroupCallOffer,
@@ -502,14 +506,12 @@ export default function Sidebar() {
   // Groupes et contacts visibles dans la liste : les conversations masquées
   // ("supprimées" localement) sont exclues, et les épinglées remontent en
   // premier au sein de chaque section
-
   const visibleGroups = groups
     .filter((g: Group) => !isConversationHidden(g._id))
     .sort((a: Group, b: Group) => {
       const pinnedDiff = Number(isConversationPinned(b._id)) - Number(isConversationPinned(a._id));
       return pinnedDiff;
     });
-
   const visibleUsers = users
     .filter((u: User) => !isConversationHidden(u._id))
     .sort((a: User, b: User) => {

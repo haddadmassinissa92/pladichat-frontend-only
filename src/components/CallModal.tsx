@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Phone, PhoneOff, Video, Mic, MicOff, VideoOff, UserPlus } from "lucide-react";
 import { useCallStore } from "@/store/useCallStore";
@@ -74,6 +74,7 @@ export default function CallModal() {
     incomingGroupCallData,
     isMuted,
     isCameraOff,
+    remoteCameraOff,
     acceptCall,
     rejectCall,
     acceptGroupCall,
@@ -87,6 +88,7 @@ export default function CallModal() {
   const { users } = useChatStore();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
+  const localVideoRingingRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const ringtoneRef = useRef<HTMLAudioElement>(null);
@@ -97,16 +99,48 @@ export default function CallModal() {
   const [showAddParticipant, setShowAddParticipant] = useState(false);
   const [selectedNewUsers, setSelectedNewUsers] = useState<SimpleUser[]>([]);
 
+  // Sur mobile, les navigateurs bloquent souvent la lecture automatique
+  // d'une vidéo AVEC son (contrairement à une vidéo "muted"), même avec
+  // l'attribut autoplay — ce qui se traduit par un écran noir silencieux,
+  // sans erreur visible. On tente une lecture explicite, et si ça échoue,
+  // on affiche un bouton "Appuie pour activer" (un clic est un vrai geste
+  // utilisateur, qui débloque la lecture à coup sûr).
+  const [needsTapToPlay, setNeedsTapToPlay] = useState(false);
+
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (callStatus === "idle") setNeedsTapToPlay(false);
+  }, [callStatus]);
+
+  const handleTapToPlay = () => {
+    remoteVideoRef.current?.play().catch(() => {});
+    remoteAudioRef.current?.play().catch(() => {});
+    setNeedsTapToPlay(false);
+  };
+
+  useEffect(() => {
+    if (localStream) {
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStream;
+        localVideoRef.current.play().catch(() => {});
+      }
+      if (localVideoRingingRef.current) {
+        localVideoRingingRef.current.srcObject = localStream;
+        localVideoRingingRef.current.play().catch(() => {});
+      }
     }
   }, [localStream, callStatus]);
 
   useEffect(() => {
     if (remoteStream) {
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
-      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+        remoteVideoRef.current.play().catch(() => setNeedsTapToPlay(true));
+      }
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = remoteStream;
+        remoteAudioRef.current.play().catch(() => setNeedsTapToPlay(true));
+      }
     }
   }, [remoteStream, callStatus]);
 
@@ -148,11 +182,9 @@ export default function CallModal() {
   // sidebar/chat sur mobile), ce qui casse le "position: fixed" de la
   // modale d'appel si elle reste dans cette hiérarchie — elle se comportait
   // alors comme encastrée dans la page au lieu de couvrir tout l'écran
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMounted(true), []);
 
   const participantList = Object.entries(participants) as [
     string,
@@ -190,8 +222,9 @@ export default function CallModal() {
       <audio ref={ringtoneRef} src="/ringtone.wav" loop />
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/90 z-[100] flex flex-col items-center justify-between text-white p-6">
-          {/* --- Mode privé : flux distant en fond --- */}
+        <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center sm:p-6">
+          <div className="relative bg-zinc-950 text-white w-full h-full sm:h-[85vh] sm:max-w-3xl sm:rounded-3xl overflow-hidden flex flex-col items-center justify-between p-6">
+          {/* --- Mode privé, appel actif : flux distant en fond --- */}
           {callMode === "private" && callType === "video" && callStatus === "active" ? (
             <video
               ref={remoteVideoRef}
@@ -199,8 +232,52 @@ export default function CallModal() {
               playsInline
               className="absolute inset-0 w-full h-full object-cover"
             />
+          ) : callMode === "private" && callType === "video" && callStatus === "calling" ? (
+            /* --- Mode privé, ça sonne encore : pas de flux distant pour
+                l'instant, on montre sa propre caméra en grand en
+                attendant (comme WhatsApp) --- */
+            <video
+              ref={localVideoRingingRef}
+              autoPlay
+              playsInline
+              muted
+              className="absolute inset-0 w-full h-full object-cover"
+            />
           ) : (
             callMode === "private" && <audio ref={remoteAudioRef} autoPlay />
+          )}
+
+          {/* --- La personne en face a coupé SA caméra : on affiche son
+              avatar par-dessus le fond noir, plutôt qu'un écran noir sans
+              explication (l'audio continue de fonctionner normalement) --- */}
+          {callMode === "private" &&
+            callType === "video" &&
+            callStatus === "active" &&
+            remoteCameraOff && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-900">
+                <Avatar
+                  src={remoteUser?.avatar}
+                  fallback={remoteUser?.username?.[0]?.toUpperCase() || "?"}
+                  colorClass="bg-indigo-600"
+                  size="w-28 h-28 text-4xl"
+                />
+                <p className="text-sm text-zinc-400">
+                  {remoteUser?.username} a coupé sa caméra
+                </p>
+              </div>
+            )}
+
+          {/* --- La lecture automatique du flux distant a été bloquée par
+              le navigateur (fréquent sur mobile) : on demande un tap
+              explicite, qui débloque la lecture à coup sûr --- */}
+          {needsTapToPlay && (
+            <button
+              onClick={handleTapToPlay}
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/80 text-white"
+            >
+              <Video size={40} strokeWidth={1.5} />
+              <p className="text-sm font-medium">Appuie pour activer l&apos;appel</p>
+            </button>
           )}
 
           {/* --- En-tête --- */}
@@ -424,6 +501,7 @@ export default function CallModal() {
               </div>
             </div>
           )}
+          </div>
         </div>
       )}
     </>,
