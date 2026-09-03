@@ -32,9 +32,10 @@ export const useChatStore = create((set, get) => ({
   searchResults: [],
   isSearchingMessages: false,
 
-  // Fonction pour récupérer la première page de la liste des utilisateurs,
-  // avec un terme de recherche optionnel (recherche sur toute la base, pas
-  // seulement les contacts déjà chargés)
+  // Fonction pour récupérer la première page de la liste des contacts déjà
+  // ajoutés par l'utilisateur, avec un terme de recherche optionnel
+  // (recherche uniquement parmi ces contacts, pas tout l'annuaire — voir
+  // discoverUsers plus bas pour chercher de nouvelles personnes à ajouter)
   getUsers: async (search = "") => {
     set({ isUsersLoading: true });
     try {
@@ -561,6 +562,46 @@ export const useChatStore = create((set, get) => ({
       console.error(error);
     } finally {
       set({ isLoadingDiscoverableGroups: false });
+    }
+  },
+
+  // Recherche dans l'annuaire COMPLET des inscrits (pas seulement les
+  // contacts déjà ajoutés), pour trouver de nouvelles personnes à ajouter
+  discoverResults: [],
+  isDiscovering: false,
+  discoverUsers: async (search) => {
+    if (!search?.trim()) {
+      set({ discoverResults: [] });
+      return;
+    }
+    set({ isDiscovering: true });
+    try {
+      const res = await axiosInstance.get(
+        `/users/discover?search=${encodeURIComponent(search)}`,
+      );
+      set({ discoverResults: res.data.users });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      set({ isDiscovering: false });
+    }
+  },
+
+  // Ajoute un profil trouvé dans l'annuaire à ses propres contacts (le fait
+  // apparaître dans sa liste de conversations), et rafraîchit cette liste
+  addContact: async (userId) => {
+    try {
+      await axiosInstance.post(`/users/contacts/${userId}`);
+      set({
+        discoverResults: get().discoverResults.filter((u) => u._id !== userId),
+      });
+      await get().getUsers();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
     }
   },
 

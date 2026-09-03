@@ -38,7 +38,7 @@ type DiscoverableGroup = {
 };
 
 import { useEffect, useRef, useState } from "react";
-import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2 } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2, UserPlus } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -118,6 +118,10 @@ export default function Sidebar() {
     isLoadingDiscoverableGroups,
     getDiscoverableGroups,
     requestToJoinGroup,
+    discoverResults,
+    isDiscovering,
+    discoverUsers,
+    addContact,
     previewDiscoverableGroup,
   } = useChatStore();
   const { onlineUsers, authUser, logout, updateProfile, socket, changePassword, deleteAccount } =
@@ -195,6 +199,22 @@ export default function Sidebar() {
     searchDebounceRef.current = setTimeout(() => {
       getUsers(value);
     }, 300);
+  };
+
+  // Recherche dans l'annuaire complet (modale "Ajouter un contact"), avec le
+  // même principe de délai que la recherche dans ses propres contacts
+  const [showAddContact, setShowAddContact] = useState(false);
+  const [addContactSearch, setAddContactSearch] = useState("");
+  const addContactDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleAddContactSearchChange = (value: string) => {
+    setAddContactSearch(value);
+    if (addContactDebounceRef.current) clearTimeout(addContactDebounceRef.current);
+    addContactDebounceRef.current = setTimeout(() => {
+      discoverUsers(value);
+    }, 300);
+  };
+  const handleAddContact = async (userId: string) => {
+    await addContact(userId);
   };
 
   const handleOpenDiscoverGroups = () => {
@@ -510,6 +530,14 @@ export default function Sidebar() {
         </div>
         <div className="flex items-center gap-3">
           <button
+            onClick={() => setShowAddContact(true)}
+            className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+            aria-label="Ajouter un contact"
+            title="Ajouter un contact"
+          >
+            <UserPlus size={20} strokeWidth={2} />
+          </button>
+          <button
             onClick={handleOpenDiscoverGroups}
             className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
             aria-label="Découvrir des groupes"
@@ -530,7 +558,7 @@ export default function Sidebar() {
       <div className="p-3 border-b border-zinc-200 dark:border-zinc-800">
         <input
           type="text"
-          placeholder="Rechercher un contact..."
+          placeholder="Rechercher parmi mes contacts..."
           value={search}
           onChange={(e) => handleSearchChange(e.target.value)}
           className="w-full border border-zinc-300 dark:border-zinc-700 rounded-full px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-sm"
@@ -594,8 +622,10 @@ export default function Sidebar() {
         )}
 
         {!isUsersLoading && visibleUsers.length === 0 && (
-          <p className="text-center text-sm text-zinc-400 mt-4">
-            Aucun contact.
+          <p className="text-center text-sm text-zinc-400 mt-4 px-4">
+            {search
+              ? "Aucun contact ne correspond à cette recherche."
+              : "Tu n'as encore aucun contact. Utilise le bouton ✚ en haut pour en ajouter."}
           </p>
         )}
 
@@ -699,6 +729,70 @@ export default function Sidebar() {
                 Créer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : rechercher un utilisateur dans l'annuaire complet et
+          l'ajouter à ses contacts (seule façon de trouver de nouvelles
+          personnes ; la liste principale ne montre que ses contacts déjà
+          ajoutés) */}
+      {showAddContact && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Ajouter un contact</h3>
+            <input
+              type="text"
+              autoFocus
+              placeholder="Rechercher par nom ou email..."
+              value={addContactSearch}
+              onChange={(e) => handleAddContactSearchChange(e.target.value)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-full px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-sm mb-3"
+            />
+            <div className="custom-scrollbar max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
+              {isDiscovering && (
+                <p className="text-sm text-zinc-400">Recherche...</p>
+              )}
+              {!isDiscovering && addContactSearch.trim() && discoverResults.length === 0 && (
+                <p className="text-sm text-zinc-400">Aucun résultat.</p>
+              )}
+              {!isDiscovering && !addContactSearch.trim() && (
+                <p className="text-sm text-zinc-400">
+                  Tape un nom d&apos;utilisateur ou un email pour chercher.
+                </p>
+              )}
+              {discoverResults.map((user: User) => (
+                <div
+                  key={user._id}
+                  className="flex items-center justify-between py-2 text-sm border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar
+                      src={user.avatar}
+                      fallback={user.username[0]?.toUpperCase()}
+                      colorClass="bg-indigo-600"
+                      size="w-9 h-9 text-sm"
+                    />
+                    <p className="font-medium truncate">{user.username}</p>
+                  </div>
+                  <button
+                    onClick={() => handleAddContact(user._id)}
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                setShowAddContact(false);
+                setAddContactSearch("");
+              }}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
           </div>
         </div>
       )}
