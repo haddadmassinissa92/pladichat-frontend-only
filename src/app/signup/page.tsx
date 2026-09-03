@@ -1,17 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export default function SignupPage() {
+  const router = useRouter();
   const signup = useAuthStore((state) => state.signup);
 
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  // Une fois l'inscription réussie, on affiche un message "vérifie ta boîte
-  // mail" à la place du formulaire, plutôt que de connecter directement
-  const [successMessage, setSuccessMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,32 +22,11 @@ export default function SignupPage() {
     setLoading(false);
 
     if (result.success) {
-      setSuccessMessage(result.message || "Compte créé ! Vérifie ta boîte mail.");
+      router.push("/");
     } else {
       setError(result.message);
     }
   };
-
-  if (successMessage) {
-    return (
-      <div className="flex min-h-screen items-center justify-center px-6">
-        <div className="w-full max-w-sm text-center flex flex-col gap-4">
-          <h1 className="text-2xl font-bold">Vérifie ta boîte mail 📬</h1>
-          <p className="text-sm text-zinc-500">{successMessage}</p>
-          <p className="text-xs text-zinc-400">
-            Le lien de confirmation expire dans 24 heures. Pense à vérifier
-            aussi tes spams si tu ne le vois pas.
-          </p>
-          <a
-            href="/login"
-            className="text-indigo-600 font-medium text-sm mt-2"
-          >
-            Retour à la connexion
-          </a>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center px-6">

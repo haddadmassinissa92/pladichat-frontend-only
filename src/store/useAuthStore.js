@@ -27,12 +27,15 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // Fonction pour inscrire un nouvel utilisateur : ne connecte plus
-  // automatiquement, un email de confirmation doit d'abord être validé
+  // Fonction pour inscrire un nouvel utilisateur (connexion immédiate ;
+  // voir la note dans auth.controller.js sur la vérification d'email
+  // temporairement désactivée)
   signup: async (data) => {
     try {
       const res = await axiosInstance.post("/auth/signup", data);
-      return { success: true, message: res.data.message };
+      set({ authUser: res.data });
+      get().connectSocket();
+      return { success: true };
     } catch (error) {
       return {
         success: false,
