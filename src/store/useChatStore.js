@@ -4,7 +4,6 @@
 import { create } from "zustand";
 import { axiosInstance } from "@/lib/axios";
 import { useAuthStore } from "@/store/useAuthStore";
-import { isConversationMuted } from "@/lib/conversationSettings";
 
 // Création du store de chat avec Zustand
 export const useChatStore = create((set, get) => ({
@@ -293,7 +292,9 @@ export const useChatStore = create((set, get) => ({
         document.hidden &&
         "Notification" in window &&
         Notification.permission === "granted" &&
-        !isConversationMuted(selectedGroup ? selectedGroup._id : selectedUser._id)
+        !(useAuthStore.getState().authUser?.mutedConversations || []).includes(
+          selectedGroup ? selectedGroup._id : selectedUser._id,
+        )
       ) {
         const name = selectedGroup
           ? selectedGroup.name

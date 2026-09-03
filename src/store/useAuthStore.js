@@ -182,4 +182,26 @@ export const useAuthStore = create((set, get) => ({
       };
     }
   },
+
+  // Coupe ou réactive les notifications push pour une conversation précise
+  // (id d'un contact ou d'un groupe). Stocké côté serveur, car c'est le
+  // serveur qui décide d'envoyer ou non une notification push.
+  toggleMuteConversation: async (conversationId) => {
+    try {
+      const res = await axiosInstance.put(`/users/mute/${conversationId}`);
+      const current = get().authUser?.mutedConversations || [];
+      set({
+        authUser: {
+          ...get().authUser,
+          mutedConversations: res.data.muted
+            ? [...current, conversationId]
+            : current.filter((id) => id !== conversationId),
+        },
+      });
+      return res.data.muted;
+    } catch (error) {
+      console.error(error);
+      return get().authUser?.mutedConversations?.includes(conversationId) || false;
+    }
+  },
 }));

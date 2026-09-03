@@ -11,7 +11,7 @@ type Message = {
   linkPreview?: {
     url: string;
     title?: string;
-  }; // Aperçu du lien partagé
+  };
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
 };
@@ -23,7 +23,7 @@ type GroupMember = {
 };
 
 // Hooks fondamentaux de React pour la gestion du cycle de vie et des états
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Avatar from "./Avatar";
 
@@ -54,10 +54,11 @@ import {
   clearConversationWallpaper, // Fonction pour supprimer le fond d'écran actuel
 } from "@/lib/wallpaper";
 
-// Préférences par conversation (notifications coupées, épinglage, masquage)
+// Préférences par conversation : épinglage et masquage restent locaux (voir
+// lib/conversationSettings) ; les notifications coupées, elles, vivent
+// côté serveur (authUser.mutedConversations) car c'est le serveur qui
+// décide d'envoyer ou non une notification push.
 import {
-  isConversationMuted,
-  toggleConversationMuted,
   isConversationPinned,
   toggleConversationPinned,
   hideConversation,
@@ -119,7 +120,8 @@ export default function ChatContainer() {
   // État du menu "gérer le groupe", utilisateur connecté, socket temps réel,
   // et références DOM utilisées pour le défilement et les gestes tactiles
   const [showGroupMenu, setShowGroupMenu] = useState(false);
-  const { authUser, socket, toggleBlockUser, onlineUsers } = useAuthStore();
+  const { authUser, socket, toggleBlockUser, onlineUsers, toggleMuteConversation } =
+    useAuthStore();
   const { startCall, callStatus } = useCallStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -175,24 +177,25 @@ export default function ChatContainer() {
   const conversationId = selectedGroup?._id || selectedUser?._id || null;
   const isGroupConversation = !!selectedGroup;
 
-  // Notifications coupées / conversation épinglée : préférences locales
-  // (voir lib/conversationSettings), synchronisées à chaque changement de
-  // conversation puisque ce ne sont pas des valeurs React réactives par nature
-  const [, setConversationSettingsVersion] = useState(0);
-  const isMuted = isConversationMuted(conversationId);
-  const isPinned = isConversationPinned(conversationId);
-  useEffect(() => {
-    const handleSettingsChanged = () => {
-      setConversationSettingsVersion((version) => version + 1);
-    };
-    window.addEventListener("chatSettingsChanged", handleSettingsChanged);
-    return () => window.removeEventListener("chatSettingsChanged", handleSettingsChanged);
-  }, []);
+  // Notifications coupées : préférence stockée côté serveur, dérivée
+  // directement de authUser (pas besoin d'état local séparé, elle se
+  // recalcule automatiquement à chaque changement de conversation ou de
+  // authUser). Épinglage : préférence locale (voir lib/conversationSettings).
+  const isMuted = !!(
+    conversationId && authUser?.mutedConversations?.includes(conversationId)
+  );
+  const isPinned = useSyncExternalStore(
+    (onStoreChange) => {
+      window.addEventListener("chatSettingsChanged", onStoreChange);
+      return () => window.removeEventListener("chatSettingsChanged", onStoreChange);
+    },
+    () => isConversationPinned(conversationId),
+    () => false,
+  );
 
-  const handleToggleMute = () => {
+  const handleToggleMute = async () => {
     if (!conversationId) return;
-    toggleConversationMuted(conversationId);
-    window.dispatchEvent(new Event("chatSettingsChanged"));
+    await toggleMuteConversation(conversationId);
   };
 
   const handleTogglePin = () => {
@@ -1118,7 +1121,7 @@ export default function ChatContainer() {
                     ...msg,
                     linkPreview: msg.linkPreview
                       ? {
-                          ...msg.linkPreview,
+                          url: msg.linkPreview.url,
                           title: msg.linkPreview.title ?? "",
                           description: "",
                           image: "",
