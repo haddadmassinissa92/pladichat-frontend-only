@@ -11,7 +11,7 @@ type Message = {
   linkPreview?: {
     url: string;
     title?: string;
-  };
+  }; // Aperçu du lien partagé
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
 };
@@ -23,7 +23,7 @@ type GroupMember = {
 };
 
 // Hooks fondamentaux de React pour la gestion du cycle de vie et des états
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Avatar from "./Avatar";
 
@@ -62,6 +62,8 @@ import {
   isConversationPinned,
   toggleConversationPinned,
   hideConversation,
+  getNickname,
+  setNickname,
 } from "@/lib/conversationSettings";
 
 // Transforme une date en texte lisible pour le séparateur entre deux jours
@@ -184,14 +186,24 @@ export default function ChatContainer() {
   const isMuted = !!(
     conversationId && authUser?.mutedConversations?.includes(conversationId)
   );
-  const isPinned = useSyncExternalStore(
-    (onStoreChange) => {
-      window.addEventListener("chatSettingsChanged", onStoreChange);
-      return () => window.removeEventListener("chatSettingsChanged", onStoreChange);
-    },
-    () => isConversationPinned(conversationId),
-    () => false,
-  );
+  const [, setPinRefresh] = useState(0);
+  const [isEditingNickname, setIsEditingNickname] = useState(false);
+  const [nicknameDraft, setNicknameDraft] = useState("");
+  const isPinned = isConversationPinned(conversationId);
+  const nickname = selectedUser ? getNickname(conversationId) : "";
+
+  const handleSaveNickname = () => {
+    if (!conversationId) return;
+    setNickname(conversationId, nicknameDraft);
+    setPinRefresh((value) => value + 1);
+    setIsEditingNickname(false);
+    window.dispatchEvent(new Event("chatSettingsChanged"));
+  };
+
+  // Nom affiché : le surnom local s'il existe, sinon le nom réel
+  const displayName = selectedGroup
+    ? selectedGroup.name
+    : nickname || selectedUser?.username;
 
   const handleToggleMute = async () => {
     if (!conversationId) return;
@@ -201,6 +213,7 @@ export default function ChatContainer() {
   const handleTogglePin = () => {
     if (!conversationId) return;
     toggleConversationPinned(conversationId);
+    setPinRefresh((value) => value + 1);
     window.dispatchEvent(new Event("chatSettingsChanged"));
   };
 
@@ -718,7 +731,7 @@ export default function ChatContainer() {
           onClick={() => setShowContactInfo(true)}
           className="font-bold flex-1 min-w-0 truncate cursor-pointer"
         >
-          {selectedGroup ? selectedGroup.name : selectedUser?.username}
+          {displayName}
         </h2>
 
         {/* Boutons pour démarrer un appel audio/vidéo : uniquement en
@@ -1447,19 +1460,67 @@ export default function ChatContainer() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col items-center text-center mb-4">
-              <Avatar
-                src={selectedGroup ? undefined : selectedUser?.avatar}
-                fallback={
-                  selectedGroup
-                    ? selectedGroup.name[0]?.toUpperCase()
-                    : selectedUser?.username[0]?.toUpperCase() || "?"
-                }
-                colorClass={selectedGroup ? "bg-emerald-600" : "bg-indigo-600"}
-                size="w-24 h-24 text-3xl"
-              />
-              <h3 className="font-bold text-xl mt-3">
-                {selectedGroup ? selectedGroup.name : selectedUser?.username}
-              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = selectedGroup ? undefined : selectedUser?.avatar;
+                  if (url) setFullscreenMediaUrl(url);
+                }}
+                disabled={selectedGroup ? true : !selectedUser?.avatar}
+                className="disabled:cursor-default"
+                aria-label="Agrandir la photo de profil"
+              >
+                <Avatar
+                  src={selectedGroup ? undefined : selectedUser?.avatar}
+                  fallback={
+                    selectedGroup
+                      ? selectedGroup.name[0]?.toUpperCase()
+                      : selectedUser?.username[0]?.toUpperCase() || "?"
+                  }
+                  colorClass={selectedGroup ? "bg-emerald-600" : "bg-indigo-600"}
+                  size="w-24 h-24 text-3xl"
+                />
+              </button>
+              {isEditingNickname ? (
+                <div className="flex items-center gap-1 mt-3">
+                  <input
+                    autoFocus
+                    value={nicknameDraft}
+                    onChange={(e) => setNicknameDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveNickname()}
+                    placeholder={selectedUser?.username}
+                    className="font-bold text-xl text-center border-b border-indigo-600 bg-transparent outline-none w-40"
+                  />
+                  <button
+                    onClick={handleSaveNickname}
+                    className="text-indigo-600 hover:text-indigo-700 transition"
+                    aria-label="Valider le surnom"
+                  >
+                    <UserCheck size={18} strokeWidth={2} />
+                  </button>
+                </div>
+              ) : (
+                <h3 className="font-bold text-xl mt-3 flex items-center gap-1.5">
+                  {displayName}
+                  {selectedUser && (
+                    <button
+                      onClick={() => {
+                        setNicknameDraft(nickname);
+                        setIsEditingNickname(true);
+                      }}
+                      className="text-zinc-400 hover:text-indigo-600 transition"
+                      aria-label="Modifier le surnom"
+                    >
+                      <Pencil size={14} strokeWidth={2} />
+                    </button>
+                  )}
+                </h3>
+              )}
+              {nickname && selectedUser && !isEditingNickname && (
+                <p className="text-xs text-zinc-400">
+                  ({selectedUser.username})
+                </p>
+              )}
               {selectedUser && (
                 <p className="text-sm text-zinc-500 mt-1">
                   {onlineUsers.includes(selectedUser._id)

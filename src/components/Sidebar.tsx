@@ -60,6 +60,7 @@ import {
   isConversationHidden,
   isConversationPinned,
   unhideConversation,
+  getNickname,
 } from "@/lib/conversationSettings";
 
 function formatLastMessage(
@@ -626,7 +627,9 @@ export default function Sidebar() {
               </div>
               <div className="flex-1 min-w-0 text-left">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium truncate">{user.username}</span>
+                  <span className="font-medium truncate">
+                    {getNickname(user._id) || user.username}
+                  </span>
                   {user.lastMessage && (
                     <span className="text-xs text-zinc-400 flex-shrink-0">
                       {formatTime(user.lastMessage.createdAt)}

@@ -73,6 +73,16 @@ export default function MessageBubble({
   const [isTextExpanded, setIsTextExpanded] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Vitesse de lecture du message vocal : cycle 1x → 1.5x → 2x → 1x,
+  // comme sur WhatsApp
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const cyclePlaybackRate = () => {
+    const next = playbackRate === 1 ? 1.5 : playbackRate === 1.5 ? 2 : 1;
+    setPlaybackRate(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
+  };
+
   // Longueur au-delà de laquelle un message texte est raccourci avec
   // un bouton "Lire la suite" (comme sur WhatsApp/Messenger)
   const TEXT_TRUNCATE_LENGTH = 300;
@@ -207,7 +217,25 @@ export default function MessageBubble({
             )}
 
             {msg.audio && (
-              <audio controls src={msg.audio} className="max-w-full mb-1" />
+              <div className="flex items-center gap-1.5 mb-1">
+                <audio
+                  ref={audioRef}
+                  controls
+                  src={msg.audio}
+                  className="max-w-full"
+                  onLoadedMetadata={() => {
+                    if (audioRef.current) audioRef.current.playbackRate = playbackRate;
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={cyclePlaybackRate}
+                  className="shrink-0 text-xs font-semibold px-1.5 py-1 rounded-md border border-zinc-300 dark:border-zinc-600 text-zinc-500 hover:text-indigo-600 hover:border-indigo-600 transition"
+                  aria-label="Changer la vitesse de lecture"
+                >
+                  {playbackRate}x
+                </button>
+              </div>
             )}
 
             {msg.text && (

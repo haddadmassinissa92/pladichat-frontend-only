@@ -17,22 +17,21 @@ function writeSet(key, set) {
   localStorage.setItem(key, JSON.stringify(Array.from(set)));
 }
 
-// --- Notifications coupées ---
+// --- Surnom local pour un contact ---
+// (uniquement pour les contacts privés ; un groupe a déjà son propre nom
+// modifiable directement, pas besoin de surnom)
 
-export function isConversationMuted(conversationId) {
-  if (!conversationId) return false;
-  return readSet("chatMutedConversations").has(conversationId);
+export function getNickname(conversationId) {
+  if (typeof window === "undefined" || !conversationId) return "";
+  return localStorage.getItem(`chatNickname:${conversationId}`) || "";
 }
 
-export function toggleConversationMuted(conversationId) {
-  const set = readSet("chatMutedConversations");
-  if (set.has(conversationId)) {
-    set.delete(conversationId);
+export function setNickname(conversationId, nickname) {
+  if (!nickname.trim()) {
+    localStorage.removeItem(`chatNickname:${conversationId}`);
   } else {
-    set.add(conversationId);
+    localStorage.setItem(`chatNickname:${conversationId}`, nickname.trim());
   }
-  writeSet("chatMutedConversations", set);
-  return set.has(conversationId);
 }
 
 // --- Conversations épinglées ---
