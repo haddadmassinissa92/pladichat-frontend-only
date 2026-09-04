@@ -232,6 +232,11 @@ export const useAuthStore = create((set, get) => ({
           ...get().authUser,
           blockedUsers: res.data.blockedUsers,
         },
+        // Si on débloque depuis la page de profil, on retire aussi
+        // l'entrée de la liste détaillée affichée là-bas
+        blockedUsersList: res.data.blocked
+          ? get().blockedUsersList
+          : get().blockedUsersList.filter((u) => u._id !== userId),
       });
       return { success: true, blocked: res.data.blocked };
     } catch (error) {
@@ -261,6 +266,31 @@ export const useAuthStore = create((set, get) => ({
     } catch (error) {
       console.error(error);
       return get().authUser?.mutedConversations?.includes(conversationId) || false;
+    }
+  },
+
+  // Change le nom d'utilisateur du compte connecté
+  updateUsername: async (username) => {
+    try {
+      const res = await axiosInstance.put("/users/username", { username });
+      set({ authUser: res.data });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Liste détaillée des utilisateurs bloqués, pour la page de profil
+  blockedUsersList: [],
+  getBlockedUsersList: async () => {
+    try {
+      const res = await axiosInstance.get("/users/blocked-list");
+      set({ blockedUsersList: res.data.blockedUsers });
+    } catch (error) {
+      console.error(error);
     }
   },
 }));

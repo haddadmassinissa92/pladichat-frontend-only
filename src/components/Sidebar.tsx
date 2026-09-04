@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2 } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -130,8 +130,19 @@ export default function Sidebar() {
     declineContactRequest,
     previewDiscoverableGroup,
   } = useChatStore();
-  const { onlineUsers, authUser, logout, updateProfile, socket, changePassword, deleteAccount } =
-    useAuthStore();
+  const {
+    onlineUsers,
+    authUser,
+    logout,
+    updateProfile,
+    socket,
+    changePassword,
+    deleteAccount,
+    updateUsername,
+    blockedUsersList,
+    getBlockedUsersList,
+    toggleBlockUser,
+  } = useAuthStore();
   const {
     handleIncomingCall,
     handleCallAccepted,
@@ -158,6 +169,29 @@ export default function Sidebar() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [showMyProfileZoom, setShowMyProfileZoom] = useState(false);
+  const [showBlockedUsers, setShowBlockedUsers] = useState(false);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleSaveUsername = async () => {
+    const result = await updateUsername(usernameDraft);
+    if (result.success) {
+      setIsEditingUsername(false);
+      setUsernameError("");
+    } else {
+      setUsernameError(result.message);
+    }
+  };
+
+  const handleCopyShareLink = () => {
+    const url = `${window.location.origin}/add/${authUser?.username}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  };
   const [showRingtoneMenu, setShowRingtoneMenu] = useState(false);
   const [showHiddenConversations, setShowHiddenConversations] = useState(false);
   const [selectedRingtone, setSelectedRingtone] = useState("classic");
@@ -885,8 +919,52 @@ export default function Sidebar() {
                 size="w-24 h-24 text-3xl mx-auto"
               />
             </button>
-            <h3 className="font-bold text-xl mt-3">{authUser?.username}</h3>
+            {isEditingUsername ? (
+              <div className="flex items-center gap-1 justify-center mt-3">
+                <input
+                  autoFocus
+                  value={usernameDraft}
+                  onChange={(e) => setUsernameDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveUsername()}
+                  className="font-bold text-xl text-center border-b border-indigo-600 bg-transparent outline-none w-40"
+                />
+                <button
+                  onClick={handleSaveUsername}
+                  className="text-indigo-600 hover:text-indigo-700 transition"
+                  aria-label="Valider le nom d'utilisateur"
+                >
+                  <UserCheck size={18} strokeWidth={2} />
+                </button>
+              </div>
+            ) : (
+              <h3 className="font-bold text-xl mt-3 flex items-center justify-center gap-1.5">
+                {authUser?.username}
+                <button
+                  onClick={() => {
+                    setUsernameDraft(authUser?.username || "");
+                    setIsEditingUsername(true);
+                    setUsernameError("");
+                  }}
+                  className="text-zinc-400 hover:text-indigo-600 transition"
+                  aria-label="Modifier le nom d'utilisateur"
+                >
+                  <Pencil size={14} strokeWidth={2} />
+                </button>
+              </h3>
+            )}
+            {usernameError && (
+              <p className="text-xs text-red-600 mt-1">{usernameError}</p>
+            )}
             <p className="text-sm text-zinc-500">{authUser?.email}</p>
+            {authUser?.createdAt && (
+              <p className="text-xs text-zinc-400 mt-1">
+                Membre depuis{" "}
+                {new Date(authUser.createdAt).toLocaleDateString("fr-FR", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+            )}
 
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -895,9 +973,81 @@ export default function Sidebar() {
               <Camera size={16} strokeWidth={2} />
               Changer la photo
             </button>
+
+            <button
+              onClick={handleCopyShareLink}
+              className="mt-2 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <LinkIcon size={16} strokeWidth={2} />
+              {linkCopied ? "Lien copié !" : "Copier mon lien d'ajout"}
+            </button>
+
+            <button
+              onClick={() => {
+                setShowMyProfile(false);
+                setShowBlockedUsers(true);
+                getBlockedUsersList();
+              }}
+              className="mt-2 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <Ban size={16} strokeWidth={2} />
+              Utilisateurs bloqués
+            </button>
+
             <button
               onClick={() => setShowMyProfile(false)}
               className="mt-2 w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : liste des utilisateurs bloqués, pour pouvoir les
+          débloquer sans devoir rouvrir une conversation avec chacun */}
+      {showBlockedUsers && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowBlockedUsers(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-3">Utilisateurs bloqués</h3>
+            <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
+              {blockedUsersList.length === 0 && (
+                <p className="text-sm text-zinc-400">
+                  Tu n&apos;as bloqué personne.
+                </p>
+              )}
+              {blockedUsersList.map((user: User) => (
+                <div
+                  key={user._id}
+                  className="flex items-center justify-between py-2 text-sm"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar
+                      src={user.avatar}
+                      fallback={user.username[0]?.toUpperCase()}
+                      colorClass="bg-indigo-600"
+                      size="w-9 h-9 text-sm"
+                    />
+                    <p className="font-medium truncate">{user.username}</p>
+                  </div>
+                  <button
+                    onClick={() => toggleBlockUser(user._id)}
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                  >
+                    Débloquer
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowBlockedUsers(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
             >
               Fermer
             </button>

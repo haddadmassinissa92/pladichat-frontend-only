@@ -565,6 +565,20 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Recherche un profil par nom d'utilisateur EXACT, utilisé par le lien de
+  // partage "ajoute-moi" (/add/[username])
+  lookupUserByUsername: async (username) => {
+    try {
+      const res = await axiosInstance.get(`/users/lookup/${encodeURIComponent(username)}`);
+      return { success: true, user: res.data.user };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Utilisateur introuvable.",
+      };
+    }
+  },
+
   // Recherche dans l'annuaire COMPLET des inscrits (pas seulement les
   // contacts déjà ajoutés), pour trouver de nouvelles personnes à ajouter
   discoverResults: [],
@@ -587,8 +601,6 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // Ajoute un profil trouvé dans l'annuaire à ses propres contacts (le fait
-  // apparaître dans sa liste de conversations), et rafraîchit cette liste
   // Envoie une demande de contact (ne l'ajoute pas tout de suite : il faut
   // que la personne l'accepte pour que le contact devienne mutuel)
   addContact: async (userId) => {
