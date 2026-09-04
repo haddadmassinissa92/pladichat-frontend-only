@@ -5,8 +5,14 @@
 // cet appareil, pas besoin de la synchroniser côté serveur.
 
 export const RINGTONES = [
-  { id: "classic", label: "Classique", file: "/ringtone.wav" },
+  { id: "classic", label: "Classique (US)", file: "/ringtone.wav" },
   { id: "european", label: "Européenne", file: "/ringtone-european.wav" },
+  { id: "british", label: "Britannique", file: "/ringtone-british.wav" },
+  { id: "japanese", label: "Japonaise", file: "/ringtone-japanese.wav" },
+  { id: "rotary", label: "Téléphone à cadran", file: "/ringtone-rotary.wav" },
+  { id: "digital", label: "Numérique", file: "/ringtone-digital.wav" },
+  { id: "siren", label: "Sirène", file: "/ringtone-siren.wav" },
+  { id: "bourdon", label: "Bourdon grave", file: "/ringtone-bourdon.wav" },
   { id: "marimba", label: "Marimba", file: "/ringtone-marimba.wav" },
   { id: "chime", label: "Carillon", file: "/ringtone-chime.wav" },
 ];

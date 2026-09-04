@@ -1692,22 +1692,31 @@ export default function Sidebar() {
               {RINGTONES.map((r) => (
                 <div
                   key={r.id}
-                  className="flex items-center justify-between rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  className={`flex items-center justify-between rounded-lg border transition ${
+                    selectedRingtone === r.id
+                      ? "border-accent-600 bg-accent-50 dark:bg-accent-950"
+                      : "border-zinc-200 dark:border-zinc-700 hover:border-accent-600"
+                  }`}
                 >
                   <button
                     onClick={() => handleRingtoneChange(r.id)}
-                    className={`flex-1 text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 ${
-                      selectedRingtone === r.id ? "font-semibold" : ""
-                    }`}
+                    className="flex-1 flex items-center gap-2 text-left px-3 py-2.5 text-sm text-zinc-700 dark:text-zinc-200"
                   >
-                    {r.label}
+                    {selectedRingtone === r.id ? (
+                      <UserCheck size={16} strokeWidth={2} className="text-accent-600 shrink-0" />
+                    ) : (
+                      <span className="w-4 shrink-0" />
+                    )}
+                    <span className={selectedRingtone === r.id ? "font-semibold" : ""}>
+                      {r.label}
+                    </span>
                   </button>
                   <button
                     onClick={() => {
                       const audio = new Audio(r.file);
                       audio.play().catch(() => {});
                     }}
-                    className="px-3 py-2 text-zinc-400 hover:text-accent-600 transition"
+                    className="px-3 py-2 text-zinc-400 hover:text-accent-600 transition border-l border-zinc-200 dark:border-zinc-700"
                     aria-label={`Écouter ${r.label}`}
                   >
                     <Volume2 size={16} strokeWidth={2} />
