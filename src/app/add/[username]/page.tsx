@@ -13,6 +13,7 @@ export default function AddContactByUsernamePage() {
   const params = useParams<{ username: string }>();
   const authUser = useAuthStore((state) => state.authUser);
   const isCheckingAuth = useAuthStore((state) => state.isCheckingAuth);
+  const checkAuth = useAuthStore((state) => state.checkAuth);
   const lookupUserByUsername = useChatStore((state) => state.lookupUserByUsername);
   const addContact = useChatStore((state) => state.addContact);
 
@@ -20,6 +21,14 @@ export default function AddContactByUsernamePage() {
   const [foundUser, setFoundUser] = useState<LookedUpUser | null>(null);
   const [requestSent, setRequestSent] = useState(false);
   const [requestError, setRequestError] = useState("");
+
+  // Cette page peut être ouverte directement via un lien partagé, sans être
+  // passé par la page principale (app/page.tsx) qui déclenche normalement
+  // cette vérification — sans ça, isCheckingAuth reste bloqué à "true" et
+  // la page ne sort jamais de son état de chargement
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   useEffect(() => {
     if (isCheckingAuth || !authUser) return;
