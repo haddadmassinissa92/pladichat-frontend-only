@@ -6,9 +6,9 @@
   --foreground: #171717;
 
   /* Couleur d'accent de l'application : valeurs par défaut (= indigo actuel).
-     Changées dynamiquement en JS (voir lib/accentColor.js) quand l'utilisateur
-     choisit une autre couleur — grâce au "@theme inline" ci-dessous, toutes
-    les classes d'accent (bg-accent-, text-accent-, border-accent-) utilisées dans
+    Changées dynamiquement en JS (voir lib/accentColor.js) quand l'utilisateur
+    choisit une autre couleur - grâce au "@theme inline" ci-dessous, toutes
+    les classes d'accent utilisées dans
      l'app se mettent à jour instantanément, sans recharger la page. */
   --accent-50: #eef2ff;
   --accent-100: #e0e7ff;
