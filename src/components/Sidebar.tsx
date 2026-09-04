@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -128,6 +128,9 @@ export default function Sidebar() {
     getContactRequests,
     acceptContactRequest,
     declineContactRequest,
+    sentContactRequests,
+    getSentContactRequests,
+    cancelContactRequest,
     previewDiscoverableGroup,
   } = useChatStore();
   const {
@@ -142,6 +145,7 @@ export default function Sidebar() {
     blockedUsersList,
     getBlockedUsersList,
     toggleBlockUser,
+    toggleMuteConversation,
   } = useAuthStore();
   const {
     handleIncomingCall,
@@ -170,6 +174,8 @@ export default function Sidebar() {
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [showMyProfileZoom, setShowMyProfileZoom] = useState(false);
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
+  const [showMutedList, setShowMutedList] = useState(false);
+  const [showSentRequests, setShowSentRequests] = useState(false);
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [usernameDraft, setUsernameDraft] = useState("");
   const [usernameError, setUsernameError] = useState("");
@@ -589,6 +595,16 @@ export default function Sidebar() {
     window.dispatchEvent(new Event("chatSettingsChanged"));
   };
 
+  // Contacts et groupes en sourdine (notifications coupées), pour les
+  // retrouver et les réactiver depuis "Mon profil" sans devoir rouvrir
+  // chaque conversation une par une
+  const mutedUserIds = authUser?.mutedConversations || [];
+  const mutedUsers = users.filter((u: User) => mutedUserIds.includes(u._id));
+  const mutedGroups = groups.filter((g: Group) => mutedUserIds.includes(g._id));
+  const handleUnmute = (id: string) => {
+    toggleMuteConversation(id);
+  };
+
   void settingsVersion; // force le recalcul ci-dessus à chaque changement
 
   return (
@@ -995,8 +1011,171 @@ export default function Sidebar() {
             </button>
 
             <button
+              onClick={() => {
+                setShowMyProfile(false);
+                setShowHiddenConversations(true);
+              }}
+              className="mt-2 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <EyeOff size={16} strokeWidth={2} />
+              Conversations masquées
+              {hiddenUsers.length + hiddenGroups.length > 0 && (
+                <span className="text-zinc-400">
+                  ({hiddenUsers.length + hiddenGroups.length})
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setShowMyProfile(false);
+                setShowMutedList(true);
+              }}
+              className="mt-2 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <BellOff size={16} strokeWidth={2} />
+              Notifications coupées
+              {mutedUsers.length + mutedGroups.length > 0 && (
+                <span className="text-zinc-400">
+                  ({mutedUsers.length + mutedGroups.length})
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setShowMyProfile(false);
+                setShowSentRequests(true);
+                getSentContactRequests();
+              }}
+              className="mt-2 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <UserPlus size={16} strokeWidth={2} />
+              Demandes envoyées
+              {sentContactRequests.length > 0 && (
+                <span className="text-zinc-400">({sentContactRequests.length})</span>
+              )}
+            </button>
+
+            <button
               onClick={() => setShowMyProfile(false)}
               className="mt-2 w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : conversations en sourdine, pour les réactiver */}
+      {showMutedList && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowMutedList(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-3">Notifications coupées</h3>
+            <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
+              {mutedUsers.length === 0 && mutedGroups.length === 0 && (
+                <p className="text-sm text-zinc-400">
+                  Aucune conversation en sourdine.
+                </p>
+              )}
+              {mutedGroups.map((group: Group) => (
+                <div key={group._id} className="flex items-center justify-between py-2 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar
+                      src={undefined}
+                      fallback={group.name[0]?.toUpperCase()}
+                      colorClass="bg-emerald-600"
+                      size="w-9 h-9 text-sm"
+                    />
+                    <p className="font-medium truncate">{group.name}</p>
+                  </div>
+                  <button
+                    onClick={() => handleUnmute(group._id)}
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                  >
+                    Réactiver
+                  </button>
+                </div>
+              ))}
+              {mutedUsers.map((user: User) => (
+                <div key={user._id} className="flex items-center justify-between py-2 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar
+                      src={user.avatar}
+                      fallback={user.username[0]?.toUpperCase()}
+                      colorClass="bg-indigo-600"
+                      size="w-9 h-9 text-sm"
+                    />
+                    <p className="font-medium truncate">
+                      {getNickname(user._id) || user.username}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleUnmute(user._id)}
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                  >
+                    Réactiver
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowMutedList(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : demandes de contact envoyées, en attente d'une réponse,
+          avec la possibilité de les annuler */}
+      {showSentRequests && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowSentRequests(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-3">Demandes envoyées</h3>
+            <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
+              {sentContactRequests.length === 0 && (
+                <p className="text-sm text-zinc-400">
+                  Aucune demande en attente.
+                </p>
+              )}
+              {sentContactRequests.map((user: User) => (
+                <div key={user._id} className="flex items-center justify-between py-2 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar
+                      src={user.avatar}
+                      fallback={user.username[0]?.toUpperCase()}
+                      colorClass="bg-indigo-600"
+                      size="w-9 h-9 text-sm"
+                    />
+                    <p className="font-medium truncate">{user.username}</p>
+                  </div>
+                  <button
+                    onClick={() => cancelContactRequest(user._id)}
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full border border-zinc-300 dark:border-zinc-700"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowSentRequests(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
             >
               Fermer
             </button>

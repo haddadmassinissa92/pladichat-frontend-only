@@ -663,6 +663,33 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Demandes de contact ENVOYÉES, encore en attente d'une réponse
+  sentContactRequests: [],
+  getSentContactRequests: async () => {
+    try {
+      const res = await axiosInstance.get("/users/contact-requests/sent");
+      set({ sentContactRequests: res.data.requests });
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
+  // Annule une demande de contact qu'on a soi-même envoyée
+  cancelContactRequest: async (userId) => {
+    try {
+      await axiosInstance.delete(`/users/contact-requests/${userId}`);
+      set({
+        sentContactRequests: get().sentContactRequests.filter((u) => u._id !== userId),
+      });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   // Envoie une demande d'adhésion à un groupe découvrable
   requestToJoinGroup: async (groupId) => {
     try {
