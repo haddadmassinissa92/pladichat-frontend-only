@@ -159,6 +159,7 @@ export default function Sidebar() {
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [showMyProfileZoom, setShowMyProfileZoom] = useState(false);
   const [showRingtoneMenu, setShowRingtoneMenu] = useState(false);
+  const [showHiddenConversations, setShowHiddenConversations] = useState(false);
   const [selectedRingtone, setSelectedRingtone] = useState("classic");
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -542,6 +543,18 @@ export default function Sidebar() {
       const pinnedDiff = Number(isConversationPinned(b._id)) - Number(isConversationPinned(a._id));
       return pinnedDiff;
     });
+
+  // Contacts et groupes masqués : le backend les renvoie toujours (masquer
+  // est une préférence purement locale), on les isole ici pour permettre de
+  // les retrouver et les réafficher — sans ça, une conversation masquée est
+  // perdue pour de bon tant qu'aucun nouveau message n'arrive
+  const hiddenUsers = users.filter((u: User) => isConversationHidden(u._id));
+  const hiddenGroups = groups.filter((g: Group) => isConversationHidden(g._id));
+  const handleUnhide = (id: string) => {
+    unhideConversation(id);
+    window.dispatchEvent(new Event("chatSettingsChanged"));
+  };
+
   void settingsVersion; // force le recalcul ci-dessus à chaque changement
 
   return (
@@ -718,7 +731,91 @@ export default function Sidebar() {
             Chargement d&apos;autres contacts...
           </p>
         )}
+
+        {/* Lien vers les conversations masquées, uniquement s'il y en a au
+            moins une — sans ça, une conversation masquée serait perdue
+            pour de bon tant qu'aucun nouveau message n'arrive */}
+        {(hiddenUsers.length > 0 || hiddenGroups.length > 0) && (
+          <button
+            onClick={() => setShowHiddenConversations(true)}
+            className="w-full text-center text-xs text-zinc-400 hover:text-indigo-600 py-3 border-t border-zinc-100 dark:border-zinc-800 transition"
+          >
+            Conversations masquées ({hiddenUsers.length + hiddenGroups.length})
+          </button>
+        )}
       </div>
+
+      {/* Modale : conversations masquées, pour pouvoir les réafficher */}
+      {showHiddenConversations && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowHiddenConversations(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-3">Conversations masquées</h3>
+            <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
+              {hiddenUsers.length === 0 && hiddenGroups.length === 0 && (
+                <p className="text-sm text-zinc-400">Aucune conversation masquée.</p>
+              )}
+              {hiddenGroups.map((group: Group) => (
+                <div
+                  key={group._id}
+                  className="flex items-center justify-between py-2 text-sm"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar
+                      src={undefined}
+                      fallback={group.name[0]?.toUpperCase()}
+                      colorClass="bg-emerald-600"
+                      size="w-9 h-9 text-sm"
+                    />
+                    <p className="font-medium truncate">{group.name}</p>
+                  </div>
+                  <button
+                    onClick={() => handleUnhide(group._id)}
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                  >
+                    Réafficher
+                  </button>
+                </div>
+              ))}
+              {hiddenUsers.map((user: User) => (
+                <div
+                  key={user._id}
+                  className="flex items-center justify-between py-2 text-sm"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar
+                      src={user.avatar}
+                      fallback={user.username[0]?.toUpperCase()}
+                      colorClass="bg-indigo-600"
+                      size="w-9 h-9 text-sm"
+                    />
+                    <p className="font-medium truncate">
+                      {getNickname(user._id) || user.username}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleUnhide(user._id)}
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                  >
+                    Réafficher
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowHiddenConversations(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
 
       {showCreateGroup && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
