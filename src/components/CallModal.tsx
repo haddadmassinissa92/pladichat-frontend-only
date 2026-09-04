@@ -6,6 +6,7 @@ import { Phone, PhoneOff, Video, Mic, MicOff, VideoOff, UserPlus } from "lucide-
 import { useCallStore } from "@/store/useCallStore";
 import { useChatStore } from "@/store/useChatStore";
 import Avatar from "./Avatar";
+import { getRingtoneFile } from "@/lib/ringtone";
 
 type SimpleUser = { _id: string; username: string; avatar?: string };
 
@@ -219,7 +220,7 @@ export default function CallModal() {
   return createPortal(
     <>
       {/* Sonnerie, toujours montée pour pouvoir démarrer dès que le statut change */}
-      <audio ref={ringtoneRef} src="/ringtone.wav" loop />
+      <audio ref={ringtoneRef} src={getRingtoneFile()} loop />
 
       {showModal && (
         <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center sm:p-6">

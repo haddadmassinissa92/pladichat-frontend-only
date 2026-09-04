@@ -4,6 +4,13 @@ export const WALLPAPERS = [
   { id: "warm", label: "Chaleureux", className: "bg-amber-50 dark:bg-amber-950" },
   { id: "cool", label: "Frais", className: "bg-sky-50 dark:bg-sky-950" },
   { id: "green", label: "Nature", className: "bg-emerald-50 dark:bg-emerald-950" },
+  { id: "rose", label: "Rose", className: "bg-rose-50 dark:bg-rose-950" },
+  { id: "violet", label: "Violet", className: "bg-violet-50 dark:bg-violet-950" },
+  { id: "orange", label: "Coucher de soleil", className: "bg-orange-50 dark:bg-orange-950" },
+  { id: "teal", label: "Turquoise", className: "bg-teal-50 dark:bg-teal-950" },
+  { id: "slate", label: "Ardoise", className: "bg-slate-100 dark:bg-slate-900" },
+  { id: "yellow", label: "Soleil", className: "bg-yellow-50 dark:bg-yellow-950" },
+  { id: "indigo", label: "Nuit indigo", className: "bg-indigo-50 dark:bg-indigo-950" },
   { id: "custom", label: "Image personnalisée", className: "" },
 ];
 

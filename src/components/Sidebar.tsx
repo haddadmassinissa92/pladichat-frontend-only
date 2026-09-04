@@ -38,7 +38,8 @@ type DiscoverableGroup = {
 };
 
 import { useEffect, useRef, useState } from "react";
-import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2, UserPlus } from "lucide-react";
+import Image from "next/image";
+import { Search, Plus, Palette, Camera, Moon, Bell, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2 } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -51,6 +52,7 @@ import {
   setGlobalWallpaper,
   setGlobalWallpaperImage,
 } from "@/lib/wallpaper";
+import { RINGTONES, getRingtone, setRingtone } from "@/lib/ringtone";
 import {
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
@@ -122,6 +124,10 @@ export default function Sidebar() {
     isDiscovering,
     discoverUsers,
     addContact,
+    contactRequests,
+    getContactRequests,
+    acceptContactRequest,
+    declineContactRequest,
     previewDiscoverableGroup,
   } = useChatStore();
   const { onlineUsers, authUser, logout, updateProfile, socket, changePassword, deleteAccount } =
@@ -150,6 +156,18 @@ export default function Sidebar() {
   const [groupName, setGroupName] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMyProfile, setShowMyProfile] = useState(false);
+  const [showMyProfileZoom, setShowMyProfileZoom] = useState(false);
+  const [showRingtoneMenu, setShowRingtoneMenu] = useState(false);
+  const [selectedRingtone, setSelectedRingtone] = useState("classic");
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedRingtone(getRingtone());
+  }, []);
+  const handleRingtoneChange = (id: string) => {
+    setRingtone(id);
+    setSelectedRingtone(id);
+  };
   const [uploading, setUploading] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -283,7 +301,8 @@ export default function Sidebar() {
   useEffect(() => {
     getUsers();
     getGroups();
-  }, [getUsers, getGroups]);
+    getContactRequests();
+  }, [getUsers, getGroups, getContactRequests]);
 
   useEffect(() => {
     if (!socket) return;
@@ -379,6 +398,8 @@ export default function Sidebar() {
     socket.on("callEnded", handleCallEnded);
     socket.on("callUnavailable", handleCallUnavailable);
     socket.on("cameraToggled", handleRemoteCameraToggled);
+    socket.on("contactRequestReceived", getContactRequests);
+    socket.on("contactRequestAccepted", refresh);
 
     // --- Écouteurs d'appel de groupe ---
     socket.on("incomingGroupCall", handleIncomingGroupCall);
@@ -406,6 +427,8 @@ export default function Sidebar() {
       socket.off("callEnded", handleCallEnded);
       socket.off("callUnavailable", handleCallUnavailable);
       socket.off("cameraToggled", handleRemoteCameraToggled);
+      socket.off("contactRequestReceived", getContactRequests);
+      socket.off("contactRequestAccepted", refresh);
       socket.off("incomingGroupCall", handleIncomingGroupCall);
       socket.off("groupCallParticipants", handleGroupCallParticipants);
       socket.off("incomingGroupCallOffer", handleGroupCallOffer);
@@ -428,6 +451,7 @@ export default function Sidebar() {
     handleCallEnded,
     handleCallUnavailable,
     handleRemoteCameraToggled,
+    getContactRequests,
     handleIncomingGroupCall,
     handleGroupCallParticipants,
     handleGroupCallOffer,
@@ -533,11 +557,16 @@ export default function Sidebar() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowAddContact(true)}
-            className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+            className="relative text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
             aria-label="Ajouter un contact"
             title="Ajouter un contact"
           >
             <UserPlus size={20} strokeWidth={2} />
+            {contactRequests.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] leading-none rounded-full w-4 h-4 flex items-center justify-center">
+                {contactRequests.length}
+              </span>
+            )}
           </button>
           <button
             onClick={handleOpenDiscoverGroups}
@@ -735,6 +764,75 @@ export default function Sidebar() {
         </div>
       )}
 
+      {/* Modale : mon propre profil (photo en grand, nom, email) */}
+      {showMyProfile && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowMyProfile(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-sm text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => authUser?.avatar && setShowMyProfileZoom(true)}
+              disabled={!authUser?.avatar}
+              className="disabled:cursor-default mx-auto block"
+              aria-label="Agrandir ma photo de profil"
+            >
+              <Avatar
+                src={authUser?.avatar}
+                fallback={authUser?.username?.[0]?.toUpperCase() || "?"}
+                colorClass="bg-indigo-600"
+                size="w-24 h-24 text-3xl mx-auto"
+              />
+            </button>
+            <h3 className="font-bold text-xl mt-3">{authUser?.username}</h3>
+            <p className="text-sm text-zinc-500">{authUser?.email}</p>
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-4 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <Camera size={16} strokeWidth={2} />
+              Changer la photo
+            </button>
+            <button
+              onClick={() => setShowMyProfile(false)}
+              className="mt-2 w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Aperçu plein écran de ma propre photo de profil */}
+      {showMyProfileZoom && authUser?.avatar && (
+        <div
+          className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60] p-4"
+          onClick={() => setShowMyProfileZoom(false)}
+        >
+          <button
+            onClick={() => setShowMyProfileZoom(false)}
+            className="absolute top-4 right-4 text-white"
+            aria-label="Fermer l'aperçu"
+          >
+            <X size={32} strokeWidth={2} />
+          </button>
+          <Image
+            src={authUser.avatar}
+            alt="Ma photo de profil en plein écran"
+            width={1200}
+            height={1200}
+            unoptimized
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-full object-contain rounded-lg"
+          />
+        </div>
+      )}
+
       {/* Modale : rechercher un utilisateur dans l'annuaire complet et
           l'ajouter à ses contacts (seule façon de trouver de nouvelles
           personnes ; la liste principale ne montre que ses contacts déjà
@@ -743,6 +841,48 @@ export default function Sidebar() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
             <h3 className="font-bold mb-3">Ajouter un contact</h3>
+
+            {/* Demandes reçues, en attente d'une réponse */}
+            {contactRequests.length > 0 && (
+              <div className="mb-3 pb-3 border-b border-zinc-200 dark:border-zinc-700">
+                <p className="text-xs text-zinc-400 uppercase mb-1">
+                  Demandes reçues ({contactRequests.length})
+                </p>
+                <div className="flex flex-col gap-1">
+                  {contactRequests.map((user: User) => (
+                    <div
+                      key={user._id}
+                      className="flex items-center justify-between py-1.5 text-sm"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Avatar
+                          src={user.avatar}
+                          fallback={user.username[0]?.toUpperCase()}
+                          colorClass="bg-indigo-600"
+                          size="w-9 h-9 text-sm"
+                        />
+                        <p className="font-medium truncate">{user.username}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        <button
+                          onClick={() => acceptContactRequest(user._id)}
+                          className="text-xs px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                        >
+                          Accepter
+                        </button>
+                        <button
+                          onClick={() => declineContactRequest(user._id)}
+                          className="text-xs px-3 py-1.5 rounded-full border border-zinc-300 dark:border-zinc-700"
+                        >
+                          Refuser
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <input
               type="text"
               autoFocus
@@ -850,21 +990,30 @@ export default function Sidebar() {
 
       {/* Barre de profil en bas, style WhatsApp : avatar + nom + menu vers le haut */}
       <div className="relative border-t border-zinc-200 dark:border-zinc-800 p-3">
-        <button
-          onClick={() => setShowProfileMenu(!showProfileMenu)}
-          disabled={uploading}
-          className="w-full flex items-center gap-3 rounded-lg p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-        >
-          <Avatar
-            src={authUser?.avatar}
-            fallback={authUser?.username?.[0]?.toUpperCase() || "?"}
-            colorClass="bg-indigo-600"
-            size="w-9 h-9"
-          />
-          <span className="font-medium text-sm truncate">
-            {authUser?.username}
-          </span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMyProfile(true)}
+            disabled={uploading}
+            className="shrink-0"
+            aria-label="Voir mon profil"
+          >
+            <Avatar
+              src={authUser?.avatar}
+              fallback={authUser?.username?.[0]?.toUpperCase() || "?"}
+              colorClass="bg-indigo-600"
+              size="w-9 h-9"
+            />
+          </button>
+          <button
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            disabled={uploading}
+            className="flex-1 min-w-0 flex items-center rounded-lg p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-left"
+          >
+            <span className="font-medium text-sm truncate">
+              {authUser?.username}
+            </span>
+          </button>
+        </div>
 
         {showProfileMenu && (
           <>
@@ -898,6 +1047,17 @@ export default function Sidebar() {
                 className="hidden"
                 onChange={handleGlobalWallpaperImageSelect}
               />
+
+              <button
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  setShowRingtoneMenu(true);
+                }}
+                className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              >
+                <Music size={16} strokeWidth={2} className="shrink-0" />
+                Sonnerie d&apos;appel
+              </button>
 
               <div className="flex items-center justify-between px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
                 <span className="flex items-center gap-2">
@@ -1008,6 +1168,47 @@ export default function Sidebar() {
             </div>
             <button
               onClick={() => setShowGlobalWallpaperMenu(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showRingtoneMenu && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Sonnerie d&apos;appel</h3>
+            <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
+              {RINGTONES.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <button
+                    onClick={() => handleRingtoneChange(r.id)}
+                    className={`flex-1 text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+                      selectedRingtone === r.id ? "font-semibold" : ""
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const audio = new Audio(r.file);
+                      audio.play().catch(() => {});
+                    }}
+                    className="px-3 py-2 text-zinc-400 hover:text-indigo-600 transition"
+                    aria-label={`Écouter ${r.label}`}
+                  >
+                    <Volume2 size={16} strokeWidth={2} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowRingtoneMenu(false)}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
             >
               Fermer

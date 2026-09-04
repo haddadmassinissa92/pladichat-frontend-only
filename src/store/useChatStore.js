@@ -589,13 +589,59 @@ export const useChatStore = create((set, get) => ({
 
   // Ajoute un profil trouvé dans l'annuaire à ses propres contacts (le fait
   // apparaître dans sa liste de conversations), et rafraîchit cette liste
+  // Envoie une demande de contact (ne l'ajoute pas tout de suite : il faut
+  // que la personne l'accepte pour que le contact devienne mutuel)
   addContact: async (userId) => {
     try {
       await axiosInstance.post(`/users/contacts/${userId}`);
       set({
         discoverResults: get().discoverResults.filter((u) => u._id !== userId),
       });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Demandes de contact reçues, en attente d'une réponse
+  contactRequests: [],
+  getContactRequests: async () => {
+    try {
+      const res = await axiosInstance.get("/users/contact-requests");
+      set({ contactRequests: res.data.requests });
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
+  // Accepte une demande reçue : devient un contact mutuel, et rafraîchit
+  // sa propre liste pour le faire apparaître tout de suite
+  acceptContactRequest: async (userId) => {
+    try {
+      await axiosInstance.post(`/users/contact-requests/${userId}/accept`);
+      set({
+        contactRequests: get().contactRequests.filter((u) => u._id !== userId),
+      });
       await get().getUsers();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Refuse une demande reçue : la retire simplement de la liste d'attente
+  declineContactRequest: async (userId) => {
+    try {
+      await axiosInstance.post(`/users/contact-requests/${userId}/decline`);
+      set({
+        contactRequests: get().contactRequests.filter((u) => u._id !== userId),
+      });
       return { success: true };
     } catch (error) {
       return {
