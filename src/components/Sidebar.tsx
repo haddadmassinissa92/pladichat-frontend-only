@@ -1099,9 +1099,9 @@ export default function Sidebar() {
                   {contactRequests.map((user: User) => (
                     <div
                       key={user._id}
-                      className="flex items-center justify-between py-1.5 text-sm"
+                      className="py-2 text-sm border-b border-zinc-100 dark:border-zinc-800 last:border-0"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
                         <Avatar
                           src={user.avatar}
                           fallback={user.username[0]?.toUpperCase()}
@@ -1110,7 +1110,7 @@ export default function Sidebar() {
                         />
                         <p className="font-medium truncate">{user.username}</p>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <div className="flex items-center gap-1.5 justify-end">
                         <button
                           onClick={() => acceptContactRequest(user._id)}
                           className="text-xs px-3 py-1.5 rounded-full bg-indigo-600 text-white"
