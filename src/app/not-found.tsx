@@ -7,7 +7,7 @@ export default function NotFound() {
       <FileQuestion
         size={56}
         strokeWidth={1.5}
-        className="text-indigo-600 mb-4"
+        className="text-accent-600 mb-4"
       />
       <h1 className="text-2xl font-bold mb-2">Page introuvable</h1>
       <p className="text-sm text-zinc-500 max-w-sm mb-6">
@@ -16,7 +16,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="bg-indigo-600 hover:bg-indigo-700 transition text-white rounded-full px-6 py-2.5 text-sm font-medium"
+        className="bg-accent-600 hover:bg-accent-700 transition text-white rounded-full px-6 py-2.5 text-sm font-medium"
       >
         Retour à PladiChat
       </Link>

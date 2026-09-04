@@ -186,16 +186,20 @@ export default function ChatContainer() {
   const isMuted = !!(
     conversationId && authUser?.mutedConversations?.includes(conversationId)
   );
-  const [, setPinRefresh] = useState(0);
+  const [isPinned, setIsPinned] = useState(false);
+  const [nickname, setNicknameState] = useState("");
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState("");
-  const isPinned = isConversationPinned(conversationId);
-  const nickname = selectedUser ? getNickname(conversationId) : "";
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsPinned(isConversationPinned(conversationId));
+    setNicknameState(selectedUser ? getNickname(conversationId) : "");
+  }, [conversationId, selectedUser]);
 
   const handleSaveNickname = () => {
     if (!conversationId) return;
     setNickname(conversationId, nicknameDraft);
-    setPinRefresh((value) => value + 1);
+    setNicknameState(nicknameDraft.trim());
     setIsEditingNickname(false);
     window.dispatchEvent(new Event("chatSettingsChanged"));
   };
@@ -212,8 +216,7 @@ export default function ChatContainer() {
 
   const handleTogglePin = () => {
     if (!conversationId) return;
-    toggleConversationPinned(conversationId);
-    setPinRefresh((value) => value + 1);
+    setIsPinned(toggleConversationPinned(conversationId));
     window.dispatchEvent(new Event("chatSettingsChanged"));
   };
 
@@ -722,7 +725,7 @@ export default function ChatContainer() {
                 ? selectedGroup.name[0]?.toUpperCase()
                 : selectedUser?.username[0]?.toUpperCase() || "?"
             }
-            colorClass={selectedGroup ? "bg-emerald-600" : "bg-indigo-600"}
+            colorClass={selectedGroup ? "bg-emerald-600" : "bg-accent-600"}
             size="w-9 h-9"
           />
         </button>
@@ -741,14 +744,14 @@ export default function ChatContainer() {
           <>
             <button
               onClick={() => handleStartCall("audio")}
-              className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+              className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
               aria-label="Appel audio"
             >
               <Phone size={22} strokeWidth={2} />
             </button>
             <button
               onClick={() => handleStartCall("video")}
-              className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+              className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
               aria-label="Appel vidéo"
             >
               <Video size={24} fill="currentColor" stroke="none" />
@@ -762,7 +765,7 @@ export default function ChatContainer() {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+              className="text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
               aria-label="Options"
             >
               <MoreVertical size={20} strokeWidth={2} />
@@ -779,7 +782,7 @@ export default function ChatContainer() {
                       setShowUserMenu(false);
                       handleOpenSearch();
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Search size={16} strokeWidth={2} className="shrink-0" />
                     Recherche
@@ -789,7 +792,7 @@ export default function ChatContainer() {
                       setShowUserMenu(false);
                       setShowWallpaperMenu(true);
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Palette size={16} strokeWidth={2} className="shrink-0" />
                     Thème
@@ -799,7 +802,7 @@ export default function ChatContainer() {
                       setShowUserMenu(false);
                       handleToggleMute();
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     {isMuted ? (
                       <BellOff size={16} strokeWidth={2} className="shrink-0" />
@@ -813,7 +816,7 @@ export default function ChatContainer() {
                       setShowUserMenu(false);
                       handleTogglePin();
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Pin size={16} strokeWidth={2} className="shrink-0" />
                     {isPinned ? "Désépingler" : "Épingler cette conversation"}
@@ -823,7 +826,7 @@ export default function ChatContainer() {
                       setShowUserMenu(false);
                       handleExportConversation();
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Download size={16} strokeWidth={2} className="shrink-0" />
                     Exporter la conversation
@@ -859,7 +862,7 @@ export default function ChatContainer() {
           <div className="relative">
             <button
               onClick={() => setShowGroupMenu(!showGroupMenu)}
-              className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+              className="text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
               aria-label="Options du groupe"
             >
               <MoreVertical size={20} strokeWidth={2} />
@@ -876,7 +879,7 @@ export default function ChatContainer() {
                       setShowGroupMenu(false);
                       handleOpenSearch();
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Search size={16} strokeWidth={2} className="shrink-0" />
                     Recherche
@@ -886,7 +889,7 @@ export default function ChatContainer() {
                       setShowGroupMenu(false);
                       setShowWallpaperMenu(true);
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Palette size={16} strokeWidth={2} className="shrink-0" />
                     Thème
@@ -896,7 +899,7 @@ export default function ChatContainer() {
                       setShowGroupMenu(false);
                       handleToggleMute();
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     {isMuted ? (
                       <BellOff size={16} strokeWidth={2} className="shrink-0" />
@@ -910,7 +913,7 @@ export default function ChatContainer() {
                       setShowGroupMenu(false);
                       handleTogglePin();
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Pin size={16} strokeWidth={2} className="shrink-0" />
                     {isPinned ? "Désépingler" : "Épingler cette conversation"}
@@ -920,7 +923,7 @@ export default function ChatContainer() {
                       setShowGroupMenu(false);
                       handleExportConversation();
                     }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Download size={16} strokeWidth={2} className="shrink-0" />
                     Exporter la conversation
@@ -939,28 +942,28 @@ export default function ChatContainer() {
                     <>
                       <button
                         onClick={handleOpenRenameGroup}
-                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                       >
                         <Pencil size={16} strokeWidth={2} className="shrink-0" />
                         Renommer le groupe
                       </button>
                       <button
                         onClick={handleOpenAddMembers}
-                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                       >
                         <UserPlus size={16} strokeWidth={2} className="shrink-0" />
                         Ajouter des membres
                       </button>
                       <button
                         onClick={handleOpenManageMembers}
-                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                       >
                         <Users size={16} strokeWidth={2} className="shrink-0" />
                         Gérer les membres
                       </button>
                       <button
                         onClick={handleToggleDiscoverable}
-                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                       >
                         {selectedGroup.isDiscoverable ? (
                           <EyeOff size={16} strokeWidth={2} className="shrink-0" />
@@ -974,7 +977,7 @@ export default function ChatContainer() {
                       {pendingJoinRequestsCount > 0 && (
                         <button
                           onClick={handleOpenJoinRequests}
-                          className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                          className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                         >
                           <UserCheck size={16} strokeWidth={2} className="shrink-0" />
                           Demandes d&apos;adhésion ({pendingJoinRequestsCount})
@@ -1018,7 +1021,7 @@ export default function ChatContainer() {
           <button
             onClick={handlePreviousResult}
             disabled={searchResults.length === 0}
-            className="text-zinc-500 hover:text-indigo-600 disabled:opacity-30 shrink-0"
+            className="text-zinc-500 hover:text-accent-600 disabled:opacity-30 shrink-0"
             aria-label="Résultat précédent"
           >
             <ChevronUp size={18} strokeWidth={2} />
@@ -1026,14 +1029,14 @@ export default function ChatContainer() {
           <button
             onClick={handleNextResult}
             disabled={searchResults.length === 0}
-            className="text-zinc-500 hover:text-indigo-600 disabled:opacity-30 shrink-0"
+            className="text-zinc-500 hover:text-accent-600 disabled:opacity-30 shrink-0"
             aria-label="Résultat suivant"
           >
             <ChevronDown size={18} strokeWidth={2} />
           </button>
           <button
             onClick={handleCloseSearch}
-            className="text-zinc-500 hover:text-indigo-600 shrink-0"
+            className="text-zinc-500 hover:text-accent-600 shrink-0"
             aria-label="Fermer la recherche"
           >
             <X size={18} strokeWidth={2} />
@@ -1134,7 +1137,7 @@ export default function ChatContainer() {
                     ...msg,
                     linkPreview: msg.linkPreview
                       ? {
-                          url: msg.linkPreview.url,
+                          ...msg.linkPreview,
                           title: msg.linkPreview.title ?? "",
                           description: "",
                           image: "",
@@ -1167,7 +1170,7 @@ export default function ChatContainer() {
           <button
             onClick={scrollToBottom}
             aria-label="Aller aux nouveaux messages"
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white shadow-lg flex items-center gap-2 rounded-full sm:px-4 sm:py-2 w-10 h-10 sm:w-auto sm:h-auto justify-center"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-accent-600 text-white shadow-lg flex items-center gap-2 rounded-full sm:px-4 sm:py-2 w-10 h-10 sm:w-auto sm:h-auto justify-center"
           >
             <ArrowDown size={18} strokeWidth={2.5} className="shrink-0" />
             <span className="hidden sm:inline text-sm font-medium">
@@ -1206,7 +1209,7 @@ export default function ChatContainer() {
                       ? wallpaperFileInputRef.current?.click()
                       : handleWallpaperChange(w.id)
                   }
-                  className={`block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
+                  className={`block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
                     activeWallpaper === w.id ? "font-semibold" : ""
                   }`}
                 >
@@ -1215,7 +1218,7 @@ export default function ChatContainer() {
               ))}
               <button
                 onClick={handleResetWallpaper}
-                className="block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                className="block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
                 Utiliser le fond par défaut
               </button>
@@ -1250,7 +1253,7 @@ export default function ChatContainer() {
               </button>
               <button
                 onClick={handleRenameGroup}
-                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium"
+                className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium"
               >
                 Renommer
               </button>
@@ -1294,7 +1297,7 @@ export default function ChatContainer() {
               <button
                 onClick={handleAddMembers}
                 disabled={membersToAdd.length === 0}
-                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+                className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
               >
                 Ajouter
               </button>
@@ -1477,7 +1480,7 @@ export default function ChatContainer() {
                       ? selectedGroup.name[0]?.toUpperCase()
                       : selectedUser?.username[0]?.toUpperCase() || "?"
                   }
-                  colorClass={selectedGroup ? "bg-emerald-600" : "bg-indigo-600"}
+                  colorClass={selectedGroup ? "bg-emerald-600" : "bg-accent-600"}
                   size="w-24 h-24 text-3xl"
                 />
               </button>
@@ -1489,11 +1492,11 @@ export default function ChatContainer() {
                     onChange={(e) => setNicknameDraft(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSaveNickname()}
                     placeholder={selectedUser?.username}
-                    className="font-bold text-xl text-center border-b border-indigo-600 bg-transparent outline-none w-40"
+                    className="font-bold text-xl text-center border-b border-accent-600 bg-transparent outline-none w-40"
                   />
                   <button
                     onClick={handleSaveNickname}
-                    className="text-indigo-600 hover:text-indigo-700 transition"
+                    className="text-accent-600 hover:text-accent-700 transition"
                     aria-label="Valider le surnom"
                   >
                     <UserCheck size={18} strokeWidth={2} />
@@ -1508,7 +1511,7 @@ export default function ChatContainer() {
                         setNicknameDraft(nickname);
                         setIsEditingNickname(true);
                       }}
-                      className="text-zinc-400 hover:text-indigo-600 transition"
+                      className="text-zinc-400 hover:text-accent-600 transition"
                       aria-label="Modifier le surnom"
                     >
                       <Pencil size={14} strokeWidth={2} />
@@ -1535,7 +1538,7 @@ export default function ChatContainer() {
             <div className="border-t border-zinc-200 dark:border-zinc-800 py-3 space-y-1">
               <button
                 onClick={handleToggleMute}
-                className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
                 {isMuted ? (
                   <BellOff size={15} strokeWidth={2} className="shrink-0" />
@@ -1548,7 +1551,7 @@ export default function ChatContainer() {
               </button>
               <button
                 onClick={handleHideConversation}
-                className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
                 <EyeOff size={15} strokeWidth={2} className="shrink-0" />
                 Masquer cette conversation
@@ -1628,7 +1631,7 @@ export default function ChatContainer() {
                             href={m.linkPreview?.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline truncate"
+                            className="flex items-center gap-2 text-sm text-accent-600 dark:text-accent-400 hover:underline truncate"
                           >
                             <Link2 size={14} strokeWidth={2} className="shrink-0" />
                             <span className="truncate">
@@ -1679,7 +1682,7 @@ export default function ChatContainer() {
                     >
                       <Avatar
                         fallback={member.username[0]?.toUpperCase()}
-                        colorClass="bg-indigo-600"
+                        colorClass="bg-accent-600"
                         size="w-8 h-8 text-sm"
                       />
                       <span className="text-sm truncate">
@@ -1702,7 +1705,7 @@ export default function ChatContainer() {
                         setShowContactInfo(false);
                         handleOpenRenameGroup();
                       }}
-                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
                       <Pencil size={15} strokeWidth={2} className="shrink-0" />
                       Renommer le groupe
@@ -1712,14 +1715,14 @@ export default function ChatContainer() {
                         setShowContactInfo(false);
                         handleOpenAddMembers();
                       }}
-                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
                       <UserPlus size={15} strokeWidth={2} className="shrink-0" />
                       Ajouter des membres
                     </button>
                     <button
                       onClick={handleToggleDiscoverable}
-                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
                       {selectedGroup.isDiscoverable ? (
                         <EyeOff size={15} strokeWidth={2} className="shrink-0" />

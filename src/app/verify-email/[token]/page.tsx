@@ -47,7 +47,7 @@ export default function VerifyEmailPage() {
           <>
             <h1 className="text-2xl font-bold">Lien invalide</h1>
             <p className="text-sm text-red-600">{message}</p>
-            <a href="/login" className="text-indigo-600 font-medium text-sm mt-2">
+            <a href="/login" className="text-accent-600 font-medium text-sm mt-2">
               Retour à la connexion
             </a>
           </>

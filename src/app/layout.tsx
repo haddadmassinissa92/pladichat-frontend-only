@@ -65,6 +65,33 @@ const themeScript = `
   })();
 `;
 
+// Applique la couleur d'accent choisie avant l'affichage de la page, pour
+// éviter un flash de l'indigo par défaut suivi d'un changement de couleur
+// (même principe que themeScript ci-dessus pour le mode sombre). La liste
+// des couleurs est dupliquée ici volontairement (voir lib/accentColor.js
+// pour la version "source de vérité") : ce script tourne avant que React
+// et ses imports ne soient disponibles, il ne peut rien importer.
+const accentScript = `
+  (function() {
+    try {
+      var colors = {
+        indigo: { 50:"#eef2ff",100:"#e0e7ff",300:"#a5b4fc",400:"#818cf8",600:"#4f46e5",700:"#4338ca",900:"#312e81",950:"#1e1b4b" },
+        rose: { 50:"#fff1f2",100:"#ffe4e6",300:"#fda4af",400:"#fb7185",600:"#e11d48",700:"#be123c",900:"#881337",950:"#4c0519" },
+        emerald: { 50:"#ecfdf5",100:"#d1fae5",300:"#6ee7b7",400:"#34d399",600:"#059669",700:"#047857",900:"#064e3b",950:"#022c22" },
+        sky: { 50:"#f0f9ff",100:"#e0f2fe",300:"#7dd3fc",400:"#38bdf8",600:"#0284c7",700:"#0369a1",900:"#0c4a6e",950:"#082f49" },
+        amber: { 50:"#fffbeb",100:"#fef3c7",300:"#fcd34d",400:"#fbbf24",600:"#d97706",700:"#b45309",900:"#78350f",950:"#451a03" },
+        violet: { 50:"#f5f3ff",100:"#ede9fe",300:"#c4b5fd",400:"#a78bfa",600:"#7c3aed",700:"#6d28d9",900:"#4c1d95",950:"#2e1065" }
+      };
+      var stored = localStorage.getItem("chatAccentColor") || "indigo";
+      var shades = colors[stored] || colors.indigo;
+      var root = document.documentElement;
+      for (var shade in shades) {
+        root.style.setProperty("--accent-" + shade, shades[shade]);
+      }
+    } catch (e) {}
+  })();
+`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -73,6 +100,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: accentScript }} />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

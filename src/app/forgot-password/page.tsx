@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="bg-indigo-600 text-white rounded-lg py-3 font-medium hover:bg-indigo-700 transition disabled:opacity-50"
+              className="bg-accent-600 text-white rounded-lg py-3 font-medium hover:bg-accent-700 transition disabled:opacity-50"
             >
               {loading ? "Envoi..." : "Envoyer le lien"}
             </button>
@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
         )}
 
         <p className="text-sm text-center text-zinc-500">
-          <a href="/login" className="text-indigo-600 font-medium">
+          <a href="/login" className="text-accent-600 font-medium">
             Retour à la connexion
           </a>
         </p>

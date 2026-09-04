@@ -175,7 +175,7 @@ export default function MessageBubble({
             />
             <button
               onClick={handleEditSave}
-              className="text-indigo-600 text-sm font-medium"
+              className="text-accent-600 text-sm font-medium"
             >
               OK
             </button>
@@ -190,12 +190,12 @@ export default function MessageBubble({
               msg.pendingApproval
                 ? "opacity-50 bg-zinc-200 dark:bg-zinc-700 self-end"
                 : isMine
-                  ? "bg-indigo-600 text-white self-end"
+                  ? "bg-accent-600 text-white self-end"
                   : "bg-zinc-100 dark:bg-zinc-800 self-start"
             }`}
           >
             {!isMine && senderName && (
-              <div className="text-xs font-semibold text-indigo-600 mb-1">
+              <div className="text-xs font-semibold text-accent-600 mb-1">
                 {senderName}
               </div>
             )}
@@ -230,7 +230,7 @@ export default function MessageBubble({
                 <button
                   type="button"
                   onClick={cyclePlaybackRate}
-                  className="shrink-0 text-xs font-semibold px-1.5 py-1 rounded-md border border-zinc-300 dark:border-zinc-600 text-zinc-500 hover:text-indigo-600 hover:border-indigo-600 transition"
+                  className="shrink-0 text-xs font-semibold px-1.5 py-1 rounded-md border border-zinc-300 dark:border-zinc-600 text-zinc-500 hover:text-accent-600 hover:border-accent-600 transition"
                   aria-label="Changer la vitesse de lecture"
                 >
                   {playbackRate}x
@@ -251,8 +251,8 @@ export default function MessageBubble({
                       }}
                       className={`font-semibold underline underline-offset-2 ${
                         isMine
-                          ? "text-indigo-100 hover:text-white"
-                          : "text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+                          ? "text-accent-100 hover:text-white"
+                          : "text-accent-600 dark:text-accent-400 hover:text-accent-700 dark:hover:text-accent-300"
                       }`}
                     >
                       {isTextExpanded ? "Réduire" : "Lire la suite"}
@@ -272,7 +272,7 @@ export default function MessageBubble({
                 onClick={(e) => e.stopPropagation()}
                 className={`block mt-2 rounded-lg overflow-hidden border ${
                   isMine
-                    ? "border-indigo-400 bg-indigo-700"
+                    ? "border-accent-400 bg-accent-700"
                     : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
                 }`}
               >
@@ -322,7 +322,7 @@ export default function MessageBubble({
           <div className="relative">
             <button
               onClick={() => setShowReactionPicker(!showReactionPicker)}
-              className="opacity-0 group-hover:opacity-100 transition px-1 self-center text-zinc-500 hover:text-indigo-600"
+              className="opacity-0 group-hover:opacity-100 transition px-1 self-center text-zinc-500 hover:text-accent-600"
               aria-label="Réagir"
             >
               <SmilePlus size={16} strokeWidth={2} />
@@ -390,7 +390,7 @@ export default function MessageBubble({
               onClick={() => handleReact(g.emoji)}
               className={`text-xs rounded-full px-2 py-0.5 border ${
                 g.mine
-                  ? "bg-indigo-100 dark:bg-indigo-900 border-indigo-400"
+                  ? "bg-accent-100 dark:bg-accent-900 border-accent-400"
                   : "bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700"
               }`}
             >

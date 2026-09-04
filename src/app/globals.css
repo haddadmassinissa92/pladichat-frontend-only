@@ -4,6 +4,20 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Couleur d'accent de l'application : valeurs par défaut (= indigo actuel).
+     Changées dynamiquement en JS (voir lib/accentColor.js) quand l'utilisateur
+     choisit une autre couleur — grâce au "@theme inline" ci-dessous, toutes
+    les classes d'accent (bg-accent-, text-accent-, border-accent-) utilisées dans
+     l'app se mettent à jour instantanément, sans recharger la page. */
+  --accent-50: #eef2ff;
+  --accent-100: #e0e7ff;
+  --accent-300: #a5b4fc;
+  --accent-400: #818cf8;
+  --accent-600: #4f46e5;
+  --accent-700: #4338ca;
+  --accent-900: #312e81;
+  --accent-950: #1e1b4b;
 }
 
 .dark {
@@ -16,6 +30,15 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-accent-50: var(--accent-50);
+  --color-accent-100: var(--accent-100);
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-accent-900: var(--accent-900);
+  --color-accent-950: var(--accent-950);
 }
 
 html,

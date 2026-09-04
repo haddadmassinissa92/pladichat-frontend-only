@@ -53,6 +53,7 @@ import {
   setGlobalWallpaperImage,
 } from "@/lib/wallpaper";
 import { RINGTONES, getRingtone, setRingtone } from "@/lib/ringtone";
+import { ACCENT_COLORS, getAccentColor, setAccentColor } from "@/lib/accentColor";
 import {
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
@@ -142,6 +143,7 @@ export default function Sidebar() {
     changePassword,
     deleteAccount,
     updateUsername,
+    updateEmail,
     blockedUsersList,
     getBlockedUsersList,
     toggleBlockUser,
@@ -170,7 +172,6 @@ export default function Sidebar() {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [showMyProfileZoom, setShowMyProfileZoom] = useState(false);
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
@@ -179,6 +180,9 @@ export default function Sidebar() {
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [usernameDraft, setUsernameDraft] = useState("");
   const [usernameError, setUsernameError] = useState("");
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [emailDraft, setEmailDraft] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
 
   const handleSaveUsername = async () => {
@@ -191,9 +195,22 @@ export default function Sidebar() {
     }
   };
 
+  const handleSaveEmail = async () => {
+    const result = await updateEmail(emailDraft);
+    if (result.success) {
+      setIsEditingEmail(false);
+      setEmailError("");
+    } else {
+      setEmailError(result.message);
+    }
+  };
+
+  const shareLink = authUser?.username
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/add/${authUser.username}`
+    : "";
+
   const handleCopyShareLink = () => {
-    const url = `${window.location.origin}/add/${authUser?.username}`;
-    navigator.clipboard.writeText(url).then(() => {
+    navigator.clipboard.writeText(shareLink).then(() => {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     });
@@ -208,6 +225,15 @@ export default function Sidebar() {
   const handleRingtoneChange = (id: string) => {
     setRingtone(id);
     setSelectedRingtone(id);
+  };
+  const [selectedAccent, setSelectedAccent] = useState("indigo");
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedAccent(getAccentColor());
+  }, []);
+  const handleAccentChange = (id: string) => {
+    setAccentColor(id);
+    setSelectedAccent(id);
   };
   const [uploading, setUploading] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -527,7 +553,7 @@ export default function Sidebar() {
     setUploading(true);
     await updateProfile(file);
     setUploading(false);
-    setShowProfileMenu(false);
+    setShowMyProfile(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -620,7 +646,7 @@ export default function Sidebar() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowAddContact(true)}
-            className="relative text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+            className="relative text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
             aria-label="Ajouter un contact"
             title="Ajouter un contact"
           >
@@ -633,7 +659,7 @@ export default function Sidebar() {
           </button>
           <button
             onClick={handleOpenDiscoverGroups}
-            className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+            className="text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
             aria-label="Découvrir des groupes"
             title="Découvrir des groupes"
           >
@@ -641,7 +667,7 @@ export default function Sidebar() {
           </button>
           <button
             onClick={() => setShowCreateGroup(true)}
-            className="text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 transition"
+            className="text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
             aria-label="Créer un groupe"
           >
             <Plus size={22} strokeWidth={2} />
@@ -700,7 +726,7 @@ export default function Sidebar() {
                   </p>
                 )}
                 {!!group.unreadCount && (
-                  <span className="bg-indigo-600 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
+                  <span className="bg-accent-600 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
                     {group.unreadCount > 99 ? "99+" : group.unreadCount}
                   </span>
                 )}
@@ -743,7 +769,7 @@ export default function Sidebar() {
                 <Avatar
                   src={user.avatar}
                   fallback={user.username[0].toUpperCase()}
-                  colorClass="bg-indigo-600"
+                  colorClass="bg-accent-600"
                 />
                 {onlineUsers.includes(user._id) && (
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-zinc-900 rounded-full" />
@@ -767,7 +793,7 @@ export default function Sidebar() {
                     </p>
                   )}
                   {!!user.unreadCount && (
-                    <span className="bg-indigo-600 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
+                    <span className="bg-accent-600 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
                       {user.unreadCount > 99 ? "99+" : user.unreadCount}
                     </span>
                   )}
@@ -788,7 +814,7 @@ export default function Sidebar() {
         {(hiddenUsers.length > 0 || hiddenGroups.length > 0) && (
           <button
             onClick={() => setShowHiddenConversations(true)}
-            className="w-full text-center text-xs text-zinc-400 hover:text-indigo-600 py-3 border-t border-zinc-100 dark:border-zinc-800 transition"
+            className="w-full text-center text-xs text-zinc-400 hover:text-accent-600 py-3 border-t border-zinc-100 dark:border-zinc-800 transition"
           >
             Conversations masquées ({hiddenUsers.length + hiddenGroups.length})
           </button>
@@ -826,7 +852,7 @@ export default function Sidebar() {
                   </div>
                   <button
                     onClick={() => handleUnhide(group._id)}
-                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-accent-600 text-white"
                   >
                     Réafficher
                   </button>
@@ -841,7 +867,7 @@ export default function Sidebar() {
                     <Avatar
                       src={user.avatar}
                       fallback={user.username[0]?.toUpperCase()}
-                      colorClass="bg-indigo-600"
+                      colorClass="bg-accent-600"
                       size="w-9 h-9 text-sm"
                     />
                     <p className="font-medium truncate">
@@ -850,7 +876,7 @@ export default function Sidebar() {
                   </div>
                   <button
                     onClick={() => handleUnhide(user._id)}
-                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-accent-600 text-white"
                   >
                     Réafficher
                   </button>
@@ -902,7 +928,7 @@ export default function Sidebar() {
               </button>
               <button
                 onClick={handleCreateGroup}
-                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium"
+                className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium"
               >
                 Créer
               </button>
@@ -918,7 +944,7 @@ export default function Sidebar() {
           onClick={() => setShowMyProfile(false)}
         >
           <div
-            className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-sm text-center"
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-sm text-center max-h-[85vh] overflow-y-auto custom-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -931,7 +957,7 @@ export default function Sidebar() {
               <Avatar
                 src={authUser?.avatar}
                 fallback={authUser?.username?.[0]?.toUpperCase() || "?"}
-                colorClass="bg-indigo-600"
+                colorClass="bg-accent-600"
                 size="w-24 h-24 text-3xl mx-auto"
               />
             </button>
@@ -942,11 +968,11 @@ export default function Sidebar() {
                   value={usernameDraft}
                   onChange={(e) => setUsernameDraft(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSaveUsername()}
-                  className="font-bold text-xl text-center border-b border-indigo-600 bg-transparent outline-none w-40"
+                  className="font-bold text-xl text-center border-b border-accent-600 bg-transparent outline-none w-40"
                 />
                 <button
                   onClick={handleSaveUsername}
-                  className="text-indigo-600 hover:text-indigo-700 transition"
+                  className="text-accent-600 hover:text-accent-700 transition"
                   aria-label="Valider le nom d'utilisateur"
                 >
                   <UserCheck size={18} strokeWidth={2} />
@@ -961,7 +987,7 @@ export default function Sidebar() {
                     setIsEditingUsername(true);
                     setUsernameError("");
                   }}
-                  className="text-zinc-400 hover:text-indigo-600 transition"
+                  className="text-zinc-400 hover:text-accent-600 transition"
                   aria-label="Modifier le nom d'utilisateur"
                 >
                   <Pencil size={14} strokeWidth={2} />
@@ -971,7 +997,43 @@ export default function Sidebar() {
             {usernameError && (
               <p className="text-xs text-red-600 mt-1">{usernameError}</p>
             )}
-            <p className="text-sm text-zinc-500">{authUser?.email}</p>
+            {isEditingEmail ? (
+              <div className="flex items-center gap-1 justify-center mt-1">
+                <input
+                  autoFocus
+                  type="email"
+                  value={emailDraft}
+                  onChange={(e) => setEmailDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveEmail()}
+                  className="text-sm text-center border-b border-accent-600 bg-transparent outline-none w-48"
+                />
+                <button
+                  onClick={handleSaveEmail}
+                  className="text-accent-600 hover:text-accent-700 transition"
+                  aria-label="Valider l'adresse email"
+                >
+                  <UserCheck size={16} strokeWidth={2} />
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-500 flex items-center justify-center gap-1.5">
+                {authUser?.email}
+                <button
+                  onClick={() => {
+                    setEmailDraft(authUser?.email || "");
+                    setIsEditingEmail(true);
+                    setEmailError("");
+                  }}
+                  className="text-zinc-400 hover:text-accent-600 transition"
+                  aria-label="Modifier l'adresse email"
+                >
+                  <Pencil size={12} strokeWidth={2} />
+                </button>
+              </p>
+            )}
+            {emailError && (
+              <p className="text-xs text-red-600 mt-1">{emailError}</p>
+            )}
             {authUser?.createdAt && (
               <p className="text-xs text-zinc-400 mt-1">
                 Membre depuis{" "}
@@ -997,6 +1059,19 @@ export default function Sidebar() {
               <LinkIcon size={16} strokeWidth={2} />
               {linkCopied ? "Lien copié !" : "Copier mon lien d'ajout"}
             </button>
+
+            {shareLink && (
+              <div className="mt-2 flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareLink)}`}
+                  alt="QR code de mon lien d'ajout"
+                  width={160}
+                  height={160}
+                  className="rounded-lg border border-zinc-200 dark:border-zinc-700"
+                />
+              </div>
+            )}
 
             <button
               onClick={() => {
@@ -1057,9 +1132,136 @@ export default function Sidebar() {
               )}
             </button>
 
+            <div className="my-4 border-t border-zinc-200 dark:border-zinc-800" />
+
+            <button
+              onClick={() => {
+                setShowMyProfile(false);
+                setShowGlobalWallpaperMenu(true);
+              }}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <Palette size={16} strokeWidth={2} className="shrink-0" />
+              Fond d&apos;écran
+            </button>
+            <input
+              ref={globalWallpaperFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleGlobalWallpaperImageSelect}
+            />
+
+            <button
+              onClick={() => {
+                setShowMyProfile(false);
+                setShowRingtoneMenu(true);
+              }}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <Music size={16} strokeWidth={2} className="shrink-0" />
+              Sonnerie d&apos;appel
+            </button>
+
+            <div className="px-2 py-2">
+              <p className="flex items-center gap-2 text-sm mb-2">
+                <Palette size={16} strokeWidth={2} />
+                Couleur d&apos;accent
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                {ACCENT_COLORS.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleAccentChange(c.id)}
+                    aria-label={c.label}
+                    title={c.label}
+                    className={`w-8 h-8 rounded-full transition ${
+                      selectedAccent === c.id
+                        ? "ring-2 ring-offset-2 ring-zinc-400 dark:ring-offset-zinc-900"
+                        : ""
+                    }`}
+                    style={{ backgroundColor: c.swatch }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between px-2 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800">
+              <span className="flex items-center gap-2">
+                <Moon size={16} strokeWidth={2} />
+                Mode sombre
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsDarkMode(toggleTheme())}
+                aria-label="Basculer le mode sombre"
+                className={`relative w-10 h-5 rounded-full transition-colors ${
+                  isDarkMode ? "bg-accent-600" : "bg-zinc-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                    isDarkMode ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between px-2 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800">
+              <span className="flex items-center gap-2">
+                <Bell size={16} strokeWidth={2} />
+                Notifications push
+              </span>
+              <button
+                type="button"
+                onClick={handleTogglePush}
+                disabled={pushLoading}
+                aria-label="Basculer les notifications push"
+                className={`relative w-10 h-5 rounded-full transition-colors disabled:opacity-50 ${
+                  pushEnabled ? "bg-accent-600" : "bg-zinc-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                    pushEnabled ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowChangePassword(true);
+                setShowMyProfile(false);
+              }}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <Lock size={16} strokeWidth={2} className="shrink-0" />
+              Mot de passe
+            </button>
+
+            <button
+              onClick={logout}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+            >
+              <LogOut size={16} strokeWidth={2} className="shrink-0" />
+              Se déconnecter
+            </button>
+
+            <button
+              onClick={() => {
+                setShowDeleteAccount(true);
+                setShowMyProfile(false);
+              }}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+            >
+              <Trash2 size={16} strokeWidth={2} className="shrink-0" />
+              Supprimer mon compte
+            </button>
+
             <button
               onClick={() => setShowMyProfile(false)}
-              className="mt-2 w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              className="mt-4 w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
             >
               Fermer
             </button>
@@ -1097,7 +1299,7 @@ export default function Sidebar() {
                   </div>
                   <button
                     onClick={() => handleUnmute(group._id)}
-                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-accent-600 text-white"
                   >
                     Réactiver
                   </button>
@@ -1109,7 +1311,7 @@ export default function Sidebar() {
                     <Avatar
                       src={user.avatar}
                       fallback={user.username[0]?.toUpperCase()}
-                      colorClass="bg-indigo-600"
+                      colorClass="bg-accent-600"
                       size="w-9 h-9 text-sm"
                     />
                     <p className="font-medium truncate">
@@ -1118,7 +1320,7 @@ export default function Sidebar() {
                   </div>
                   <button
                     onClick={() => handleUnmute(user._id)}
-                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-accent-600 text-white"
                   >
                     Réactiver
                   </button>
@@ -1159,7 +1361,7 @@ export default function Sidebar() {
                     <Avatar
                       src={user.avatar}
                       fallback={user.username[0]?.toUpperCase()}
-                      colorClass="bg-indigo-600"
+                      colorClass="bg-accent-600"
                       size="w-9 h-9 text-sm"
                     />
                     <p className="font-medium truncate">{user.username}</p>
@@ -1210,14 +1412,14 @@ export default function Sidebar() {
                     <Avatar
                       src={user.avatar}
                       fallback={user.username[0]?.toUpperCase()}
-                      colorClass="bg-indigo-600"
+                      colorClass="bg-accent-600"
                       size="w-9 h-9 text-sm"
                     />
                     <p className="font-medium truncate">{user.username}</p>
                   </div>
                   <button
                     onClick={() => toggleBlockUser(user._id)}
-                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-accent-600 text-white"
                   >
                     Débloquer
                   </button>
@@ -1284,7 +1486,7 @@ export default function Sidebar() {
                         <Avatar
                           src={user.avatar}
                           fallback={user.username[0]?.toUpperCase()}
-                          colorClass="bg-indigo-600"
+                          colorClass="bg-accent-600"
                           size="w-9 h-9 text-sm"
                         />
                         <p className="font-medium truncate">{user.username}</p>
@@ -1292,7 +1494,7 @@ export default function Sidebar() {
                       <div className="flex items-center gap-1.5 justify-end">
                         <button
                           onClick={() => acceptContactRequest(user._id)}
-                          className="text-xs px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                          className="text-xs px-3 py-1.5 rounded-full bg-accent-600 text-white"
                         >
                           Accepter
                         </button>
@@ -1338,14 +1540,14 @@ export default function Sidebar() {
                     <Avatar
                       src={user.avatar}
                       fallback={user.username[0]?.toUpperCase()}
-                      colorClass="bg-indigo-600"
+                      colorClass="bg-accent-600"
                       size="w-9 h-9 text-sm"
                     />
                     <p className="font-medium truncate">{user.username}</p>
                   </div>
                   <button
                     onClick={() => handleAddContact(user._id)}
-                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white"
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-accent-600 text-white"
                   >
                     Ajouter
                   </button>
@@ -1397,7 +1599,7 @@ export default function Sidebar() {
                   <button
                     onClick={() => handleRequestToJoin(group._id)}
                     disabled={group.requestPending}
-                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white disabled:opacity-50 disabled:bg-zinc-400"
+                    className="text-xs shrink-0 ml-2 px-3 py-1.5 rounded-full bg-accent-600 text-white disabled:opacity-50 disabled:bg-zinc-400"
                   >
                     {group.requestPending ? "Demande envoyée" : "Rejoindre"}
                   </button>
@@ -1426,12 +1628,12 @@ export default function Sidebar() {
             <Avatar
               src={authUser?.avatar}
               fallback={authUser?.username?.[0]?.toUpperCase() || "?"}
-              colorClass="bg-indigo-600"
+              colorClass="bg-accent-600"
               size="w-9 h-9"
             />
           </button>
           <button
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            onClick={() => setShowMyProfile(true)}
             disabled={uploading}
             className="flex-1 min-w-0 flex items-center rounded-lg p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-left"
           >
@@ -1440,126 +1642,6 @@ export default function Sidebar() {
             </span>
           </button>
         </div>
-
-        {showProfileMenu && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowProfileMenu(false)}
-            />
-            <div className="absolute left-3 bottom-16 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-56">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-              >
-                <Camera size={16} strokeWidth={2} className="shrink-0" />
-                Changer la photo
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowProfileMenu(false);
-                  setShowGlobalWallpaperMenu(true);
-                }}
-                className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-              >
-                <Palette size={16} strokeWidth={2} className="shrink-0" />
-                Fond d&apos;écran
-              </button>
-              <input
-                ref={globalWallpaperFileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleGlobalWallpaperImageSelect}
-              />
-
-              <button
-                onClick={() => {
-                  setShowProfileMenu(false);
-                  setShowRingtoneMenu(true);
-                }}
-                className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-              >
-                <Music size={16} strokeWidth={2} className="shrink-0" />
-                Sonnerie d&apos;appel
-              </button>
-
-              <div className="flex items-center justify-between px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                <span className="flex items-center gap-2">
-                  <Moon size={16} strokeWidth={2} />
-                  Mode sombre
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsDarkMode(toggleTheme())}
-                  aria-label="Basculer le mode sombre"
-                  className={`relative w-10 h-5 rounded-full transition-colors ${
-                    isDarkMode ? "bg-indigo-600" : "bg-zinc-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-                      isDarkMode ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                <span className="flex items-center gap-2">
-                  <Bell size={16} strokeWidth={2} />
-                  Notifications push
-                </span>
-                <button
-                  type="button"
-                  onClick={handleTogglePush}
-                  disabled={pushLoading}
-                  aria-label="Basculer les notifications push"
-                  className={`relative w-10 h-5 rounded-full transition-colors disabled:opacity-50 ${
-                    pushEnabled ? "bg-indigo-600" : "bg-zinc-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-                      pushEnabled ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <button
-                onClick={() => {
-                  setShowChangePassword(true);
-                  setShowProfileMenu(false);
-                }}
-                className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-              >
-                <Lock size={16} strokeWidth={2} className="shrink-0" />
-                Mot de passe
-              </button>
-
-              <button
-                onClick={logout}
-                className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
-              >
-                <LogOut size={16} strokeWidth={2} className="shrink-0" />
-                Se déconnecter
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowDeleteAccount(true);
-                  setShowProfileMenu(false);
-                }}
-                className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
-              >
-                <Trash2 size={16} strokeWidth={2} className="shrink-0" />
-                Supprimer mon compte
-              </button>
-            </div>
-          </>
-        )}
 
         <input
           ref={fileInputRef}
@@ -1584,7 +1666,7 @@ export default function Sidebar() {
                       ? globalWallpaperFileInputRef.current?.click()
                       : handleGlobalWallpaperChange(w.id)
                   }
-                  className={`block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
+                  className={`block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
                     globalWallpaper === w.id ? "font-semibold" : ""
                   }`}
                 >
@@ -1614,7 +1696,7 @@ export default function Sidebar() {
                 >
                   <button
                     onClick={() => handleRingtoneChange(r.id)}
-                    className={`flex-1 text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+                    className={`flex-1 text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 ${
                       selectedRingtone === r.id ? "font-semibold" : ""
                     }`}
                   >
@@ -1625,7 +1707,7 @@ export default function Sidebar() {
                       const audio = new Audio(r.file);
                       audio.play().catch(() => {});
                     }}
-                    className="px-3 py-2 text-zinc-400 hover:text-indigo-600 transition"
+                    className="px-3 py-2 text-zinc-400 hover:text-accent-600 transition"
                     aria-label={`Écouter ${r.label}`}
                   >
                     <Volume2 size={16} strokeWidth={2} />
@@ -1678,7 +1760,7 @@ export default function Sidebar() {
               </button>
               <button
                 onClick={handleChangePassword}
-                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium"
+                className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium"
               >
                 Confirmer
               </button>

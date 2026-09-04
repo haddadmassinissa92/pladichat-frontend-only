@@ -283,6 +283,20 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Change l'adresse email du compte connecté
+  updateEmail: async (email) => {
+    try {
+      const res = await axiosInstance.put("/users/email", { email });
+      set({ authUser: res.data });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   // Liste détaillée des utilisateurs bloqués, pour la page de profil
   blockedUsersList: [],
   getBlockedUsersList: async () => {

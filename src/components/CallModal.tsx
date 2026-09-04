@@ -51,7 +51,7 @@ function ParticipantTile({
         <Avatar
           src={avatar}
           fallback={username?.[0]?.toUpperCase() || "?"}
-          colorClass="bg-indigo-600"
+          colorClass="bg-accent-600"
           size="w-16 h-16 text-xl"
         />
       )}
@@ -259,7 +259,7 @@ export default function CallModal() {
                 <Avatar
                   src={remoteUser?.avatar}
                   fallback={remoteUser?.username?.[0]?.toUpperCase() || "?"}
-                  colorClass="bg-indigo-600"
+                  colorClass="bg-accent-600"
                   size="w-28 h-28 text-4xl"
                 />
                 <p className="text-sm text-zinc-400">
@@ -288,7 +288,7 @@ export default function CallModal() {
                 <Avatar
                   src={remoteUser.avatar}
                   fallback={remoteUser.username?.[0]?.toUpperCase() || "?"}
-                  colorClass="bg-indigo-600"
+                  colorClass="bg-accent-600"
                   size="w-24 h-24 text-3xl"
                 />
                 <h2 className="text-xl font-bold mt-4">{remoteUser.username}</h2>
@@ -494,7 +494,7 @@ export default function CallModal() {
                   <button
                     onClick={handleConfirmAddParticipants}
                     disabled={selectedNewUsers.length === 0}
-                    className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+                    className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
                   >
                     Ajouter ({selectedNewUsers.length})
                   </button>

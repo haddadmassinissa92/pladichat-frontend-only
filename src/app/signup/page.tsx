@@ -63,14 +63,14 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-indigo-600 text-white rounded-lg py-3 font-medium hover:bg-indigo-700 transition disabled:opacity-50"
+          className="bg-accent-600 text-white rounded-lg py-3 font-medium hover:bg-accent-700 transition disabled:opacity-50"
         >
           {loading ? "Création..." : "S'inscrire"}
         </button>
 
         <p className="text-sm text-center text-zinc-500">
           Déjà un compte ?{" "}
-          <a href="/login" className="text-indigo-600 font-medium">
+          <a href="/login" className="text-accent-600 font-medium">
             Se connecter
           </a>
         </p>

@@ -107,7 +107,7 @@ export default function EmojiPicker({
             onClick={() => setActiveCategory(index)}
             className={`flex-1 text-lg py-2 my-1 rounded-lg transition ${
               activeCategory === index
-                ? "bg-indigo-50 dark:bg-indigo-950 grayscale-0"
+                ? "bg-accent-50 dark:bg-accent-950 grayscale-0"
                 : "hover:bg-zinc-100 dark:hover:bg-zinc-800 grayscale opacity-60 hover:opacity-100"
             }`}
           >

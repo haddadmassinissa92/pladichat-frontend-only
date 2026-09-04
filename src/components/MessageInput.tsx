@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useSyncExternalStore } from "react";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import imageCompression from "browser-image-compression";
@@ -26,11 +25,9 @@ export default function MessageInput() {
   // portail (voir plus bas) pour garantir un vrai positionnement "fixed" par
   // rapport à l'écran, sans être affecté par les animations de la page
   // (transform sur les conteneurs parents) qui casseraient sinon son ancrage
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMounted(true), []);
 
   // etats pour la gestion des messages, modification, suppression et réponse
   const sendMessage = useChatStore((state) => state.sendMessage);
@@ -270,7 +267,7 @@ export default function MessageInput() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="text-zinc-500 hover:text-indigo-600 transition shrink-0"
+            className="text-zinc-500 hover:text-accent-600 transition shrink-0"
             aria-label="Ajouter une image"
           >
             <ImageIcon size={22} strokeWidth={2} />
@@ -288,7 +285,7 @@ export default function MessageInput() {
           <button
             type="button"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="shrink-0 text-zinc-500 hover:text-indigo-600 transition"
+            className="shrink-0 text-zinc-500 hover:text-accent-600 transition"
             aria-label="Ajouter un emoji"
           >
             <Smile size={22} strokeWidth={2} />
@@ -300,7 +297,7 @@ export default function MessageInput() {
             className={`shrink-0 transition ${
               isRecording
                 ? "text-red-600 animate-pulse"
-                : "text-zinc-500 hover:text-indigo-600"
+                : "text-zinc-500 hover:text-accent-600"
             }`}
             aria-label="Enregistrer un message audio"
           >
@@ -312,7 +309,7 @@ export default function MessageInput() {
           type="submit"
           disabled={isSending}
           aria-label="Envoyer"
-          className="bg-indigo-600 text-white rounded-full w-11 h-11 flex items-center justify-center hover:bg-indigo-700 transition disabled:opacity-50 shrink-0"
+          className="bg-accent-600 text-white rounded-full w-11 h-11 flex items-center justify-center hover:bg-accent-700 transition disabled:opacity-50 shrink-0"
         >
           <SendHorizontal size={20} strokeWidth={2} />
         </button>
@@ -346,7 +343,7 @@ export default function MessageInput() {
                   <button
                     type="button"
                     onClick={() => setShowEmojiPicker(false)}
-                    className="text-zinc-500 hover:text-indigo-600 transition"
+                    className="text-zinc-500 hover:text-accent-600 transition"
                     aria-label="Fermer les emojis"
                   >
                     <X size={18} strokeWidth={2} />

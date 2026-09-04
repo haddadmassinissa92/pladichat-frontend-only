@@ -75,11 +75,11 @@ export default function AddContactByUsernamePage() {
           </p>
           <Link
             href="/login"
-            className="bg-indigo-600 text-white rounded-lg py-3 font-medium hover:bg-indigo-700 transition"
+            className="bg-accent-600 text-white rounded-lg py-3 font-medium hover:bg-accent-700 transition"
           >
             Se connecter
           </Link>
-          <Link href="/signup" className="text-indigo-600 font-medium text-sm">
+          <Link href="/signup" className="text-accent-600 font-medium text-sm">
             Créer un compte
           </Link>
         </div>
@@ -113,7 +113,7 @@ export default function AddContactByUsernamePage() {
             <Avatar
               src={foundUser.avatar}
               fallback={foundUser.username[0]?.toUpperCase()}
-              colorClass="bg-indigo-600"
+              colorClass="bg-accent-600"
               size="w-24 h-24 text-3xl"
             />
             <h1 className="text-xl font-bold">{foundUser.username}</h1>
@@ -126,7 +126,7 @@ export default function AddContactByUsernamePage() {
             ) : (
               <button
                 onClick={handleAdd}
-                className="bg-indigo-600 text-white rounded-lg px-6 py-3 font-medium hover:bg-indigo-700 transition"
+                className="bg-accent-600 text-white rounded-lg px-6 py-3 font-medium hover:bg-accent-700 transition"
               >
                 Ajouter en contact
               </button>
@@ -137,7 +137,7 @@ export default function AddContactByUsernamePage() {
           </>
         )}
 
-        <Link href="/" className="text-indigo-600 font-medium text-sm mt-4">
+        <Link href="/" className="text-accent-600 font-medium text-sm mt-4">
           Retour à PladiChat
         </Link>
       </div>

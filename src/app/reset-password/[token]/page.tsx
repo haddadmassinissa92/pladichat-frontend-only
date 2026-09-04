@@ -71,7 +71,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="bg-indigo-600 text-white rounded-lg py-3 font-medium hover:bg-indigo-700 transition disabled:opacity-50"
+              className="bg-accent-600 text-white rounded-lg py-3 font-medium hover:bg-accent-700 transition disabled:opacity-50"
             >
               {loading ? "Enregistrement..." : "Réinitialiser le mot de passe"}
             </button>
