@@ -91,6 +91,7 @@ export default function ChatContainer() {
     users,
     selectedUser,
     selectedGroup,
+    groups,
     messages,
     getMessages,
     loadMoreMessages,
@@ -177,6 +178,21 @@ export default function ChatContainer() {
   // jusqu'à le trouver (ou jusqu'à ce qu'il n'y en ait plus)
   const pendingScrollTargetRef = useRef<string | null>(null);
   const conversationId = selectedGroup?._id || selectedUser?._id || null;
+
+  // Groupes que l'on a en commun avec le contact actuellement ouvert
+  // (uniquement en conversation privée) : les groupes chargés dans la
+  // sidebar contiennent déjà la liste de leurs membres, pas besoin d'appel
+  // réseau supplémentaire pour ce calcul
+  type GroupWithMembers = {
+    _id: string;
+    name: string;
+    members?: GroupMember[];
+  };
+  const commonGroups = selectedUser
+    ? (groups as GroupWithMembers[]).filter((g) =>
+        g.members?.some((m) => m._id === selectedUser._id),
+      )
+    : [];
   const isGroupConversation = !!selectedGroup;
 
   // Notifications coupées : préférence stockée côté serveur, dérivée
@@ -1133,17 +1149,22 @@ export default function ChatContainer() {
                   </div>
                 )}
                 <MessageBubble
-                  msg={{
-                    ...msg,
-                    linkPreview: msg.linkPreview
+                  msg={
+                    (msg.linkPreview
                       ? {
-                          ...msg.linkPreview,
-                          title: msg.linkPreview.title ?? "",
-                          description: "",
-                          image: "",
+                          ...msg,
+                          linkPreview: {
+                            url: msg.linkPreview.url,
+                            title: msg.linkPreview.title ?? "",
+                            description: "",
+                            image: "",
+                          },
                         }
-                      : msg.linkPreview,
-                  }}
+                      : {
+                          ...msg,
+                          linkPreview: undefined,
+                        }) as Parameters<typeof MessageBubble>[0]["msg"]
+                  }
                   isMine={isMine}
                   senderName={senderName}
                   isLast={index === messages.length - 1}
@@ -1642,6 +1663,29 @@ export default function ChatContainer() {
                     </div>
                   )}
                 </div>
+                {commonGroups.length > 0 && (
+                  <div>
+                    <p className="text-xs text-zinc-400 uppercase mb-1">
+                      Groupes en commun ({commonGroups.length})
+                    </p>
+                    <div className="custom-scrollbar max-h-40 overflow-y-auto space-y-1">
+                      {commonGroups.map((g) => (
+                        <button
+                          key={g._id}
+                          onClick={() => {
+                            setShowContactInfo(false);
+                            setSelectedUser(null);
+                            setSelectedGroup(g);
+                          }}
+                          className="w-full flex items-center gap-2 text-sm text-left px-2 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                        >
+                          <Users size={14} strokeWidth={2} className="shrink-0 text-zinc-400" />
+                          <span className="truncate">{g.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <button
                   onClick={() => {
                     handleToggleBlock();
