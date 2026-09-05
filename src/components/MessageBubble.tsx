@@ -6,7 +6,18 @@ import Image from "next/image";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import EmojiPicker from "./EmojiPicker";
-import { SmilePlus, Plus, X, Check, CheckCheck } from "lucide-react";
+import Avatar from "./Avatar";
+import { SmilePlus, Plus, X, Check, CheckCheck, Forward } from "lucide-react";
+
+// Type volontairement souple : couvre à la fois la forme d'un contact
+// ({_id, username, avatar}) et celle d'un groupe ({_id, name}), pour la
+// modale de transfert de message qui affiche les deux dans une même liste
+type ForwardTarget = {
+  _id: string;
+  username?: string;
+  name?: string;
+  avatar?: string;
+};
 
 type Reaction = {
   emoji: string;
@@ -71,6 +82,9 @@ export default function MessageBubble({
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
   const [isTextExpanded, setIsTextExpanded] = useState(false);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [forwardSearch, setForwardSearch] = useState("");
+  const [forwardedToId, setForwardedToId] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Vitesse de lecture du message vocal : cycle 1x → 1.5x → 2x → 1x,
@@ -92,8 +106,15 @@ export default function MessageBubble({
       ? `${msg.text.slice(0, TEXT_TRUNCATE_LENGTH)}...`
       : msg.text;
 
-  const { deleteMessage, editMessage, setReplyingTo, reactToMessage } =
-    useChatStore();
+  const {
+    deleteMessage,
+    editMessage,
+    setReplyingTo,
+    reactToMessage,
+    forwardMessage,
+    users,
+    groups,
+  } = useChatStore();
   const { authUser } = useAuthStore();
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -456,6 +477,17 @@ export default function MessageBubble({
             >
               Répondre
             </button>
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                setShowForwardModal(true);
+                setForwardedToId(null);
+              }}
+              className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              <Forward size={15} strokeWidth={2} />
+              Transférer
+            </button>
             {isMine && (
               <>
                 <button
@@ -501,6 +533,84 @@ export default function MessageBubble({
                 Supprimer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : choisir vers quelle conversation transférer ce message */}
+      {showForwardModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowForwardModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-3">Transférer vers...</h3>
+            <input
+              type="text"
+              autoFocus
+              placeholder="Rechercher..."
+              value={forwardSearch}
+              onChange={(e) => setForwardSearch(e.target.value)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-full px-4 py-2 bg-transparent text-sm mb-3"
+            />
+            <div className="custom-scrollbar max-h-72 overflow-y-auto flex flex-col gap-1">
+              {(groups as ForwardTarget[])
+                .filter((g) => g.name?.toLowerCase().includes(forwardSearch.toLowerCase()))
+                .map((g) => (
+                  <button
+                    key={g._id}
+                    onClick={async () => {
+                      const result = await forwardMessage(msg, { groupId: g._id });
+                      if (result.success) setForwardedToId(g._id);
+                    }}
+                    disabled={forwardedToId === g._id}
+                    className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
+                  >
+                    <Avatar
+                      fallback={g.name?.[0]?.toUpperCase() ?? "?"}
+                      colorClass="bg-emerald-600"
+                      size="w-9 h-9 text-sm"
+                    />
+                    <span className="truncate flex-1">{g.name}</span>
+                    {forwardedToId === g._id && (
+                      <Check size={16} strokeWidth={2} className="text-emerald-600 shrink-0" />
+                    )}
+                  </button>
+                ))}
+              {(users as ForwardTarget[])
+                .filter((u) => u.username?.toLowerCase().includes(forwardSearch.toLowerCase()))
+                .map((u) => (
+                  <button
+                    key={u._id}
+                    onClick={async () => {
+                      const result = await forwardMessage(msg, { userId: u._id });
+                      if (result.success) setForwardedToId(u._id);
+                    }}
+                    disabled={forwardedToId === u._id}
+                    className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
+                  >
+                    <Avatar
+                      src={u.avatar}
+                      fallback={u.username?.[0]?.toUpperCase() ?? "?"}
+                      colorClass="bg-accent-600"
+                      size="w-9 h-9 text-sm"
+                    />
+                    <span className="truncate flex-1">{u.username}</span>
+                    {forwardedToId === u._id && (
+                      <Check size={16} strokeWidth={2} className="text-emerald-600 shrink-0" />
+                    )}
+                  </button>
+                ))}
+            </div>
+            <button
+              onClick={() => setShowForwardModal(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              {forwardedToId ? "Terminé" : "Annuler"}
+            </button>
           </div>
         </div>
       )}

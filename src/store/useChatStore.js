@@ -177,6 +177,42 @@ export const useChatStore = create((set, get) => ({
   // Fonction pour définir le message auquel l'utilisateur répond
   setReplyingTo: (message) => set({ replyingTo: message }),
 
+  // Transfère un message existant (texte, image ou audio) vers une autre
+  // conversation, sans re-télécharger le fichier (déjà hébergé sur
+  // Cloudinary). "target" = { userId } pour un contact, ou { groupId } pour
+  // un groupe.
+  forwardMessage: async (message, target) => {
+    try {
+      const formData = new FormData();
+      if (message.text) formData.append("text", message.text);
+      if (message.image) formData.append("forwardedImage", message.image);
+      if (message.audio) formData.append("forwardedAudio", message.audio);
+      if (target.groupId) formData.append("groupId", target.groupId);
+
+      const targetId = target.groupId || target.userId;
+      const res = await axiosInstance.post(`/messages/send/${targetId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      // Si la cible est la conversation actuellement ouverte, on affiche le
+      // message transféré tout de suite, sans attendre un rechargement
+      const { selectedUser, selectedGroup, messages } = get();
+      const isCurrentConversation = target.groupId
+        ? selectedGroup?._id === target.groupId
+        : selectedUser?._id === target.userId;
+      if (isCurrentConversation) {
+        set({ messages: [...messages, res.data] });
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   // Fonction pour supprimer un message
   deleteMessage: async (messageId) => {
     try {
