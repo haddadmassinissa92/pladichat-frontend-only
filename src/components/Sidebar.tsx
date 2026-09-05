@@ -130,6 +130,12 @@ export default function Sidebar() {
     acceptContactRequest,
     declineContactRequest,
     sentContactRequests,
+    typingUserIds,
+    handleGlobalUserTyping,
+    handleGlobalUserStopTyping,
+    typingGroupIds,
+    handleGlobalGroupUserTyping,
+    handleGlobalGroupUserStopTyping,
     getSentContactRequests,
     cancelContactRequest,
     previewDiscoverableGroup,
@@ -477,6 +483,10 @@ export default function Sidebar() {
     socket.on("callUnavailable", handleCallUnavailable);
     socket.on("cameraToggled", handleRemoteCameraToggled);
     socket.on("groupCameraToggled", handleGroupCameraToggled);
+    socket.on("userTyping", handleGlobalUserTyping);
+    socket.on("userStopTyping", handleGlobalUserStopTyping);
+    socket.on("groupUserTyping", handleGlobalGroupUserTyping);
+    socket.on("groupUserStopTyping", handleGlobalGroupUserStopTyping);
     socket.on("contactRequestReceived", getContactRequests);
     socket.on("contactRequestAccepted", refresh);
 
@@ -507,6 +517,10 @@ export default function Sidebar() {
       socket.off("callUnavailable", handleCallUnavailable);
       socket.off("cameraToggled", handleRemoteCameraToggled);
       socket.off("groupCameraToggled", handleGroupCameraToggled);
+      socket.off("userTyping", handleGlobalUserTyping);
+      socket.off("userStopTyping", handleGlobalUserStopTyping);
+      socket.off("groupUserTyping", handleGlobalGroupUserTyping);
+      socket.off("groupUserStopTyping", handleGlobalGroupUserStopTyping);
       socket.off("contactRequestReceived", getContactRequests);
       socket.off("contactRequestAccepted", refresh);
       socket.off("incomingGroupCall", handleIncomingGroupCall);
@@ -532,6 +546,10 @@ export default function Sidebar() {
     handleCallUnavailable,
     handleRemoteCameraToggled,
     handleGroupCameraToggled,
+    handleGlobalUserTyping,
+    handleGlobalUserStopTyping,
+    handleGlobalGroupUserTyping,
+    handleGlobalGroupUserStopTyping,
     getContactRequests,
     handleIncomingGroupCall,
     handleGroupCallParticipants,
@@ -611,12 +629,14 @@ export default function Sidebar() {
   // Groupes et contacts visibles dans la liste : les conversations masquées
   // ("supprimées" localement) sont exclues, et les épinglées remontent en
   // premier au sein de chaque section
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const visibleGroups = groups
     .filter((g: Group) => !isConversationHidden(g._id))
     .sort((a: Group, b: Group) => {
       const pinnedDiff = Number(isConversationPinned(b._id)) - Number(isConversationPinned(a._id));
       return pinnedDiff;
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const visibleUsers = users
     .filter((u: User) => !isConversationHidden(u._id))
     .sort((a: User, b: User) => {
@@ -628,7 +648,9 @@ export default function Sidebar() {
   // est une préférence purement locale), on les isole ici pour permettre de
   // les retrouver et les réafficher — sans ça, une conversation masquée est
   // perdue pour de bon tant qu'aucun nouveau message n'arrive
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const hiddenUsers = users.filter((u: User) => isConversationHidden(u._id));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const hiddenGroups = groups.filter((g: Group) => isConversationHidden(g._id));
   const handleUnhide = (id: string) => {
     unhideConversation(id);
@@ -731,13 +753,19 @@ export default function Sidebar() {
                 )}
               </div>
               <div className="flex items-center justify-between gap-2">
-                {group.lastMessage && (
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
-                    {typeof group.lastMessage.sender === "object"
-                      ? group.lastMessage.sender.username
-                      : ""}
-                    : {formatLastMessage(group.lastMessage)}
+                {typingGroupIds.includes(group._id) ? (
+                  <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
+                    en train d&apos;écrire...
                   </p>
+                ) : (
+                  group.lastMessage && (
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
+                      {typeof group.lastMessage.sender === "object"
+                        ? group.lastMessage.sender.username
+                        : ""}
+                      : {formatLastMessage(group.lastMessage)}
+                    </p>
+                  )
                 )}
                 {!!group.unreadCount && (
                   <span className="bg-accent-600 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
@@ -801,10 +829,16 @@ export default function Sidebar() {
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  {user.lastMessage && (
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
-                      {formatLastMessage(user.lastMessage)}
+                  {typingUserIds.includes(user._id) ? (
+                    <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
+                      en train d&apos;écrire...
                     </p>
+                  ) : (
+                    user.lastMessage && (
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
+                        {formatLastMessage(user.lastMessage)}
+                      </p>
+                    )
                   )}
                   {!!user.unreadCount && (
                     <span className="bg-accent-600 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">

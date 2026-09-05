@@ -32,6 +32,7 @@ export default function MessageInput() {
   // etats pour la gestion des messages, modification, suppression et réponse
   const sendMessage = useChatStore((state) => state.sendMessage);
   const selectedUser = useChatStore((state) => state.selectedUser);
+  const selectedGroup = useChatStore((state) => state.selectedGroup);
   const replyingTo = useChatStore((state) => state.replyingTo);
   const setReplyingTo = useChatStore((state) => state.setReplyingTo);
 
@@ -48,21 +49,44 @@ export default function MessageInput() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setText(e.target.value);
 
-    if (!socket || !selectedUser) return;
+    if (!socket) return;
 
-    socket.emit("typing", {
-      receiverId: selectedUser._id,
-      senderId: authUser?._id,
-    });
-
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-    typingTimeoutRef.current = setTimeout(() => {
-      socket.emit("stopTyping", {
+    if (selectedUser) {
+      socket.emit("typing", {
         receiverId: selectedUser._id,
         senderId: authUser?._id,
       });
-    }, 1500);
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit("stopTyping", {
+          receiverId: selectedUser._id,
+          senderId: authUser?._id,
+        });
+      }, 1500);
+    } else if (selectedGroup) {
+      const memberIds = selectedGroup.members?.map(
+        (m: { _id: string } | string) => (typeof m === "string" ? m : m._id),
+      );
+
+      socket.emit("groupTyping", {
+        groupId: selectedGroup._id,
+        senderId: authUser?._id,
+        senderName: authUser?.username,
+        memberIds,
+      });
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit("groupStopTyping", {
+          groupId: selectedGroup._id,
+          senderId: authUser?._id,
+          memberIds,
+        });
+      }, 1500);
+    }
   };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {

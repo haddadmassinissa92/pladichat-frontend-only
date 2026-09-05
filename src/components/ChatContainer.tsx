@@ -11,7 +11,7 @@ type Message = {
   linkPreview?: {
     url: string;
     title?: string;
-  }; // Aperçu du lien partagé
+  }; // Aperçu d'un lien partagé
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
 };
@@ -104,6 +104,7 @@ export default function ChatContainer() {
     subscribeToTyping,
     unsubscribeFromTyping,
     isTyping,
+    typingGroupUsers,
     setSelectedUser,
     setSelectedGroup,
     deleteGroup,
@@ -658,14 +659,14 @@ export default function ChatContainer() {
       }, 100);
       return () => clearTimeout(timeout);
     }
-  }, [isTyping, isNearBottom]);
+  }, [isTyping, typingGroupUsers, isNearBottom]);
 
   // S'abonne/désabonne aux événements socket "en train d'écrire" pour la
-  // conversation privée actuellement sélectionnée
+  // conversation actuellement sélectionnée (privée ou de groupe)
   useEffect(() => {
     subscribeToTyping();
     return () => unsubscribeFromTyping();
-  }, [selectedUser, socket, subscribeToTyping, unsubscribeFromTyping]);
+  }, [selectedUser, selectedGroup, socket, subscribeToTyping, unsubscribeFromTyping]);
 
   // Gestion du geste de glissement tactile (swipe) pour revenir à la liste
   // des conversations sur mobile
@@ -1149,22 +1150,17 @@ export default function ChatContainer() {
                   </div>
                 )}
                 <MessageBubble
-                  msg={
-                    (msg.linkPreview
+                  msg={{
+                    ...msg,
+                    linkPreview: msg.linkPreview
                       ? {
-                          ...msg,
-                          linkPreview: {
-                            url: msg.linkPreview.url,
-                            title: msg.linkPreview.title ?? "",
-                            description: "",
-                            image: "",
-                          },
+                          url: msg.linkPreview.url,
+                          title: msg.linkPreview.title ?? "",
+                          description: "",
+                          image: "",
                         }
-                      : {
-                          ...msg,
-                          linkPreview: undefined,
-                        }) as Parameters<typeof MessageBubble>[0]["msg"]
-                  }
+                      : msg.linkPreview,
+                  }}
                   isMine={isMine}
                   senderName={senderName}
                   isLast={index === messages.length - 1}
@@ -1174,11 +1170,19 @@ export default function ChatContainer() {
           })}
 
           {/* Indicateur "en train d'écrire..." */}
-          {isTyping && (
-            <div className="max-w-xs px-4 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 self-start flex gap-1 items-center">
-              <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-              <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-              <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" />
+          {(isTyping || typingGroupUsers.length > 0) && (
+            <div className="flex flex-col items-start gap-1">
+              {typingGroupUsers.length > 0 && (
+                <p className="text-xs text-zinc-400 px-1">
+                  {typingGroupUsers.map((u: { senderName: string }) => u.senderName).join(", ")}
+                  {typingGroupUsers.length > 1 ? " écrivent..." : " écrit..."}
+                </p>
+              )}
+              <div className="max-w-xs px-4 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 self-start flex gap-1 items-center">
+                <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" />
+              </div>
             </div>
           )}
 

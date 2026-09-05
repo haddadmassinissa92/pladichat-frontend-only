@@ -412,33 +412,87 @@ export const useChatStore = create((set, get) => ({
 
   // boolean pour indiquer si l'utilisateur sélectionné est en train d'écrire un message
   isTyping: false,
+  // Liste des noms des membres actuellement en train d'écrire dans le
+  // groupe actuellement ouvert (plusieurs personnes peuvent écrire à la fois)
+  typingGroupUsers: [],
 
-  // souscrire aux événements de saisie en temps réel pour l'utilisateur sélectionné
+  // souscrire aux événements de saisie en temps réel pour la conversation
+  // actuellement sélectionnée (privée ou de groupe)
   subscribeToTyping: () => {
-    const { selectedUser } = get();
-    if (!selectedUser) return;
+    const { selectedUser, selectedGroup } = get();
+    if (!selectedUser && !selectedGroup) return;
 
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
 
-    socket.on("userTyping", ({ senderId }) => {
-      if (senderId === selectedUser._id) {
-        set({ isTyping: true });
-      }
-    });
+    if (selectedUser) {
+      socket.on("userTyping", ({ senderId }) => {
+        if (senderId === selectedUser._id) {
+          set({ isTyping: true });
+        }
+      });
 
-    socket.on("userStopTyping", ({ senderId }) => {
-      if (senderId === selectedUser._id) {
-        set({ isTyping: false });
-      }
-    });
+      socket.on("userStopTyping", ({ senderId }) => {
+        if (senderId === selectedUser._id) {
+          set({ isTyping: false });
+        }
+      });
+    }
+
+    if (selectedGroup) {
+      socket.on("groupUserTyping", ({ groupId, senderId, senderName }) => {
+        if (groupId !== selectedGroup._id) return;
+        const current = get().typingGroupUsers;
+        if (!current.some((u) => u.senderId === senderId)) {
+          set({ typingGroupUsers: [...current, { senderId, senderName }] });
+        }
+      });
+
+      socket.on("groupUserStopTyping", ({ groupId, senderId }) => {
+        if (groupId !== selectedGroup._id) return;
+        set({
+          typingGroupUsers: get().typingGroupUsers.filter((u) => u.senderId !== senderId),
+        });
+      });
+    }
   },
 
-  // se désabonner des événements de saisie en temps réel pour l'utilisateur sélectionné
+  // se désabonner des événements de saisie en temps réel pour la
+  // conversation actuellement sélectionnée
   unsubscribeFromTyping: () => {
     const socket = useAuthStore.getState().socket;
     socket?.off("userTyping");
     socket?.off("userStopTyping");
+    socket?.off("groupUserTyping");
+    socket?.off("groupUserStopTyping");
+    set({ isTyping: false, typingGroupUsers: [] });
+  },
+
+  // Liste des contacts actuellement en train d'écrire, tous partout (pas
+  // seulement dans la conversation ouverte) — pour l'afficher directement
+  // dans la sidebar, à la place de l'aperçu du dernier message
+  typingUserIds: [],
+  handleGlobalUserTyping: ({ senderId }) => {
+    const current = get().typingUserIds;
+    if (!current.includes(senderId)) {
+      set({ typingUserIds: [...current, senderId] });
+    }
+  },
+  handleGlobalUserStopTyping: ({ senderId }) => {
+    set({ typingUserIds: get().typingUserIds.filter((id) => id !== senderId) });
+  },
+
+  // Même chose pour les groupes : liste des groupes où au moins une
+  // personne est en train d'écrire, pour l'afficher dans la sidebar
+  typingGroupIds: [],
+  handleGlobalGroupUserTyping: ({ groupId }) => {
+    const current = get().typingGroupIds;
+    if (!current.includes(groupId)) {
+      set({ typingGroupIds: [...current, groupId] });
+    }
+  },
+  handleGlobalGroupUserStopTyping: ({ groupId }) => {
+    set({ typingGroupIds: get().typingGroupIds.filter((id) => id !== groupId) });
   },
 
   // marquer les messages comme lus pour l'utilisateur sélectionné
