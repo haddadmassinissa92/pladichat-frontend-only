@@ -25,12 +25,14 @@ function ParticipantTile({
   stream,
   callType,
   cameraOff,
+  className = "",
 }: {
   username: string;
   avatar?: string;
   stream: MediaStream | null;
   callType: "audio" | "video" | null;
   cameraOff?: boolean;
+  className?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -56,7 +58,7 @@ function ParticipantTile({
   };
 
   return (
-    <div className="relative w-full h-full min-h-[120px] bg-zinc-800 rounded-xl overflow-hidden flex items-center justify-center">
+    <div className={`relative w-full h-full min-h-[120px] bg-zinc-800 rounded-xl overflow-hidden flex items-center justify-center ${className}`}>
       {callType === "video" ? (
         <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
       ) : (
@@ -398,26 +400,48 @@ export default function CallModal() {
             </p>
           </div>
 
-          {/* --- Grille des participants, en appel de groupe actif : 2
-              colonnes fixes (2x2 pour 4 personnes, 2+1 pour 3...), grande
-              sur desktop, plus petite mais même disposition sur mobile --- */}
+          {/* --- Disposition des participants, en appel de groupe actif :
+              2 personnes = côte à côte (desktop) / empilées (mobile) ;
+              3 personnes = 2 dans la 1re colonne, 1 grande dans la 2e ;
+              4 personnes = grille 2x2 --- */}
           {callMode === "group" && callStatus === "active" && (
-            <div className="relative z-10 grid grid-cols-2 auto-rows-fr gap-3 w-full max-w-3xl my-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+            <div
+              className={`relative z-10 gap-3 w-full max-w-3xl my-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar ${
+                participantList.length <= 2
+                  ? "flex flex-col sm:flex-row"
+                  : participantList.length === 3
+                    ? "grid grid-cols-2 sm:grid-rows-2"
+                    : "grid grid-cols-2 grid-rows-2"
+              }`}
+            >
               {participantList.length === 0 && (
-                <p className="col-span-2 text-center text-zinc-400 text-sm py-8">
+                <p className="text-center text-zinc-400 text-sm py-8">
                   En attente que d&apos;autres personnes rejoignent...
                 </p>
               )}
-              {participantList.map(([userId, p]) => (
-                <ParticipantTile
-                  key={userId}
-                  username={p.username}
-                  avatar={p.avatar}
-                  stream={p.stream}
-                  callType={callType}
-                  cameraOff={p.cameraOff}
-                />
-              ))}
+              {participantList.map(([userId, p], index) => {
+                // À 3 personnes : mobile = 2 sur la 1re ligne, 1 grande sur
+                // la 2e ligne ; desktop = 2 empilées dans la 1re colonne,
+                // 1 grande occupant toute la hauteur dans la 2e colonne.
+                // Placement explicite (pas d'auto-placement CSS ambigu).
+                let tileClassName = "";
+                if (participantList.length === 3) {
+                  if (index === 0) tileClassName = "sm:col-start-1 sm:row-start-1";
+                  else if (index === 1) tileClassName = "sm:col-start-1 sm:row-start-2";
+                  else tileClassName = "col-span-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:row-span-2";
+                }
+                return (
+                  <ParticipantTile
+                    key={userId}
+                    username={p.username}
+                    avatar={p.avatar}
+                    stream={p.stream}
+                    callType={callType}
+                    cameraOff={p.cameraOff}
+                    className={tileClassName}
+                  />
+                );
+              })}
             </div>
           )}
 
@@ -431,7 +455,7 @@ export default function CallModal() {
               onPointerCancel={handlePipPointerUp}
               style={pipPos ? { left: pipPos.left, top: pipPos.top, right: "auto" } : undefined}
               className={`absolute top-6 right-6 rounded-xl border-2 border-white/20 z-20 cursor-grab active:cursor-grabbing touch-none overflow-hidden ${
-                callMode === "group" ? "w-20 h-28" : "w-28 h-40"
+                callMode === "group" ? "w-20 h-28 sm:w-24 sm:h-32" : "w-28 h-40"
               }`}
             >
               <video
