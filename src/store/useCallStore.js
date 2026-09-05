@@ -247,10 +247,14 @@ export const useCallStore = create((set, get) => ({
             stream: state.remoteStream,
             peerConnection: state.peerConnection,
             pendingCandidates: [],
+            // On conserve son statut caméra tel qu'il était juste avant la
+            // conversion, pour ne pas perdre cette info au passage en groupe
+            cameraOff: state.remoteCameraOff,
           },
         },
         remoteUser: null,
         remoteStream: null,
+        remoteCameraOff: false,
         peerConnection: null,
       });
 
@@ -302,10 +306,12 @@ export const useCallStore = create((set, get) => ({
           stream: state.remoteStream,
           peerConnection: state.peerConnection,
           pendingCandidates: [],
+          cameraOff: state.remoteCameraOff,
         },
       },
       remoteUser: null,
       remoteStream: null,
+      remoteCameraOff: false,
       peerConnection: null,
     });
 
@@ -617,18 +623,25 @@ export const useCallStore = create((set, get) => ({
   },
 
   toggleCamera: () => {
-    const { localStream, isCameraOff, callMode, remoteUser } = get();
+    const { localStream, isCameraOff, callMode, remoteUser, groupId } = get();
     const newIsCameraOff = !isCameraOff;
     localStream?.getVideoTracks().forEach((track) => {
       track.enabled = isCameraOff;
     });
     set({ isCameraOff: newIsCameraOff });
 
+    const socket = useAuthStore.getState().socket;
+    const myId = useAuthStore.getState().authUser?._id;
+
     // Prévient l'autre participant, en appel privé, pour qu'il sache que
     // c'est nous qui avons coupé la caméra (et pas un problème de son côté)
     if (callMode === "private" && remoteUser) {
-      const socket = useAuthStore.getState().socket;
       socket?.emit("cameraToggled", { to: remoteUser._id, isCameraOff: newIsCameraOff });
+    }
+
+    // Même chose en appel de groupe, diffusé à tous les autres participants
+    if (callMode === "group" && groupId) {
+      socket?.emit("groupCameraToggled", { groupId, userId: myId, isCameraOff: newIsCameraOff });
     }
   },
 
@@ -636,5 +649,18 @@ export const useCallStore = create((set, get) => ({
   // vient de couper ou réactiver sa caméra
   handleRemoteCameraToggled: ({ isCameraOff }) => {
     set({ remoteCameraOff: isCameraOff });
+  },
+
+  // Même chose pour un appel de groupe : met à jour ce participant précis
+  // dans la liste, sans toucher aux autres
+  handleGroupCameraToggled: ({ userId, isCameraOff }) => {
+    const { participants } = get();
+    if (!participants[userId]) return;
+    set({
+      participants: {
+        ...participants,
+        [userId]: { ...participants[userId], cameraOff: isCameraOff },
+      },
+    });
   },
 }));

@@ -24,21 +24,36 @@ function ParticipantTile({
   avatar,
   stream,
   callType,
+  cameraOff,
 }: {
   username: string;
   avatar?: string;
   stream: MediaStream | null;
   callType: "audio" | "video" | null;
+  cameraOff?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [needsTap, setNeedsTap] = useState(false);
 
   useEffect(() => {
     if (stream) {
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      if (audioRef.current) audioRef.current.srcObject = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => setNeedsTap(true));
+      }
+      if (audioRef.current) {
+        audioRef.current.srcObject = stream;
+        audioRef.current.play().catch(() => setNeedsTap(true));
+      }
     }
   }, [stream]);
+
+  const handleTap = () => {
+    videoRef.current?.play().catch(() => {});
+    audioRef.current?.play().catch(() => {});
+    setNeedsTap(false);
+  };
 
   return (
     <div className="relative bg-zinc-800 rounded-xl overflow-hidden flex items-center justify-center aspect-video">
@@ -47,7 +62,7 @@ function ParticipantTile({
       ) : (
         <audio ref={audioRef} autoPlay />
       )}
-      {(callType !== "video" || !stream) && (
+      {(callType !== "video" || !stream || cameraOff) && (
         <Avatar
           src={avatar}
           fallback={username?.[0]?.toUpperCase() || "?"}
@@ -55,8 +70,17 @@ function ParticipantTile({
           size="w-16 h-16 text-xl"
         />
       )}
+      {needsTap && (
+        <button
+          onClick={handleTap}
+          className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 text-white text-xs"
+        >
+          Appuie pour activer
+        </button>
+      )}
       <span className="absolute bottom-2 left-2 text-xs bg-black/50 px-2 py-0.5 rounded-full">
         {username}
+        {cameraOff && callType === "video" && " · caméra coupée"}
       </span>
     </div>
   );
@@ -189,7 +213,7 @@ export default function CallModal() {
 
   const participantList = Object.entries(participants) as [
     string,
-    { username: string; avatar?: string; stream: MediaStream | null },
+    { username: string; avatar?: string; stream: MediaStream | null; cameraOff?: boolean },
   ][];
   const isGroupRinging = callMode === "group" && callStatus === "ringing";
 
@@ -344,6 +368,7 @@ export default function CallModal() {
                   avatar={p.avatar}
                   stream={p.stream}
                   callType={callType}
+                  cameraOff={p.cameraOff}
                 />
               ))}
             </div>

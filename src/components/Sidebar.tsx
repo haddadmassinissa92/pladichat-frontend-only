@@ -156,6 +156,7 @@ export default function Sidebar() {
     handleCallRejected,
     handleCallEnded,
     handleRemoteCameraToggled,
+    handleGroupCameraToggled,
     handleCallUnavailable,
     handleIncomingGroupCall,
     handleGroupCallParticipants,
@@ -465,6 +466,7 @@ export default function Sidebar() {
     socket.on("callEnded", handleCallEnded);
     socket.on("callUnavailable", handleCallUnavailable);
     socket.on("cameraToggled", handleRemoteCameraToggled);
+    socket.on("groupCameraToggled", handleGroupCameraToggled);
     socket.on("contactRequestReceived", getContactRequests);
     socket.on("contactRequestAccepted", refresh);
 
@@ -494,6 +496,7 @@ export default function Sidebar() {
       socket.off("callEnded", handleCallEnded);
       socket.off("callUnavailable", handleCallUnavailable);
       socket.off("cameraToggled", handleRemoteCameraToggled);
+      socket.off("groupCameraToggled", handleGroupCameraToggled);
       socket.off("contactRequestReceived", getContactRequests);
       socket.off("contactRequestAccepted", refresh);
       socket.off("incomingGroupCall", handleIncomingGroupCall);
@@ -518,6 +521,7 @@ export default function Sidebar() {
     handleCallEnded,
     handleCallUnavailable,
     handleRemoteCameraToggled,
+    handleGroupCameraToggled,
     getContactRequests,
     handleIncomingGroupCall,
     handleGroupCallParticipants,
