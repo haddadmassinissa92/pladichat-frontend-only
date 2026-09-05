@@ -11,7 +11,7 @@ type Message = {
   linkPreview?: {
     url: string;
     title?: string;
-  }; // Aperçu d'un lien partagé
+  }; // Aperçu du lien partagé
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
 };
@@ -1159,7 +1159,7 @@ export default function ChatContainer() {
                           description: "",
                           image: "",
                         }
-                      : msg.linkPreview,
+                      : undefined,
                   }}
                   isMine={isMine}
                   senderName={senderName}
@@ -1174,8 +1174,12 @@ export default function ChatContainer() {
             <div className="flex flex-col items-start gap-1">
               {typingGroupUsers.length > 0 && (
                 <p className="text-xs text-zinc-400 px-1">
-                  {typingGroupUsers.map((u: { senderName: string }) => u.senderName).join(", ")}
-                  {typingGroupUsers.length > 1 ? " écrivent..." : " écrit..."}
+                  {typingGroupUsers
+                    .map((u: { senderName: string }) => u.senderName)
+                    .join(", ")}
+                  {typingGroupUsers.length > 1
+                    ? " sont en train d'écrire..."
+                    : " en train d'écrire..."}
                 </p>
               )}
               <div className="max-w-xs px-4 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 self-start flex gap-1 items-center">
