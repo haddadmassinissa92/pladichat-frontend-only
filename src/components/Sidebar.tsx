@@ -138,6 +138,7 @@ export default function Sidebar() {
     onlineUsers,
     authUser,
     logout,
+    logoutAllDevices,
     updateProfile,
     socket,
     changePassword,
@@ -176,6 +177,14 @@ export default function Sidebar() {
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [showMyProfileZoom, setShowMyProfileZoom] = useState(false);
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
+  const [showLogoutAllConfirm, setShowLogoutAllConfirm] = useState(false);
+  const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
+  const handleLogoutAllDevices = async () => {
+    setIsLoggingOutAll(true);
+    await logoutAllDevices();
+    setIsLoggingOutAll(false);
+    setShowLogoutAllConfirm(false);
+  };
   const [showMutedList, setShowMutedList] = useState(false);
   const [showSentRequests, setShowSentRequests] = useState(false);
   const [isEditingUsername, setIsEditingUsername] = useState(false);
@@ -1254,6 +1263,17 @@ export default function Sidebar() {
 
             <button
               onClick={() => {
+                setShowMyProfile(false);
+                setShowLogoutAllConfirm(true);
+              }}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+            >
+              <LogOut size={16} strokeWidth={2} className="shrink-0" />
+              Se déconnecter de tous les appareils
+            </button>
+
+            <button
+              onClick={() => {
                 setShowDeleteAccount(true);
                 setShowMyProfile(false);
               }}
@@ -1776,6 +1796,37 @@ export default function Sidebar() {
                 className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium"
               >
                 Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : confirmation avant de déconnecter tous les appareils
+          connectés à ce compte (y compris celui-ci) */}
+      {showLogoutAllConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-2">Se déconnecter de tous les appareils ?</h3>
+            <p className="text-sm text-zinc-500 mb-4">
+              Toutes les sessions actives (téléphone, ordinateur, autres
+              navigateurs) seront fermées, y compris celle-ci. Tu devras te
+              reconnecter partout.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowLogoutAllConfirm(false)}
+                disabled={isLoggingOutAll}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleLogoutAllDevices}
+                disabled={isLoggingOutAll}
+                className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+              >
+                {isLoggingOutAll ? "Déconnexion..." : "Déconnecter tout"}
               </button>
             </div>
           </div>

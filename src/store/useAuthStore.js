@@ -121,6 +121,21 @@ export const useAuthStore = create((set, get) => ({
     set({ authUser: null });
   },
 
+  // Déconnecte tous les appareils connectés à ce compte (y compris celui-ci)
+  logoutAllDevices: async () => {
+    try {
+      await axiosInstance.post("/auth/logout-all-devices");
+      get().disconnectSocket();
+      set({ authUser: null });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   // Fonction pour demander la permission de notification à l'utilisateur
   requestNotificationPermission: () => {
     if ("Notification" in window && Notification.permission === "default") {
