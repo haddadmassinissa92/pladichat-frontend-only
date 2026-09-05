@@ -242,9 +242,10 @@ export default function ChatContainer() {
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState("");
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-disable react-hooks/set-state-in-effect */
     setIsPinned(isConversationPinned(conversationId));
     setNicknameState(selectedUser ? getNickname(conversationId) : "");
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [conversationId, selectedUser]);
 
   const handleSaveNickname = () => {
@@ -392,15 +393,14 @@ export default function ChatContainer() {
 
   // Dès que de nouveaux résultats de recherche arrivent, on saute automatiquement
   // au premier (comportement classique d'un "Ctrl+F")
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (searchResults.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentResultIndex(0);
       scrollToMessageId(searchResults[0]._id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchResults]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Un membre est bloqué dans le groupe s'il figure dans blockedMembers
   const isMemberBlockedInGroup = (memberId: string) =>
@@ -595,8 +595,8 @@ export default function ChatContainer() {
   // Au changement de conversation : réinitialise l'indicateur de nouveaux messages
   // et repart du principe qu'on est en bas de la conversation. On dépend des
   // identifiants plutôt que des objets entiers pour éviter un déclenchement inutile.
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNewMessagesCount(0);
     setIsNearBottom(true);
     previousMessagesLength.current = 0;
@@ -606,7 +606,6 @@ export default function ChatContainer() {
     setHighlightedMessageId(null);
     clearSearchResults();
   }, [selectedUser?._id, selectedGroup?._id, clearSearchResults]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // S'abonne aux événements socket liés aux messages (nouveau, lu, supprimé, modifié)
   // et se désabonne proprement quand ce n'est plus nécessaire
@@ -1248,12 +1247,12 @@ export default function ChatContainer() {
                     ...msg,
                     linkPreview: msg.linkPreview
                       ? {
-                          url: msg.linkPreview.url,
-                          title: msg.linkPreview.title || "",
+                          ...msg.linkPreview,
+                          title: msg.linkPreview.title ?? "",
                           description: "",
                           image: "",
                         }
-                      : undefined,
+                      : msg.linkPreview,
                   }}
                   isMine={isMine}
                   senderName={senderName}

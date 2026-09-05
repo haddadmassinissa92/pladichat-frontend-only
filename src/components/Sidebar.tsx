@@ -242,7 +242,7 @@ export default function Sidebar() {
   const [showHiddenConversations, setShowHiddenConversations] = useState(false);
   const [selectedRingtone, setSelectedRingtone] = useState("classic");
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     setSelectedRingtone(getRingtone());
   }, []);
   const handleRingtoneChange = (id: string) => {
@@ -251,7 +251,7 @@ export default function Sidebar() {
   };
   const [selectedAccent, setSelectedAccent] = useState("indigo");
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     setSelectedAccent(getAccentColor());
   }, []);
   const handleAccentChange = (id: string) => {
@@ -809,7 +809,9 @@ export default function Sidebar() {
                   );
                   return typers.length > 0 ? (
                     <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
-                      {typers.map((t: { groupId: string; senderName: string }) => t.senderName).join(", ")} en train d&apos;écrire...
+                      {typers
+                        .map((t: { groupId: string; senderName: string }) => t.senderName)
+                        .join(", ")} en train d&apos;écrire...
                     </p>
                   ) : (
                     group.lastMessage && (

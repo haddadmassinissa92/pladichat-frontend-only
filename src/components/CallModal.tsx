@@ -135,7 +135,7 @@ export default function CallModal() {
   const [needsTapToPlay, setNeedsTapToPlay] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     if (callStatus === "idle") setNeedsTapToPlay(false);
   }, [callStatus]);
 
@@ -146,7 +146,7 @@ export default function CallModal() {
   const dragData = useRef<{ startX: number; startY: number; origLeft: number; origTop: number } | null>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     if (callStatus === "idle") setPipPos(null);
   }, [callStatus]);
 
