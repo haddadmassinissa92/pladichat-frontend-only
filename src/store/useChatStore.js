@@ -201,6 +201,21 @@ export const useChatStore = create((set, get) => ({
   // Fonction pour définir le message auquel l'utilisateur répond
   setReplyingTo: (message) => set({ replyingTo: message }),
 
+  // Retire de l'affichage les messages éphémères dont l'heure d'expiration
+  // est dépassée, sans attendre que MongoDB fasse le ménage de son côté
+  // (l'index TTL passe environ toutes les 60 secondes) — appelé
+  // périodiquement depuis ChatContainer pendant qu'une conversation est ouverte
+  removeExpiredMessages: () => {
+    const now = Date.now();
+    const messages = get().messages;
+    const filtered = messages.filter(
+      (m) => !m.expiresAt || new Date(m.expiresAt).getTime() > now,
+    );
+    if (filtered.length !== messages.length) {
+      set({ messages: filtered });
+    }
+  },
+
   // Transfère un message existant (texte, image ou audio) vers une autre
   // conversation, sans re-télécharger le fichier (déjà hébergé sur
   // Cloudinary). "target" = { userId } pour un contact, ou { groupId } pour

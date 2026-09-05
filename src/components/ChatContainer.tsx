@@ -8,12 +8,12 @@ type Message = {
   text: string; // Contenu textuel du message
   image: string; // URL ou chemin vers une image jointe
   audio: string; // URL ou chemin vers un message vocal ou fichier audio joint
+  status: string; // État du message (ex: 'sent', 'delivered', 'read')
+  createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
   linkPreview?: {
     url: string;
     title?: string;
-  }; // Aperçu du lien partagé
-  status: string; // État du message (ex: 'sent', 'delivered', 'read')
-  createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
+  };
 };
 
 // Définit un type d'objet personnalisé représentant un membre d'un groupe
@@ -28,7 +28,7 @@ import Image from "next/image";
 import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
-import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video, Bell, BellOff, Pin, Download, Link2 } from "lucide-react";
+import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video, Bell, BellOff, Pin, Download, Link2, Clock } from "lucide-react";
 import { useCallStore } from "@/store/useCallStore";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
@@ -92,6 +92,7 @@ export default function ChatContainer() {
     selectedUser,
     selectedGroup,
     groups,
+    removeExpiredMessages,
     messages,
     getMessages,
     loadMoreMessages,
@@ -124,8 +125,14 @@ export default function ChatContainer() {
   // État du menu "gérer le groupe", utilisateur connecté, socket temps réel,
   // et références DOM utilisées pour le défilement et les gestes tactiles
   const [showGroupMenu, setShowGroupMenu] = useState(false);
-  const { authUser, socket, toggleBlockUser, onlineUsers, toggleMuteConversation } =
-    useAuthStore();
+  const {
+    authUser,
+    socket,
+    toggleBlockUser,
+    onlineUsers,
+    toggleMuteConversation,
+    setDisappearingTimer,
+  } = useAuthStore();
   const { startCall, callStatus } = useCallStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -195,6 +202,32 @@ export default function ChatContainer() {
       )
     : [];
   const isGroupConversation = !!selectedGroup;
+
+  // Retire les messages éphémères expirés de l'affichage toutes les 5
+  // secondes, pendant qu'une conversation est ouverte
+  useEffect(() => {
+    const interval = setInterval(() => {
+      removeExpiredMessages();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [removeExpiredMessages]);
+
+  // Messages éphémères : durée actuellement réglée pour CETTE conversation
+  // (propre à ce qu'on envoie soi-même ; 0 = désactivé)
+  const [showDisappearingMenu, setShowDisappearingMenu] = useState(false);
+  const disappearingSeconds = conversationId
+    ? Number(authUser?.disappearingTimers?.[conversationId]) || 0
+    : 0;
+  const DISAPPEARING_OPTIONS = [
+    { seconds: 0, label: "Désactivé" },
+    { seconds: 86400, label: "24 heures" },
+    { seconds: 604800, label: "7 jours" },
+    { seconds: 7776000, label: "90 jours" },
+  ];
+  const handleSetDisappearingTimer = async (seconds: number) => {
+    if (!conversationId) return;
+    await setDisappearingTimer(conversationId, seconds);
+  };
 
   // Notifications coupées : préférence stockée côté serveur, dérivée
   // directement de authUser (pas besoin d'état local séparé, elle se
@@ -749,9 +782,12 @@ export default function ChatContainer() {
 
         <h2
           onClick={() => setShowContactInfo(true)}
-          className="font-bold flex-1 min-w-0 truncate cursor-pointer"
+          className="font-bold flex-1 min-w-0 truncate cursor-pointer flex items-center gap-1.5"
         >
-          {displayName}
+          <span className="truncate">{displayName}</span>
+          {disappearingSeconds > 0 && (
+            <Clock size={14} strokeWidth={2} className="text-zinc-400 shrink-0" />
+          )}
         </h2>
 
         {/* Boutons pour démarrer un appel audio/vidéo : uniquement en
@@ -813,6 +849,19 @@ export default function ChatContainer() {
                   >
                     <Palette size={16} strokeWidth={2} className="shrink-0" />
                     Thème
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      setShowDisappearingMenu(true);
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Clock size={16} strokeWidth={2} className="shrink-0" />
+                    Messages éphémères
+                    {disappearingSeconds > 0 && (
+                      <span className="text-zinc-400">(actif)</span>
+                    )}
                   </button>
                   <button
                     onClick={() => {
@@ -910,6 +959,19 @@ export default function ChatContainer() {
                   >
                     <Palette size={16} strokeWidth={2} className="shrink-0" />
                     Thème
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      setShowDisappearingMenu(true);
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Clock size={16} strokeWidth={2} className="shrink-0" />
+                    Messages éphémères
+                    {disappearingSeconds > 0 && (
+                      <span className="text-zinc-400">(actif)</span>
+                    )}
                   </button>
                   <button
                     onClick={() => {
@@ -1159,7 +1221,7 @@ export default function ChatContainer() {
                           description: "",
                           image: "",
                         }
-                      : undefined,
+                      : msg.linkPreview,
                   }}
                   isMine={isMine}
                   senderName={senderName}
@@ -1254,6 +1316,40 @@ export default function ChatContainer() {
             </div>
             <button
               onClick={() => setShowWallpaperMenu(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : durée d'autodestruction des messages qu'on envoie
+          soi-même dans cette conversation */}
+      {showDisappearingMenu && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-1">Messages éphémères</h3>
+            <p className="text-xs text-zinc-500 mb-3">
+              Les messages que tu envoies ici disparaîtront automatiquement
+              après la durée choisie. Ce réglage ne concerne que tes propres
+              messages, pas ceux que tu reçois.
+            </p>
+            <div className="flex flex-col gap-1">
+              {DISAPPEARING_OPTIONS.map((opt) => (
+                <button
+                  key={opt.seconds}
+                  onClick={() => handleSetDisappearingTimer(opt.seconds)}
+                  className={`block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
+                    disappearingSeconds === opt.seconds ? "font-semibold" : ""
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowDisappearingMenu(false)}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
             >
               Fermer

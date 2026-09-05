@@ -312,6 +312,28 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Règle (ou désactive avec 0) la durée d'autodestruction des messages
+  // qu'on envoie soi-même dans une conversation précise
+  setDisappearingTimer: async (conversationId, seconds) => {
+    try {
+      const res = await axiosInstance.put(`/users/disappearing-timer/${conversationId}`, {
+        seconds,
+      });
+      set({
+        authUser: {
+          ...get().authUser,
+          disappearingTimers: res.data.disappearingTimers,
+        },
+      });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   // Liste détaillée des utilisateurs bloqués, pour la page de profil
   blockedUsersList: [],
   getBlockedUsersList: async () => {
