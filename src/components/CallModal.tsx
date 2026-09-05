@@ -56,7 +56,7 @@ function ParticipantTile({
   };
 
   return (
-    <div className="relative flex-1 min-w-0 min-h-[140px] bg-zinc-800 rounded-xl overflow-hidden flex items-center justify-center">
+    <div className="relative w-full h-full min-h-[120px] bg-zinc-800 rounded-xl overflow-hidden flex items-center justify-center">
       {callType === "video" ? (
         <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
       ) : (
@@ -398,12 +398,13 @@ export default function CallModal() {
             </p>
           </div>
 
-          {/* --- Grille des participants, en appel de groupe actif : côte
-              à côte en grand sur desktop, empilés sur mobile --- */}
+          {/* --- Grille des participants, en appel de groupe actif : 2
+              colonnes fixes (2x2 pour 4 personnes, 2+1 pour 3...), grande
+              sur desktop, plus petite mais même disposition sur mobile --- */}
           {callMode === "group" && callStatus === "active" && (
-            <div className="relative z-10 flex flex-col sm:flex-row gap-3 w-full max-w-3xl my-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+            <div className="relative z-10 grid grid-cols-2 auto-rows-fr gap-3 w-full max-w-3xl my-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
               {participantList.length === 0 && (
-                <p className="text-center text-zinc-400 text-sm py-8">
+                <p className="col-span-2 text-center text-zinc-400 text-sm py-8">
                   En attente que d&apos;autres personnes rejoignent...
                 </p>
               )}
