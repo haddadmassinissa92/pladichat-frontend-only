@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -136,6 +136,10 @@ export default function Sidebar() {
     typingGroupSenders,
     handleGlobalGroupUserTyping,
     handleGlobalGroupUserStopTyping,
+    globalSearchResults,
+    isGlobalSearching,
+    searchAllConversations,
+    clearGlobalSearchResults,
     getSentContactRequests,
     cancelContactRequest,
     previewDiscoverableGroup,
@@ -318,6 +322,41 @@ export default function Sidebar() {
   };
   const handleAddContact = async (userId: string) => {
     await addContact(userId);
+  };
+
+  // Recherche globale dans toutes les conversations à la fois
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState("");
+  const globalSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleGlobalSearchChange = (value: string) => {
+    setGlobalSearchQuery(value);
+    if (globalSearchDebounceRef.current) clearTimeout(globalSearchDebounceRef.current);
+    globalSearchDebounceRef.current = setTimeout(() => {
+      searchAllConversations(value);
+    }, 300);
+  };
+  const handleGlobalSearchResultClick = (result: {
+    sender: { _id: string };
+    receiver?: { _id: string };
+    group?: { _id: string };
+  }) => {
+    if (result.group) {
+      const fullGroup = groups.find((g: Group) => g._id === result.group?._id);
+      if (fullGroup) {
+        setSelectedUser(null);
+        setSelectedGroup(fullGroup);
+      }
+    } else {
+      const otherId = result.sender._id === authUser?._id ? result.receiver?._id : result.sender._id;
+      const fullUser = users.find((u: User) => u._id === otherId);
+      if (fullUser) {
+        setSelectedGroup(null);
+        setSelectedUser(fullUser);
+      }
+    }
+    setShowGlobalSearch(false);
+    setGlobalSearchQuery("");
+    clearGlobalSearchResults();
   };
 
   const handleOpenDiscoverGroups = () => {
@@ -695,6 +734,14 @@ export default function Sidebar() {
             aria-label="Découvrir des groupes"
             title="Découvrir des groupes"
           >
+            <Compass size={20} strokeWidth={2} />
+          </button>
+          <button
+            onClick={() => setShowGlobalSearch(true)}
+            className="text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
+            aria-label="Rechercher dans mes messages"
+            title="Rechercher dans mes messages"
+          >
             <Search size={20} strokeWidth={2} />
           </button>
           <button
@@ -756,9 +803,7 @@ export default function Sidebar() {
                   );
                   return typers.length > 0 ? (
                     <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
-                      {typers
-                        .map((t: { senderName: string }) => t.senderName)
-                        .join(", ")} en train d&apos;écrire...
+                      {typers.map((t: { groupId: string; senderName: string }) => t.senderName).join(", ")} en train d&apos;écrire...
                     </p>
                   ) : (
                     group.lastMessage && (
@@ -1659,6 +1704,86 @@ export default function Sidebar() {
                 setAddContactSearch("");
               }}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : recherche dans TOUTES les conversations à la fois */}
+      {showGlobalSearch && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowGlobalSearch(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-3">Rechercher dans mes messages</h3>
+            <input
+              type="text"
+              autoFocus
+              placeholder="Rechercher un mot..."
+              value={globalSearchQuery}
+              onChange={(e) => handleGlobalSearchChange(e.target.value)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-full px-4 py-2 bg-transparent text-sm mb-3"
+            />
+            <div className="custom-scrollbar max-h-96 overflow-y-auto flex flex-col gap-1">
+              {isGlobalSearching && (
+                <p className="text-sm text-zinc-400 text-center py-4">Recherche...</p>
+              )}
+              {!isGlobalSearching && globalSearchQuery.trim() && globalSearchResults.length === 0 && (
+                <p className="text-sm text-zinc-400 text-center py-4">Aucun résultat.</p>
+              )}
+              {!isGlobalSearching && !globalSearchQuery.trim() && (
+                <p className="text-sm text-zinc-400 text-center py-4">
+                  Tape un mot pour chercher dans toutes tes conversations.
+                </p>
+              )}
+              {globalSearchResults.map((result: {
+                _id: string;
+                text: string;
+                createdAt: string;
+                sender: { _id: string; username: string; avatar?: string };
+                receiver?: { _id: string; username: string; avatar?: string };
+                group?: { _id: string; name: string };
+              }) => {
+                const conversationLabel = result.group
+                  ? result.group.name
+                  : result.sender._id === authUser?._id
+                    ? result.receiver?.username
+                    : result.sender.username;
+                return (
+                  <button
+                    key={result._id}
+                    onClick={() => handleGlobalSearchResultClick(result)}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-sm truncate">
+                        {conversationLabel}
+                      </span>
+                      <span className="text-xs text-zinc-400 shrink-0">
+                        {formatTime(result.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
+                      {result.sender._id === authUser?._id ? "Toi : " : ""}
+                      {result.text}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => {
+                setShowGlobalSearch(false);
+                setGlobalSearchQuery("");
+                clearGlobalSearchResults();
+              }}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
             >
               Fermer
             </button>

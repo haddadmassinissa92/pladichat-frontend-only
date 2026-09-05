@@ -150,6 +150,30 @@ export const useChatStore = create((set, get) => ({
   // Efface les résultats de recherche (à la fermeture de la barre de recherche)
   clearSearchResults: () => set({ searchResults: [] }),
 
+  // Recherche un mot dans TOUTES les conversations d'un coup (contacts et
+  // groupes), contrairement à searchMessages ci-dessus qui reste sur une
+  // seule conversation à la fois
+  globalSearchResults: [],
+  isGlobalSearching: false,
+  searchAllConversations: async (query) => {
+    if (!query || !query.trim()) {
+      set({ globalSearchResults: [] });
+      return;
+    }
+    set({ isGlobalSearching: true });
+    try {
+      const res = await axiosInstance.get(
+        `/messages/search-all/global?q=${encodeURIComponent(query)}`,
+      );
+      set({ globalSearchResults: res.data.results });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      set({ isGlobalSearching: false });
+    }
+  },
+  clearGlobalSearchResults: () => set({ globalSearchResults: [] }),
+
   // Fonction pour envoyer un message à l'utilisateur sélectionné
   sendMessage: async (data) => {
     const { selectedUser, selectedGroup, messages } = get();
