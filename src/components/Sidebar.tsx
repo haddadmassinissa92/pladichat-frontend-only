@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -177,6 +177,7 @@ export default function Sidebar() {
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [showMyProfileZoom, setShowMyProfileZoom] = useState(false);
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
+  const [showQrCodeOnly, setShowQrCodeOnly] = useState(false);
   const [showLogoutAllConfirm, setShowLogoutAllConfirm] = useState(false);
   const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
   const handleLogoutAllDevices = async () => {
@@ -964,7 +965,7 @@ export default function Sidebar() {
               type="button"
               onClick={() => authUser?.avatar && setShowMyProfileZoom(true)}
               disabled={!authUser?.avatar}
-              className="disabled:cursor-default mx-auto block"
+              className="relative disabled:cursor-default mx-auto block w-fit"
               aria-label="Agrandir ma photo de profil"
             >
               <Avatar
@@ -973,6 +974,24 @@ export default function Sidebar() {
                 colorClass="bg-accent-600"
                 size="w-24 h-24 text-3xl mx-auto"
               />
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }
+                }}
+                aria-label="Changer la photo"
+                className="absolute bottom-0 right-0 bg-accent-600 hover:bg-accent-700 transition text-white rounded-full w-8 h-8 flex items-center justify-center border-2 border-white dark:border-zinc-900"
+              >
+                <Camera size={14} strokeWidth={2} />
+              </span>
             </button>
             {isEditingUsername ? (
               <div className="flex items-center gap-1 justify-center mt-3">
@@ -1057,34 +1076,22 @@ export default function Sidebar() {
               </p>
             )}
 
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-4 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-            >
-              <Camera size={16} strokeWidth={2} />
-              Changer la photo
-            </button>
-
+            <div className="mt-4 space-y-0.5">
             <button
               onClick={handleCopyShareLink}
-              className="mt-2 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <LinkIcon size={16} strokeWidth={2} />
+              <LinkIcon size={16} strokeWidth={2} className="shrink-0" />
               {linkCopied ? "Lien copié !" : "Copier mon lien d'ajout"}
             </button>
 
-            {shareLink && (
-              <div className="mt-2 flex justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareLink)}`}
-                  alt="QR code de mon lien d'ajout"
-                  width={160}
-                  height={160}
-                  className="rounded-lg border border-zinc-200 dark:border-zinc-700"
-                />
-              </div>
-            )}
+            <button
+              onClick={() => setShowQrCodeOnly(true)}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <QrCode size={16} strokeWidth={2} className="shrink-0" />
+              Mon QR code
+            </button>
 
             <button
               onClick={() => {
@@ -1092,9 +1099,9 @@ export default function Sidebar() {
                 setShowBlockedUsers(true);
                 getBlockedUsersList();
               }}
-              className="mt-2 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <Ban size={16} strokeWidth={2} />
+              <Ban size={16} strokeWidth={2} className="shrink-0" />
               Utilisateurs bloqués
             </button>
 
@@ -1103,9 +1110,9 @@ export default function Sidebar() {
                 setShowMyProfile(false);
                 setShowHiddenConversations(true);
               }}
-              className="mt-2 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <EyeOff size={16} strokeWidth={2} />
+              <EyeOff size={16} strokeWidth={2} className="shrink-0" />
               Conversations masquées
               {hiddenUsers.length + hiddenGroups.length > 0 && (
                 <span className="text-zinc-400">
@@ -1119,9 +1126,9 @@ export default function Sidebar() {
                 setShowMyProfile(false);
                 setShowMutedList(true);
               }}
-              className="mt-2 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <BellOff size={16} strokeWidth={2} />
+              <BellOff size={16} strokeWidth={2} className="shrink-0" />
               Notifications coupées
               {mutedUsers.length + mutedGroups.length > 0 && (
                 <span className="text-zinc-400">
@@ -1136,14 +1143,15 @@ export default function Sidebar() {
                 setShowSentRequests(true);
                 getSentContactRequests();
               }}
-              className="mt-2 w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <UserPlus size={16} strokeWidth={2} />
+              <UserPlus size={16} strokeWidth={2} className="shrink-0" />
               Demandes envoyées
               {sentContactRequests.length > 0 && (
                 <span className="text-zinc-400">({sentContactRequests.length})</span>
               )}
             </button>
+            </div>
 
             <div className="my-4 border-t border-zinc-200 dark:border-zinc-800" />
 
@@ -1482,6 +1490,35 @@ export default function Sidebar() {
             onClick={(e) => e.stopPropagation()}
             className="max-w-full max-h-full object-contain rounded-lg"
           />
+        </div>
+      )}
+
+      {/* Modale : mon QR code seul, pour le montrer/scanner facilement */}
+      {showQrCodeOnly && shareLink && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+          onClick={() => setShowQrCodeOnly(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-6 flex flex-col items-center gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shareLink)}`}
+              alt="Mon QR code d'ajout"
+              width={220}
+              height={220}
+              className="rounded-lg"
+            />
+            <p className="text-sm text-zinc-500">{authUser?.username}</p>
+            <button
+              onClick={() => setShowQrCodeOnly(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
         </div>
       )}
 
