@@ -56,7 +56,7 @@ function ParticipantTile({
   };
 
   return (
-    <div className="relative bg-zinc-800 rounded-xl overflow-hidden flex items-center justify-center aspect-video">
+    <div className="relative flex-1 min-w-0 min-h-[140px] bg-zinc-800 rounded-xl overflow-hidden flex items-center justify-center">
       {callType === "video" ? (
         <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
       ) : (
@@ -136,6 +136,51 @@ export default function CallModal() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (callStatus === "idle") setNeedsTapToPlay(false);
   }, [callStatus]);
+
+  // Vignette de ma propre caméra, déplaçable n'importe où sur l'écran
+  // d'appel (souris ou doigt), en appel privé comme en appel de groupe
+  const pipRef = useRef<HTMLDivElement>(null);
+  const [pipPos, setPipPos] = useState<{ left: number; top: number } | null>(null);
+  const dragData = useRef<{ startX: number; startY: number; origLeft: number; origTop: number } | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (callStatus === "idle") setPipPos(null);
+  }, [callStatus]);
+
+  const handlePipPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = pipRef.current;
+    const parent = el?.offsetParent as HTMLElement | null;
+    if (!el || !parent) return;
+    const elRect = el.getBoundingClientRect();
+    const parentRect = parent.getBoundingClientRect();
+    dragData.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      origLeft: elRect.left - parentRect.left,
+      origTop: elRect.top - parentRect.top,
+    };
+    el.setPointerCapture(e.pointerId);
+  };
+
+  const handlePipPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragData.current) return;
+    const el = pipRef.current;
+    const parent = el?.offsetParent as HTMLElement | null;
+    if (!el || !parent) return;
+    const dx = e.clientX - dragData.current.startX;
+    const dy = e.clientY - dragData.current.startY;
+    const maxLeft = parent.clientWidth - el.offsetWidth;
+    const maxTop = parent.clientHeight - el.offsetHeight;
+    setPipPos({
+      left: Math.min(Math.max(dragData.current.origLeft + dx, 0), Math.max(maxLeft, 0)),
+      top: Math.min(Math.max(dragData.current.origTop + dy, 0), Math.max(maxTop, 0)),
+    });
+  };
+
+  const handlePipPointerUp = () => {
+    dragData.current = null;
+  };
 
   const handleTapToPlay = () => {
     remoteVideoRef.current?.play().catch(() => {});
@@ -353,11 +398,12 @@ export default function CallModal() {
             </p>
           </div>
 
-          {/* --- Grille des participants, en appel de groupe actif --- */}
+          {/* --- Grille des participants, en appel de groupe actif : côte
+              à côte en grand sur desktop, empilés sur mobile --- */}
           {callMode === "group" && callStatus === "active" && (
-            <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-3xl my-6 overflow-y-auto custom-scrollbar max-h-[50vh]">
+            <div className="relative z-10 flex flex-col sm:flex-row gap-3 w-full max-w-3xl my-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
               {participantList.length === 0 && (
-                <p className="col-span-full text-center text-zinc-400 text-sm py-8">
+                <p className="text-center text-zinc-400 text-sm py-8">
                   En attente que d&apos;autres personnes rejoignent...
                 </p>
               )}
@@ -374,15 +420,27 @@ export default function CallModal() {
             </div>
           )}
 
-          {/* Miniature de la caméra locale */}
+          {/* Miniature de ma propre caméra, déplaçable à la souris ou au doigt */}
           {callType === "video" && callStatus === "active" && (
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="absolute top-6 right-6 w-28 h-40 object-cover rounded-xl border-2 border-white/20 z-10"
-            />
+            <div
+              ref={pipRef}
+              onPointerDown={handlePipPointerDown}
+              onPointerMove={handlePipPointerMove}
+              onPointerUp={handlePipPointerUp}
+              onPointerCancel={handlePipPointerUp}
+              style={pipPos ? { left: pipPos.left, top: pipPos.top, right: "auto" } : undefined}
+              className={`absolute top-6 right-6 rounded-xl border-2 border-white/20 z-20 cursor-grab active:cursor-grabbing touch-none overflow-hidden ${
+                callMode === "group" ? "w-20 h-28" : "w-28 h-40"
+              }`}
+            >
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover pointer-events-none"
+              />
+            </div>
           )}
 
           {/* --- Contrôles --- */}
