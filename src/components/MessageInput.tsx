@@ -215,25 +215,28 @@ export default function MessageInput() {
       )}
 
       {imagePreview && (
-        <div className="p-3 flex items-center gap-2">
-          <div className="relative">
-            <Image
-              src={imagePreview}
-              alt="Aperçu"
-              width={80}
-              height={80}
-              unoptimized
-              className="w-20 h-20 object-cover rounded-lg"
-            />
+        <div className="p-3">
+          <div className="relative bg-zinc-100 dark:bg-zinc-800 rounded-xl overflow-hidden">
             <button
               type="button"
               onClick={removeImage}
-              className="absolute -top-2 -right-2 bg-zinc-800 text-white rounded-full w-6 h-6 flex items-center justify-center"
+              className="absolute top-2 right-2 z-10 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center"
               aria-label="Retirer l'image"
             >
-              <X size={14} strokeWidth={2.5} />
+              <X size={16} strokeWidth={2.5} />
             </button>
+            <Image
+              src={imagePreview}
+              alt="Aperçu de l'image à envoyer"
+              width={500}
+              height={500}
+              unoptimized
+              className="w-full max-h-72 object-contain"
+            />
           </div>
+          <p className="text-xs text-zinc-400 mt-1.5 text-center">
+            Ajoute un message si tu veux, puis clique sur envoyer
+          </p>
         </div>
       )}
 
