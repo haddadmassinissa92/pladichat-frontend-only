@@ -482,17 +482,21 @@ export const useChatStore = create((set, get) => ({
     set({ typingUserIds: get().typingUserIds.filter((id) => id !== senderId) });
   },
 
-  // Même chose pour les groupes : liste des groupes où au moins une
-  // personne est en train d'écrire, pour l'afficher dans la sidebar
-  typingGroupIds: [],
-  handleGlobalGroupUserTyping: ({ groupId }) => {
-    const current = get().typingGroupIds;
-    if (!current.includes(groupId)) {
-      set({ typingGroupIds: [...current, groupId] });
+  // Même chose pour les groupes : qui écrit dans quel groupe, pour
+  // l'afficher dans la sidebar avec son nom ("testuser en train d'écrire")
+  typingGroupSenders: [],
+  handleGlobalGroupUserTyping: ({ groupId, senderId, senderName }) => {
+    const current = get().typingGroupSenders;
+    if (!current.some((t) => t.groupId === groupId && t.senderId === senderId)) {
+      set({ typingGroupSenders: [...current, { groupId, senderId, senderName }] });
     }
   },
-  handleGlobalGroupUserStopTyping: ({ groupId }) => {
-    set({ typingGroupIds: get().typingGroupIds.filter((id) => id !== groupId) });
+  handleGlobalGroupUserStopTyping: ({ groupId, senderId }) => {
+    set({
+      typingGroupSenders: get().typingGroupSenders.filter(
+        (t) => !(t.groupId === groupId && t.senderId === senderId),
+      ),
+    });
   },
 
   // marquer les messages comme lus pour l'utilisateur sélectionné

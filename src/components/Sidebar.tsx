@@ -133,7 +133,7 @@ export default function Sidebar() {
     typingUserIds,
     handleGlobalUserTyping,
     handleGlobalUserStopTyping,
-    typingGroupIds,
+    typingGroupSenders,
     handleGlobalGroupUserTyping,
     handleGlobalGroupUserStopTyping,
     getSentContactRequests,
@@ -629,14 +629,12 @@ export default function Sidebar() {
   // Groupes et contacts visibles dans la liste : les conversations masquées
   // ("supprimées" localement) sont exclues, et les épinglées remontent en
   // premier au sein de chaque section
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const visibleGroups = groups
     .filter((g: Group) => !isConversationHidden(g._id))
     .sort((a: Group, b: Group) => {
       const pinnedDiff = Number(isConversationPinned(b._id)) - Number(isConversationPinned(a._id));
       return pinnedDiff;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const visibleUsers = users
     .filter((u: User) => !isConversationHidden(u._id))
     .sort((a: User, b: User) => {
@@ -648,9 +646,7 @@ export default function Sidebar() {
   // est une préférence purement locale), on les isole ici pour permettre de
   // les retrouver et les réafficher — sans ça, une conversation masquée est
   // perdue pour de bon tant qu'aucun nouveau message n'arrive
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const hiddenUsers = users.filter((u: User) => isConversationHidden(u._id));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const hiddenGroups = groups.filter((g: Group) => isConversationHidden(g._id));
   const handleUnhide = (id: string) => {
     unhideConversation(id);
@@ -753,20 +749,28 @@ export default function Sidebar() {
                 )}
               </div>
               <div className="flex items-center justify-between gap-2">
-                {typingGroupIds.includes(group._id) ? (
-                  <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
-                    en train d&apos;écrire...
-                  </p>
-                ) : (
-                  group.lastMessage && (
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
-                      {typeof group.lastMessage.sender === "object"
-                        ? group.lastMessage.sender.username
-                        : ""}
-                      : {formatLastMessage(group.lastMessage)}
+                {(() => {
+                  const typers = typingGroupSenders.filter(
+                    (t: { groupId: string; senderName: string }) =>
+                      t.groupId === group._id,
+                  );
+                  return typers.length > 0 ? (
+                    <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
+                      {typers
+                        .map((t: { senderName: string }) => t.senderName)
+                        .join(", ")} en train d&apos;écrire...
                     </p>
-                  )
-                )}
+                  ) : (
+                    group.lastMessage && (
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
+                        {typeof group.lastMessage.sender === "object"
+                          ? group.lastMessage.sender.username
+                          : ""}
+                        : {formatLastMessage(group.lastMessage)}
+                      </p>
+                    )
+                  );
+                })()}
                 {!!group.unreadCount && (
                   <span className="bg-accent-600 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
                     {group.unreadCount > 99 ? "99+" : group.unreadCount}
