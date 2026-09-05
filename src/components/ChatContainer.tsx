@@ -8,12 +8,12 @@ type Message = {
   text: string; // Contenu textuel du message
   image: string; // URL ou chemin vers une image jointe
   audio: string; // URL ou chemin vers un message vocal ou fichier audio joint
-  status: string; // État du message (ex: 'sent', 'delivered', 'read')
-  createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
   linkPreview?: {
     url: string;
     title?: string;
-  };
+  }; // Aperçu du lien partagé
+  status: string; // État du message (ex: 'sent', 'delivered', 'read')
+  createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
 };
 
 // Définit un type d'objet personnalisé représentant un membre d'un groupe
@@ -28,7 +28,7 @@ import Image from "next/image";
 import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
-import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video, Bell, BellOff, Pin, Download, Link2, Clock } from "lucide-react";
+import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video, Bell, BellOff, Pin, Download, Link2, Clock, Circle } from "lucide-react";
 import { useCallStore } from "@/store/useCallStore";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
@@ -64,6 +64,7 @@ import {
   hideConversation,
   getNickname,
   setNickname,
+  markConversationUnread,
 } from "@/lib/conversationSettings";
 
 // Transforme une date en texte lisible pour le séparateur entre deux jours
@@ -268,6 +269,17 @@ export default function ChatContainer() {
     if (!conversationId) return;
     setIsPinned(toggleConversationPinned(conversationId));
     window.dispatchEvent(new Event("chatSettingsChanged"));
+  };
+
+  // Marque cette conversation comme non lue (pour se le rappeler plus
+  // tard), et referme la conversation puisque la garder ouverte
+  // effacerait aussitôt le marquage à la prochaine ouverture
+  const handleMarkAsUnread = () => {
+    if (!conversationId) return;
+    markConversationUnread(conversationId);
+    window.dispatchEvent(new Event("chatSettingsChanged"));
+    setSelectedUser(null);
+    setSelectedGroup(null);
   };
 
   // Retire la conversation de sa propre liste seulement (les messages
@@ -890,6 +902,16 @@ export default function ChatContainer() {
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
+                      handleMarkAsUnread();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Circle size={16} strokeWidth={2} className="shrink-0 fill-current" />
+                    Marquer comme non lu
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
                       handleExportConversation();
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
@@ -996,6 +1018,16 @@ export default function ChatContainer() {
                   >
                     <Pin size={16} strokeWidth={2} className="shrink-0" />
                     {isPinned ? "Désépingler" : "Épingler cette conversation"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      handleMarkAsUnread();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Circle size={16} strokeWidth={2} className="shrink-0 fill-current" />
+                    Marquer comme non lu
                   </button>
                   <button
                     onClick={() => {
@@ -1217,11 +1249,11 @@ export default function ChatContainer() {
                     linkPreview: msg.linkPreview
                       ? {
                           url: msg.linkPreview.url,
-                          title: msg.linkPreview.title ?? "",
+                          title: msg.linkPreview.title || "",
                           description: "",
                           image: "",
                         }
-                      : msg.linkPreview,
+                      : undefined,
                   }}
                   isMine={isMine}
                   senderName={senderName}

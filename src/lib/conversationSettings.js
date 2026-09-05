@@ -35,7 +35,6 @@ export function setNickname(conversationId, nickname) {
 }
 
 // --- Conversations épinglées ---
-
 export function getPinnedConversations() {
   return readSet("chatPinnedConversations");
 }
@@ -79,4 +78,26 @@ export function unhideConversation(conversationId) {
   const set = readSet("chatHiddenConversations");
   set.delete(conversationId);
   writeSet("chatHiddenConversations", set);
+}
+
+// --- Conversations marquées manuellement comme non lues ---
+// (le badge "non lu" habituel dépend du nombre réel de messages non lus ;
+// celui-ci permet de forcer l'affichage "non lu" pour se rappeler d'y
+// répondre plus tard, même si tous les messages ont déjà été lus)
+
+export function isConversationManuallyUnread(conversationId) {
+  if (!conversationId) return false;
+  return readSet("chatManuallyUnread").has(conversationId);
+}
+
+export function markConversationUnread(conversationId) {
+  const set = readSet("chatManuallyUnread");
+  set.add(conversationId);
+  writeSet("chatManuallyUnread", set);
+}
+
+export function clearManuallyUnread(conversationId) {
+  const set = readSet("chatManuallyUnread");
+  set.delete(conversationId);
+  writeSet("chatManuallyUnread", set);
 }

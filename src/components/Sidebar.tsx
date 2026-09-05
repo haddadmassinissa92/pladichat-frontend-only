@@ -64,6 +64,8 @@ import {
   isConversationPinned,
   unhideConversation,
   getNickname,
+  isConversationManuallyUnread,
+  clearManuallyUnread,
 } from "@/lib/conversationSettings";
 
 function formatLastMessage(
@@ -776,7 +778,11 @@ export default function Sidebar() {
         {visibleGroups.map((group: Group) => (
           <button
             key={group._id}
-            onClick={() => setSelectedGroup(group)}
+            onClick={() => {
+              clearManuallyUnread(group._id);
+              window.dispatchEvent(new Event("chatSettingsChanged"));
+              setSelectedGroup(group);
+            }}
             className={`w-full flex items-center gap-3 p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
               selectedGroup?._id === group._id
                 ? "bg-zinc-100 dark:bg-zinc-800"
@@ -821,6 +827,9 @@ export default function Sidebar() {
                     {group.unreadCount > 99 ? "99+" : group.unreadCount}
                   </span>
                 )}
+                {!group.unreadCount && isConversationManuallyUnread(group._id) && (
+                  <span className="w-2.5 h-2.5 bg-accent-600 rounded-full flex-shrink-0" />
+                )}
               </div>
             </div>
           </button>
@@ -849,7 +858,11 @@ export default function Sidebar() {
         {visibleUsers.map((user: User) => (
             <button
               key={user._id}
-              onClick={() => setSelectedUser(user)}
+              onClick={() => {
+                clearManuallyUnread(user._id);
+                window.dispatchEvent(new Event("chatSettingsChanged"));
+                setSelectedUser(user);
+              }}
               className={`w-full flex items-center gap-3 p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
                 selectedUser?._id === user._id
                   ? "bg-zinc-100 dark:bg-zinc-800"
@@ -893,6 +906,9 @@ export default function Sidebar() {
                     <span className="bg-accent-600 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center flex-shrink-0">
                       {user.unreadCount > 99 ? "99+" : user.unreadCount}
                     </span>
+                  )}
+                  {!user.unreadCount && isConversationManuallyUnread(user._id) && (
+                    <span className="w-2.5 h-2.5 bg-accent-600 rounded-full flex-shrink-0" />
                   )}
                 </div>
               </div>
