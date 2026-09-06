@@ -459,10 +459,15 @@ export default function Sidebar() {
 
       // Joue le son de notification propre à cette conversation, sauf si
       // c'est nous-même qui venons d'envoyer ce message, ou si les
-      // notifications sont coupées pour cette conversation précise
+      // notifications sont coupées pour cette conversation précise.
+      // On relit l'état actuel du store (plutôt que la variable "authUser"
+      // de la fermeture de ce composant) pour toujours avoir la dernière
+      // liste de conversations en sourdine, même si elle vient de changer
+      // sans recharger la page.
+      const currentAuthUser = useAuthStore.getState().authUser;
       const conversationId = msg.group || msg.sender || "";
-      const isMuted = (authUser?.mutedConversations || []).includes(conversationId);
-      if (msg.sender !== authUser?._id && !isMuted) {
+      const isMuted = (currentAuthUser?.mutedConversations || []).includes(conversationId);
+      if (msg.sender !== currentAuthUser?._id && !isMuted) {
         playNotificationSound(conversationId);
       }
     };
@@ -600,8 +605,6 @@ export default function Sidebar() {
     };
   }, [
     socket,
-    authUser?._id,
-    authUser?.mutedConversations,
     getUsers,
     getGroups,
     selectedGroup,
