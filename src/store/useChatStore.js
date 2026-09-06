@@ -91,6 +91,7 @@ export const useChatStore = create((set, get) => ({
       set({
         messages: res.data.messages,
         hasMoreMessages: res.data.hasMore,
+        isViewingAroundDate: false,
       });
     } catch (error) {
       console.error(error);
@@ -124,6 +125,39 @@ export const useChatStore = create((set, get) => ({
     } finally {
       set({ isLoadingMoreMessages: false });
     }
+  },
+
+  // "Saute" directement à une date précise de l'historique, sans faire
+  // défiler tout ce qu'il y a entre les deux : remplace entièrement les
+  // messages actuellement affichés par une fenêtre centrée sur cette date.
+  // "isViewingAroundDate" indique qu'on est sorti du fil normal (pour
+  // afficher un bandeau "revenir aux messages récents" côté interface).
+  isViewingAroundDate: false,
+  jumpToDate: async (id, isGroup, dateString) => {
+    set({ isMessagesLoading: true });
+    try {
+      const res = await axiosInstance.get(
+        `/messages/around-date/${id}?isGroup=${isGroup}&date=${dateString}`,
+      );
+      set({
+        messages: res.data.messages,
+        hasMoreMessages: res.data.hasMoreBefore,
+        isViewingAroundDate: true,
+      });
+      return { success: true, targetMessageId: res.data.messages[0]?._id };
+    } catch (error) {
+      console.error(error);
+      return { success: false };
+    } finally {
+      set({ isMessagesLoading: false });
+    }
+  },
+
+  // Revient au fil normal (messages les plus récents) après avoir sauté
+  // à une date précise
+  returnToRecentMessages: (id, isGroup) => {
+    set({ isViewingAroundDate: false });
+    get().getMessages(id, isGroup);
   },
 
   // Recherche un mot ou une expression dans tout l'historique d'une conversation
