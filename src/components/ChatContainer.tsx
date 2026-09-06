@@ -11,11 +11,11 @@ type Message = {
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
   linkPreview?: {
-    url?: string;
-    title?: string;
-    description?: string;
-    image?: string;
-  };
+    url?: string | null;
+    title?: string | null;
+    description?: string | null;
+    image?: string | null;
+  } | null;
 };
 
 // Définit un type d'objet personnalisé représentant un membre d'un groupe
@@ -1499,7 +1499,9 @@ export default function ChatContainer() {
             <div className="flex flex-col items-start gap-1">
               {typingGroupUsers.length > 0 && (
                 <p className="text-xs text-zinc-400 px-1">
-                  {typingGroupUsers.map((u: { senderName: string }) => u.senderName).join(", ")}
+                  {typingGroupUsers
+                    .map((u: { senderName: string }) => u.senderName)
+                    .join(", ")}
                   {typingGroupUsers.length > 1
                     ? " sont en train d'écrire..."
                     : " en train d'écrire..."}
