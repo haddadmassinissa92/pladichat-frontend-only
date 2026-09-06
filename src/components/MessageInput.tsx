@@ -42,25 +42,30 @@ export default function MessageInput() {
   // si on tapait encore quand on a cliqué sur une autre conversation.
   const conversationId = selectedUser?._id || selectedGroup?._id || null;
   const previousConversationIdRef = useRef<string | null>(null);
+  const textRef = useRef(text);
+
   useEffect(() => {
-    if (
-      previousConversationIdRef.current &&
-      previousConversationIdRef.current !== conversationId
-    ) {
-      saveDraft(previousConversationIdRef.current, text);
+    textRef.current = text;
+  }, [text]);
+
+  useEffect(() => {
+    const prevId = previousConversationIdRef.current;
+    if (prevId && prevId !== conversationId) {
+      saveDraft(prevId, textRef.current);
       window.dispatchEvent(new Event("chatSettingsChanged"));
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setText(getDraft(conversationId));
     previousConversationIdRef.current = conversationId;
-  }, [conversationId, text]);
+  }, [conversationId]);
 
   // Sauvegarde aussi en continu pendant la frappe (léger debounce), pour ne
-  // pas perdre le brouillon en cas de fermeture accidentelle de l'onglet
+  // pas perdre le brouillon en cas de fermeture accidentelle de l'onglet.
+  // Ne prévient pas la sidebar à chaque frappe (uniquement au changement de
+  // conversation ci-dessus, et après l'envoi plus bas) pour rester léger.
   useEffect(() => {
     const timeout = setTimeout(() => {
       saveDraft(conversationId, text);
-      window.dispatchEvent(new Event("chatSettingsChanged"));
     }, 400);
     return () => clearTimeout(timeout);
   }, [text, conversationId]);
