@@ -144,7 +144,12 @@ export const useChatStore = create((set, get) => ({
         hasMoreMessages: res.data.hasMoreBefore,
         isViewingAroundDate: true,
       });
-      return { success: true, targetMessageId: res.data.messages[0]?._id };
+      // Le message à mettre en évidence est celui juste à partir de la date
+      // demandée (targetIndex), pas forcément le tout premier de la
+      // fenêtre chargée (qui peut être bien plus ancien que la date visée
+      // s'il n'y avait pas de message exactement ce jour-là)
+      const targetMessage = res.data.messages[res.data.targetIndex] || res.data.messages[res.data.messages.length - 1];
+      return { success: true, targetMessageId: targetMessage?._id };
     } catch (error) {
       console.error(error);
       return { success: false };
