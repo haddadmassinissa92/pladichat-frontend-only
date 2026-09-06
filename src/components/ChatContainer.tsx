@@ -8,14 +8,14 @@ type Message = {
   text: string; // Contenu textuel du message
   image: string; // URL ou chemin vers une image jointe
   audio: string; // URL ou chemin vers un message vocal ou fichier audio joint
-  linkPreview?: {
-    url?: string | null;
-    title?: string | null;
-    description?: string | null;
-    image?: string | null;
-  } | null;
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
+  linkPreview?: {
+    url?: string;
+    title?: string;
+    description?: string;
+    image?: string;
+  };
 };
 
 // Définit un type d'objet personnalisé représentant un membre d'un groupe
@@ -31,7 +31,7 @@ import Link from "next/link";
 import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
-import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video, Bell, BellOff, Pin, Download, Link2, Clock, Circle, Volume2 } from "lucide-react";
+import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video, Bell, BellOff, Pin, Download, Link2, Clock, Circle, Volume2, Calendar } from "lucide-react";
 import { useCallStore } from "@/store/useCallStore";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
@@ -129,6 +129,9 @@ export default function ChatContainer() {
     clearSearchResults,
     searchResults,
     deleteConversation,
+    jumpToDate,
+    isViewingAroundDate,
+    returnToRecentMessages,
   } = useChatStore();
 
   // État du menu "gérer le groupe", utilisateur connecté, socket temps réel,
@@ -195,6 +198,30 @@ export default function ChatContainer() {
   // jusqu'à le trouver (ou jusqu'à ce qu'il n'y en ait plus)
   const pendingScrollTargetRef = useRef<string | null>(null);
   const conversationId = selectedGroup?._id || selectedUser?._id || null;
+
+  // Aller directement à une date précise de l'historique, sans faire
+  // défiler tout ce qu'il y a entre les deux
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerValue, setDatePickerValue] = useState("");
+  const handleJumpToDate = async () => {
+    if (!conversationId || !datePickerValue) return;
+    const result = await jumpToDate(conversationId, isGroupConversation, datePickerValue);
+    setShowDatePicker(false);
+    if (result.success && result.targetMessageId) {
+      setTimeout(() => {
+        const el = document.getElementById(result.targetMessageId);
+        if (el) {
+          el.scrollIntoView({ behavior: "auto", block: "center" });
+          setHighlightedMessageId(result.targetMessageId);
+          setTimeout(() => setHighlightedMessageId(null), 2000);
+        }
+      }, 100);
+    }
+  };
+  const handleReturnToRecentMessages = () => {
+    if (!conversationId) return;
+    returnToRecentMessages(conversationId, isGroupConversation);
+  };
 
   // Groupes que l'on a en commun avec le contact actuellement ouvert
   // (uniquement en conversation privée) : les groupes chargés dans la
@@ -981,6 +1008,17 @@ export default function ChatContainer() {
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
+                      setDatePickerValue("");
+                      setShowDatePicker(true);
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Calendar size={16} strokeWidth={2} className="shrink-0" />
+                    Aller à une date
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
                       setShowWallpaperMenu(true);
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
@@ -1117,6 +1155,17 @@ export default function ChatContainer() {
                   >
                     <Search size={16} strokeWidth={2} className="shrink-0" />
                     Recherche
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      setDatePickerValue("");
+                      setShowDatePicker(true);
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Calendar size={16} strokeWidth={2} className="shrink-0" />
+                    Aller à une date
                   </button>
                   <button
                     onClick={() => {
@@ -1346,6 +1395,21 @@ export default function ChatContainer() {
         </div>
       )}
 
+      {/* Bandeau affiché après un saut à une date précise, pour revenir
+          facilement au fil normal des messages récents */}
+      {isViewingAroundDate && (
+        <div className="px-4 py-2 flex items-center justify-center gap-2 text-xs bg-accent-50 dark:bg-accent-950 text-accent-700 dark:text-accent-400">
+          <Clock size={13} strokeWidth={2} />
+          Tu consultes d&apos;anciens messages
+          <button
+            onClick={handleReturnToRecentMessages}
+            className="font-semibold underline hover:no-underline"
+          >
+            Retour aux messages récents
+          </button>
+        </div>
+      )}
+
       {/* Zone de messages : conteneur scrollable avec le fond choisi, la liste des
           bulles de messages (avec séparateurs de date), l'indicateur de saisie,
           et le bouton flottant "nouveaux messages" positionné par-dessus */}
@@ -1435,9 +1499,7 @@ export default function ChatContainer() {
             <div className="flex flex-col items-start gap-1">
               {typingGroupUsers.length > 0 && (
                 <p className="text-xs text-zinc-400 px-1">
-                  {typingGroupUsers
-                    .map((u: { senderName: string }) => u.senderName)
-                    .join(", ")}
+                  {typingGroupUsers.map((u: { senderName: string }) => u.senderName).join(", ")}
                   {typingGroupUsers.length > 1
                     ? " sont en train d'écrire..."
                     : " en train d'écrire..."}
@@ -1525,6 +1587,38 @@ export default function ChatContainer() {
 
       {/* Modale : durée d'autodestruction des messages qu'on envoie
           soi-même dans cette conversation */}
+      {/* Modale : sauter directement à une date précise de l'historique */}
+      {showDatePicker && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Aller à une date</h3>
+            <input
+              type="date"
+              autoFocus
+              value={datePickerValue}
+              max={new Date().toISOString().split("T")[0]}
+              onChange={(e) => setDatePickerValue(e.target.value)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 mb-3 bg-transparent text-sm"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowDatePicker(false)}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleJumpToDate}
+                disabled={!datePickerValue}
+                className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+              >
+                Aller
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDisappearingMenu && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
