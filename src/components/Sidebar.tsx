@@ -37,12 +37,6 @@ type DiscoverableGroup = {
   createdBy: string;
 };
 
-type NotificationSound = {
-  id: string;
-  label: string;
-  file: string;
-};
-
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass } from "lucide-react";
@@ -842,7 +836,9 @@ export default function Sidebar() {
                   );
                   return typers.length > 0 ? (
                     <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
-                      {typers.map((t: { groupId: string; senderName: string }) => t.senderName).join(", ")} en train d&apos;écrire...
+                      {typers
+                        .map((t: { groupId: string; senderName: string }) => t.senderName)
+                        .join(", ")} en train d&apos;écrire...
                     </p>
                   ) : (
                     group.lastMessage && (
@@ -1324,7 +1320,7 @@ export default function Sidebar() {
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
               <Bell size={16} strokeWidth={2} className="shrink-0" />
-              Son de notification par défaut
+              Notification
             </button>
 
             <div className="px-2 py-2">
@@ -2023,9 +2019,9 @@ export default function Sidebar() {
       {showNotificationSoundMenu && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
-            <h3 className="font-bold mb-3">Son de notification par défaut</h3>
+            <h3 className="font-bold mb-3">Notification</h3>
             <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
-              {NOTIFICATION_SOUNDS.map((s: NotificationSound) => (
+              {NOTIFICATION_SOUNDS.map((s) => (
                 <div
                   key={s.id}
                   className={`flex items-center justify-between rounded-lg border transition ${

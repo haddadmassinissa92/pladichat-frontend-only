@@ -9,11 +9,11 @@ type Message = {
   image: string; // URL ou chemin vers une image jointe
   audio: string; // URL ou chemin vers un message vocal ou fichier audio joint
   linkPreview?: {
-    title?: string | null;
-    description?: string | null;
-    image?: string | null;
-    url?: string | null;
-  } | null;
+    url?: string;
+    title?: string;
+    description?: string;
+    image?: string;
+  };
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
 };
@@ -69,39 +69,11 @@ import {
   setNickname,
   markConversationUnread,
 } from "@/lib/conversationSettings";
-// Réglages audio locaux, conservés ici car le module dédié n'est pas présent
-// dans cette version frontend-only.
-const NOTIFICATION_SOUNDS: Array<{ id: string; label: string; file: string }> = [];
-const NOTIFICATION_SOUND_STORAGE_KEY = "conversationNotificationSounds";
-
-function getConversationNotificationSound(conversationId: string): string {
-  if (typeof window === "undefined") return "";
-  try {
-    const sounds = JSON.parse(
-      localStorage.getItem(NOTIFICATION_SOUND_STORAGE_KEY) || "{}",
-    ) as Record<string, string>;
-    return sounds[conversationId] || "";
-  } catch {
-    return "";
-  }
-}
-
-function setConversationNotificationSound(
-  conversationId: string,
-  soundId: string,
-): void {
-  if (typeof window === "undefined") return;
-  try {
-    const sounds = JSON.parse(
-      localStorage.getItem(NOTIFICATION_SOUND_STORAGE_KEY) || "{}",
-    ) as Record<string, string>;
-    if (soundId) sounds[conversationId] = soundId;
-    else delete sounds[conversationId];
-    localStorage.setItem(NOTIFICATION_SOUND_STORAGE_KEY, JSON.stringify(sounds));
-  } catch {
-    // Ignore storage errors.
-  }
-}
+import {
+  NOTIFICATION_SOUNDS,
+  getConversationNotificationSound,
+  setConversationNotificationSound,
+} from "@/lib/notificationSound";
 
 // Transforme une date en texte lisible pour le séparateur entre deux jours
 // ("Aujourd'hui", "Hier", ou une date complète)
@@ -935,7 +907,7 @@ export default function ChatContainer() {
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Volume2 size={16} strokeWidth={2} className="shrink-0" />
-                    Son de notification
+                    Notification
                   </button>
                   <button
                     onClick={() => {
@@ -949,7 +921,7 @@ export default function ChatContainer() {
                     ) : (
                       <Bell size={16} strokeWidth={2} className="shrink-0" />
                     )}
-                    {isMuted ? "Réactiver les notifications" : "Couper les notifications"}
+                    {isMuted ? "Réactiver les notifications" : "Mettre en sourdine"}
                   </button>
                   <button
                     onClick={() => {
@@ -1065,7 +1037,7 @@ export default function ChatContainer() {
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Volume2 size={16} strokeWidth={2} className="shrink-0" />
-                    Son de notification
+                    Notification
                   </button>
                   <button
                     onClick={() => {
@@ -1079,7 +1051,7 @@ export default function ChatContainer() {
                     ) : (
                       <Bell size={16} strokeWidth={2} className="shrink-0" />
                     )}
-                    {isMuted ? "Réactiver les notifications" : "Couper les notifications"}
+                    {isMuted ? "Réactiver les notifications" : "Mettre en sourdine"}
                   </button>
                   <button
                     onClick={() => {
@@ -1316,7 +1288,7 @@ export default function ChatContainer() {
                   </div>
                 )}
                 <MessageBubble
-                   msg={{
+                  msg={{
                     ...msg,
                     linkPreview: msg.linkPreview
                       ? {
@@ -1468,7 +1440,7 @@ export default function ChatContainer() {
       {showNotificationSoundMenu && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
-            <h3 className="font-bold mb-3">Son de notification</h3>
+            <h3 className="font-bold mb-3">Notification</h3>
             <div className="flex flex-col gap-1">
               <button
                 onClick={() => handleSetNotificationSound("")}
@@ -1828,7 +1800,7 @@ export default function ChatContainer() {
                 )}
                 {isMuted
                   ? "Réactiver les notifications"
-                  : "Couper les notifications"}
+                  : "Mettre en sourdine"}
               </button>
               <button
                 onClick={handleHideConversation}
@@ -1909,7 +1881,7 @@ export default function ChatContainer() {
                         .map((m: Message) => (
                           <Link
                             key={m._id}
-                            href={m.linkPreview?.url || "#"}
+                            href={m.linkPreview?.url ?? "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 text-sm text-accent-600 dark:text-accent-400 hover:underline truncate"
