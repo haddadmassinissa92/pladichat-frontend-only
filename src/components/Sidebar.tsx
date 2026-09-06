@@ -1604,6 +1604,10 @@ export default function Sidebar() {
             className="bg-white dark:bg-zinc-900 rounded-2xl p-6 flex flex-col items-center gap-4"
             onClick={(e) => e.stopPropagation()}
           >
+            <h2 className="font-bold">Mon QR code</h2>
+            <p className="text-sm text-zinc-500">
+              Scannez ce QR code pour voir mes informations et m&apos;ajouter à vos contacts.
+            </p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shareLink)}`}
