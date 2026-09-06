@@ -37,6 +37,12 @@ type DiscoverableGroup = {
   createdBy: string;
 };
 
+type NotificationSound = {
+  id: string;
+  label: string;
+  file: string;
+};
+
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass } from "lucide-react";
@@ -53,6 +59,12 @@ import {
   setGlobalWallpaperImage,
 } from "@/lib/wallpaper";
 import { RINGTONES, getRingtone, setRingtone } from "@/lib/ringtone";
+import {
+  NOTIFICATION_SOUNDS,
+  getDefaultNotificationSound,
+  setDefaultNotificationSound,
+  playNotificationSound,
+} from "@/lib/notificationSound";
 import { ACCENT_COLORS, getAccentColor, setAccentColor } from "@/lib/accentColor";
 import {
   subscribeToPushNotifications,
@@ -242,16 +254,26 @@ export default function Sidebar() {
   const [showHiddenConversations, setShowHiddenConversations] = useState(false);
   const [selectedRingtone, setSelectedRingtone] = useState("classic");
   useEffect(() => {
-    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedRingtone(getRingtone());
   }, []);
   const handleRingtoneChange = (id: string) => {
     setRingtone(id);
     setSelectedRingtone(id);
   };
+  const [selectedNotificationSound, setSelectedNotificationSound] = useState("ding");
+  const [showNotificationSoundMenu, setShowNotificationSoundMenu] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedNotificationSound(getDefaultNotificationSound());
+  }, []);
+  const handleDefaultNotificationSoundChange = (id: string) => {
+    setDefaultNotificationSound(id);
+    setSelectedNotificationSound(id);
+  };
   const [selectedAccent, setSelectedAccent] = useState("indigo");
   useEffect(() => {
-    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedAccent(getAccentColor());
   }, []);
   const handleAccentChange = (id: string) => {
@@ -440,6 +462,15 @@ export default function Sidebar() {
       // Une conversation "supprimée" localement réapparaît dès qu'un
       // nouveau message y arrive, comme sur WhatsApp
       unhideConversation(msg.group || msg.sender || "");
+
+      // Joue le son de notification propre à cette conversation, sauf si
+      // c'est nous-même qui venons d'envoyer ce message, ou si les
+      // notifications sont coupées pour cette conversation précise
+      const conversationId = msg.group || msg.sender || "";
+      const isMuted = (authUser?.mutedConversations || []).includes(conversationId);
+      if (msg.sender !== authUser?._id && !isMuted) {
+        playNotificationSound(conversationId);
+      }
     };
     socket.on("newMessage", handleNewMessage);
     socket.on("conversationCleared", refresh);
@@ -575,6 +606,8 @@ export default function Sidebar() {
     };
   }, [
     socket,
+    authUser?._id,
+    authUser?.mutedConversations,
     getUsers,
     getGroups,
     selectedGroup,
@@ -809,9 +842,7 @@ export default function Sidebar() {
                   );
                   return typers.length > 0 ? (
                     <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
-                      {typers
-                        .map((t: { groupId: string; senderName: string }) => t.senderName)
-                        .join(", ")} en train d&apos;écrire...
+                      {typers.map((t: { groupId: string; senderName: string }) => t.senderName).join(", ")} en train d&apos;écrire...
                     </p>
                   ) : (
                     group.lastMessage && (
@@ -1285,6 +1316,17 @@ export default function Sidebar() {
               Sonnerie d&apos;appel
             </button>
 
+            <button
+              onClick={() => {
+                setShowMyProfile(false);
+                setShowNotificationSoundMenu(true);
+              }}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <Bell size={16} strokeWidth={2} className="shrink-0" />
+              Son de notification par défaut
+            </button>
+
             <div className="px-2 py-2">
               <p className="flex items-center gap-2 text-sm mb-2">
                 <Palette size={16} strokeWidth={2} />
@@ -1604,10 +1646,6 @@ export default function Sidebar() {
             className="bg-white dark:bg-zinc-900 rounded-2xl p-6 flex flex-col items-center gap-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-bold">Mon QR code</h2>
-            <p className="text-sm text-zinc-500">
-              Scannez ce QR code pour voir mes informations et m&apos;ajouter à vos contacts.
-            </p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shareLink)}`}
@@ -1972,6 +2010,58 @@ export default function Sidebar() {
             </div>
             <button
               onClick={() => setShowRingtoneMenu(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : son de notification par défaut, appliqué à tout contact
+          ou groupe n'ayant pas de son spécifique choisi */}
+      {showNotificationSoundMenu && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Son de notification par défaut</h3>
+            <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
+              {NOTIFICATION_SOUNDS.map((s: NotificationSound) => (
+                <div
+                  key={s.id}
+                  className={`flex items-center justify-between rounded-lg border transition ${
+                    selectedNotificationSound === s.id
+                      ? "border-accent-600 bg-accent-50 dark:bg-accent-950"
+                      : "border-zinc-200 dark:border-zinc-700 hover:border-accent-600"
+                  }`}
+                >
+                  <button
+                    onClick={() => handleDefaultNotificationSoundChange(s.id)}
+                    className="flex-1 flex items-center gap-2 text-left px-3 py-2.5 text-sm text-zinc-700 dark:text-zinc-200"
+                  >
+                    {selectedNotificationSound === s.id ? (
+                      <UserCheck size={16} strokeWidth={2} className="text-accent-600 shrink-0" />
+                    ) : (
+                      <span className="w-4 shrink-0" />
+                    )}
+                    <span className={selectedNotificationSound === s.id ? "font-semibold" : ""}>
+                      {s.label}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const audio = new Audio(s.file);
+                      audio.play().catch(() => {});
+                    }}
+                    className="px-3 py-2 text-zinc-400 hover:text-accent-600 transition border-l border-zinc-200 dark:border-zinc-700"
+                    aria-label={`Écouter ${s.label}`}
+                  >
+                    <Volume2 size={16} strokeWidth={2} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowNotificationSoundMenu(false)}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
             >
               Fermer

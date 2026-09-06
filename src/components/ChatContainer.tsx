@@ -9,9 +9,11 @@ type Message = {
   image: string; // URL ou chemin vers une image jointe
   audio: string; // URL ou chemin vers un message vocal ou fichier audio joint
   linkPreview?: {
-    url: string;
-    title?: string;
-  }; // Aperçu du lien partagé
+    title?: string | null;
+    description?: string | null;
+    image?: string | null;
+    url?: string | null;
+  } | null;
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
 };
@@ -25,10 +27,11 @@ type GroupMember = {
 // Hooks fondamentaux de React pour la gestion du cycle de vie et des états
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
-import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video, Bell, BellOff, Pin, Download, Link2, Clock, Circle } from "lucide-react";
+import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video, Bell, BellOff, Pin, Download, Link2, Clock, Circle, Volume2 } from "lucide-react";
 import { useCallStore } from "@/store/useCallStore";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
@@ -66,6 +69,39 @@ import {
   setNickname,
   markConversationUnread,
 } from "@/lib/conversationSettings";
+// Réglages audio locaux, conservés ici car le module dédié n'est pas présent
+// dans cette version frontend-only.
+const NOTIFICATION_SOUNDS: Array<{ id: string; label: string; file: string }> = [];
+const NOTIFICATION_SOUND_STORAGE_KEY = "conversationNotificationSounds";
+
+function getConversationNotificationSound(conversationId: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const sounds = JSON.parse(
+      localStorage.getItem(NOTIFICATION_SOUND_STORAGE_KEY) || "{}",
+    ) as Record<string, string>;
+    return sounds[conversationId] || "";
+  } catch {
+    return "";
+  }
+}
+
+function setConversationNotificationSound(
+  conversationId: string,
+  soundId: string,
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    const sounds = JSON.parse(
+      localStorage.getItem(NOTIFICATION_SOUND_STORAGE_KEY) || "{}",
+    ) as Record<string, string>;
+    if (soundId) sounds[conversationId] = soundId;
+    else delete sounds[conversationId];
+    localStorage.setItem(NOTIFICATION_SOUND_STORAGE_KEY, JSON.stringify(sounds));
+  } catch {
+    // Ignore storage errors.
+  }
+}
 
 // Transforme une date en texte lisible pour le séparateur entre deux jours
 // ("Aujourd'hui", "Hier", ou une date complète)
@@ -230,6 +266,22 @@ export default function ChatContainer() {
     await setDisappearingTimer(conversationId, seconds);
   };
 
+  // Son de notification propre à cette conversation (audible dès qu'un
+  // message arrive, même hors de cette conversation)
+  const [showNotificationSoundMenu, setShowNotificationSoundMenu] = useState(false);
+  const [notificationSound, setNotificationSoundState] = useState("");
+  useEffect(() => {
+    if (conversationId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNotificationSoundState(getConversationNotificationSound(conversationId));
+    }
+  }, [conversationId]);
+  const handleSetNotificationSound = (soundId: string) => {
+    if (!conversationId) return;
+    setConversationNotificationSound(conversationId, soundId);
+    setNotificationSoundState(getConversationNotificationSound(conversationId));
+  };
+
   // Notifications coupées : préférence stockée côté serveur, dérivée
   // directement de authUser (pas besoin d'état local séparé, elle se
   // recalcule automatiquement à chaque changement de conversation ou de
@@ -242,10 +294,9 @@ export default function ChatContainer() {
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState("");
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsPinned(isConversationPinned(conversationId));
     setNicknameState(selectedUser ? getNickname(conversationId) : "");
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [conversationId, selectedUser]);
 
   const handleSaveNickname = () => {
@@ -393,14 +444,15 @@ export default function ChatContainer() {
 
   // Dès que de nouveaux résultats de recherche arrivent, on saute automatiquement
   // au premier (comportement classique d'un "Ctrl+F")
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (searchResults.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentResultIndex(0);
       scrollToMessageId(searchResults[0]._id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchResults]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Un membre est bloqué dans le groupe s'il figure dans blockedMembers
   const isMemberBlockedInGroup = (memberId: string) =>
@@ -595,8 +647,8 @@ export default function ChatContainer() {
   // Au changement de conversation : réinitialise l'indicateur de nouveaux messages
   // et repart du principe qu'on est en bas de la conversation. On dépend des
   // identifiants plutôt que des objets entiers pour éviter un déclenchement inutile.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNewMessagesCount(0);
     setIsNearBottom(true);
     previousMessagesLength.current = 0;
@@ -606,6 +658,7 @@ export default function ChatContainer() {
     setHighlightedMessageId(null);
     clearSearchResults();
   }, [selectedUser?._id, selectedGroup?._id, clearSearchResults]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // S'abonne aux événements socket liés aux messages (nouveau, lu, supprimé, modifié)
   // et se désabonne proprement quand ce n'est plus nécessaire
@@ -877,6 +930,16 @@ export default function ChatContainer() {
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
+                      setShowNotificationSoundMenu(true);
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Volume2 size={16} strokeWidth={2} className="shrink-0" />
+                    Son de notification
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
                       handleToggleMute();
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
@@ -993,6 +1056,16 @@ export default function ChatContainer() {
                     {disappearingSeconds > 0 && (
                       <span className="text-zinc-400">(actif)</span>
                     )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      setShowNotificationSoundMenu(true);
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Volume2 size={16} strokeWidth={2} className="shrink-0" />
+                    Son de notification
                   </button>
                   <button
                     onClick={() => {
@@ -1243,11 +1316,12 @@ export default function ChatContainer() {
                   </div>
                 )}
                 <MessageBubble
-                  msg={{
+                   msg={{
                     ...msg,
                     linkPreview: msg.linkPreview
                       ? {
                           ...msg.linkPreview,
+                          url: msg.linkPreview.url ?? "",
                           title: msg.linkPreview.title ?? "",
                           description: "",
                           image: "",
@@ -1381,6 +1455,57 @@ export default function ChatContainer() {
             </div>
             <button
               onClick={() => setShowDisappearingMenu(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : son de notification propre à cette conversation, pour
+          reconnaître qui écrit rien qu'au son */}
+      {showNotificationSoundMenu && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">Son de notification</h3>
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => handleSetNotificationSound("")}
+                className={`block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
+                  !notificationSound ? "font-semibold" : ""
+                }`}
+              >
+                Son par défaut
+              </button>
+              {NOTIFICATION_SOUNDS.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <button
+                    onClick={() => handleSetNotificationSound(s.id)}
+                    className={`flex-1 text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 ${
+                      notificationSound === s.id ? "font-semibold" : ""
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const audio = new Audio(s.file);
+                      audio.play().catch(() => {});
+                    }}
+                    className="px-3 py-2 text-zinc-400 hover:text-accent-600 transition"
+                    aria-label={`Écouter ${s.label}`}
+                  >
+                    <Volume2 size={16} strokeWidth={2} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowNotificationSoundMenu(false)}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
             >
               Fermer
@@ -1782,9 +1907,9 @@ export default function ChatContainer() {
                       {messages
                         .filter((m: Message) => m.linkPreview)
                         .map((m: Message) => (
-                          <a
+                          <Link
                             key={m._id}
-                            href={m.linkPreview?.url}
+                            href={m.linkPreview?.url || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 text-sm text-accent-600 dark:text-accent-400 hover:underline truncate"
@@ -1793,7 +1918,7 @@ export default function ChatContainer() {
                             <span className="truncate">
                               {m.linkPreview?.title || m.linkPreview?.url}
                             </span>
-                          </a>
+                          </Link>
                         ))}
                     </div>
                   )}
