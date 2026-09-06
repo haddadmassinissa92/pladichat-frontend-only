@@ -8,6 +8,7 @@ import imageCompression from "browser-image-compression";
 import Image from "next/image";
 import { Image as ImageIcon, Mic, X, SendHorizontal, Smile } from "lucide-react";
 import EmojiPicker from "./EmojiPicker";
+import { getDraft, saveDraft, clearDraft } from "@/lib/drafts";
 
 export default function MessageInput() {
   // etats pour la gestion des messages, les images, la saisie et l'envoi
@@ -34,6 +35,36 @@ export default function MessageInput() {
   const selectedUser = useChatStore((state) => state.selectedUser);
   const selectedGroup = useChatStore((state) => state.selectedGroup);
   const replyingTo = useChatStore((state) => state.replyingTo);
+
+  // Brouillons : sauvegarde et restauration automatique du texte en cours de
+  // rédaction, par conversation. La sauvegarde au moment de changer de
+  // conversation est immédiate (pas de debounce) pour ne rien perdre, même
+  // si on tapait encore quand on a cliqué sur une autre conversation.
+  const conversationId = selectedUser?._id || selectedGroup?._id || null;
+  const previousConversationIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      previousConversationIdRef.current &&
+      previousConversationIdRef.current !== conversationId
+    ) {
+      saveDraft(previousConversationIdRef.current, text);
+      window.dispatchEvent(new Event("chatSettingsChanged"));
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setText(getDraft(conversationId));
+    previousConversationIdRef.current = conversationId;
+  }, [conversationId, text]);
+
+  // Sauvegarde aussi en continu pendant la frappe (léger debounce), pour ne
+  // pas perdre le brouillon en cas de fermeture accidentelle de l'onglet
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      saveDraft(conversationId, text);
+      window.dispatchEvent(new Event("chatSettingsChanged"));
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [text, conversationId]);
+
   const setReplyingTo = useChatStore((state) => state.setReplyingTo);
 
   // etats pour la gestion d'authentication
@@ -213,6 +244,8 @@ export default function MessageInput() {
     });
     setIsSending(false);
     setText("");
+    clearDraft(conversationId);
+    window.dispatchEvent(new Event("chatSettingsChanged"));
     removeImage();
     removeAudio();
   };

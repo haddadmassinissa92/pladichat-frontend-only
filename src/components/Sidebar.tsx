@@ -73,6 +73,7 @@ import {
   isConversationManuallyUnread,
   clearManuallyUnread,
 } from "@/lib/conversationSettings";
+import { getDraft } from "@/lib/drafts";
 
 function formatLastMessage(
   msg:
@@ -837,13 +838,23 @@ export default function Sidebar() {
                     (t: { groupId: string; senderName: string }) =>
                       t.groupId === group._id,
                   );
-                  return typers.length > 0 ? (
-                    <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
-                      {typers
-                        .map((t: { groupId: string; senderName: string }) => t.senderName)
-                        .join(", ")} en train d&apos;écrire...
-                    </p>
-                  ) : (
+                  const draft = getDraft(group._id);
+                  if (typers.length > 0) {
+                    return (
+                      <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
+                        {typers.map((t: { groupId: string; senderName: string }) => t.senderName).join(", ")} en train d&apos;écrire...
+                      </p>
+                    );
+                  }
+                  if (draft) {
+                    return (
+                      <p className="text-sm truncate">
+                        <span className="text-red-500">Brouillon : </span>
+                        <span className="text-zinc-500 dark:text-zinc-400">{draft}</span>
+                      </p>
+                    );
+                  }
+                  return (
                     group.lastMessage && (
                       <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
                         {typeof group.lastMessage.sender === "object"
@@ -926,6 +937,13 @@ export default function Sidebar() {
                   {typingUserIds.includes(user._id) ? (
                     <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
                       en train d&apos;écrire...
+                    </p>
+                  ) : getDraft(user._id) ? (
+                    <p className="text-sm truncate">
+                      <span className="text-red-500">Brouillon : </span>
+                      <span className="text-zinc-500 dark:text-zinc-400">
+                        {getDraft(user._id)}
+                      </span>
                     </p>
                   ) : (
                     user.lastMessage && (
