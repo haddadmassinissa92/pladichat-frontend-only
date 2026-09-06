@@ -9,11 +9,11 @@ type Message = {
   image: string; // URL ou chemin vers une image jointe
   audio: string; // URL ou chemin vers un message vocal ou fichier audio joint
   linkPreview?: {
-    url?: string;
-    title?: string;
-    description?: string;
-    image?: string;
-  };
+    url?: string | null;
+    title?: string | null;
+    description?: string | null;
+    image?: string | null;
+  } | null;
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
 };
@@ -349,6 +349,108 @@ export default function ChatContainer() {
     a.download = `${title || "conversation"}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // Export mis en page proprement en PDF (contrairement à l'export texte
+  // brut ci-dessus) : titre, date de chaque échange, nom de l'expéditeur en
+  // gras, séparateurs de jour, retour à la ligne automatique et saut de
+  // page automatique quand le contenu dépasse la page en cours
+  const handleExportConversationPdf = async () => {
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const marginX = 48;
+    const maxWidth = pageWidth - marginX * 2;
+    let y = 56;
+
+    const title = selectedGroup ? selectedGroup.name : selectedUser?.username || "Conversation";
+
+    const ensureSpace = (needed: number) => {
+      if (y + needed > pageHeight - 40) {
+        doc.addPage();
+        y = 56;
+      }
+    };
+
+    // En-tête du document
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text(title, marginX, y);
+    y += 20;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(
+      `Exporté le ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}`,
+      marginX,
+      y,
+    );
+    y += 10;
+    doc.setDrawColor(220);
+    doc.line(marginX, y, pageWidth - marginX, y);
+    y += 22;
+
+    let lastDateKey = "";
+
+    messages.forEach((m: Message) => {
+      const senderName = selectedGroup
+        ? selectedGroup.members.find((mem: GroupMember) => mem._id === m.sender)?.username || m.sender
+        : m.sender === authUser?._id
+          ? "Moi"
+          : selectedUser?.username || "";
+      const msgDate = new Date(m.createdAt);
+      const dateKey = msgDate.toDateString();
+
+      // Séparateur de jour, centré, dès que le jour change
+      if (dateKey !== lastDateKey) {
+        lastDateKey = dateKey;
+        ensureSpace(30);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(140);
+        const label = formatDateSeparator(m.createdAt);
+        const labelWidth = doc.getTextWidth(label);
+        doc.text(label, marginX + (maxWidth - labelWidth) / 2, y);
+        y += 18;
+      }
+
+      const content =
+        m.text || (m.image ? "[Image]" : m.audio ? "[Audio]" : "[Message]");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.5);
+      const wrapped = doc.splitTextToSize(content, maxWidth) as string[];
+
+      ensureSpace(14 + wrapped.length * 13);
+
+      // Ligne d'en-tête du message : nom en gras, heure en gris à côté
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(30);
+      doc.text(senderName, marginX, y);
+      const nameWidth = doc.getTextWidth(senderName);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(150);
+      doc.text(
+        msgDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        marginX + nameWidth + 8,
+        y,
+      );
+      y += 14;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.5);
+      doc.setTextColor(20);
+      wrapped.forEach((line: string) => {
+        ensureSpace(13);
+        doc.text(line, marginX, y);
+        y += 13;
+      });
+      y += 8;
+    });
+
+    doc.save(`${title}.pdf`);
   };
 
   const handleOpenSearch = () => {
@@ -951,7 +1053,17 @@ export default function ChatContainer() {
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Download size={16} strokeWidth={2} className="shrink-0" />
-                    Exporter la conversation
+                    Exporter en .txt
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      handleExportConversationPdf();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Download size={16} strokeWidth={2} className="shrink-0" />
+                    Exporter en PDF
                   </button>
                   <button
                     onClick={() => {
@@ -1081,7 +1193,17 @@ export default function ChatContainer() {
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     <Download size={16} strokeWidth={2} className="shrink-0" />
-                    Exporter la conversation
+                    Exporter en .txt
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      handleExportConversationPdf();
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <Download size={16} strokeWidth={2} className="shrink-0" />
+                    Exporter en PDF
                   </button>
                   <button
                     onClick={() => {
