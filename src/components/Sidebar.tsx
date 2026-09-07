@@ -74,6 +74,7 @@ import {
   clearManuallyUnread,
 } from "@/lib/conversationSettings";
 import { getDraft } from "@/lib/drafts";
+import { getContactTag, getAllUsedTags } from "@/lib/contactTags";
 
 function formatLastMessage(
   msg:
@@ -247,30 +248,20 @@ export default function Sidebar() {
   };
   const [showRingtoneMenu, setShowRingtoneMenu] = useState(false);
   const [showHiddenConversations, setShowHiddenConversations] = useState(false);
-  const [selectedRingtone, setSelectedRingtone] = useState("classic");
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelectedRingtone(getRingtone());
-  }, []);
+  const [selectedRingtone, setSelectedRingtone] = useState(() => getRingtone());
   const handleRingtoneChange = (id: string) => {
     setRingtone(id);
     setSelectedRingtone(id);
   };
-  const [selectedNotificationSound, setSelectedNotificationSound] = useState("ding");
+  const [selectedNotificationSound, setSelectedNotificationSound] = useState(() =>
+    getDefaultNotificationSound()
+  );
   const [showNotificationSoundMenu, setShowNotificationSoundMenu] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelectedNotificationSound(getDefaultNotificationSound());
-  }, []);
   const handleDefaultNotificationSoundChange = (id: string) => {
     setDefaultNotificationSound(id);
     setSelectedNotificationSound(id);
   };
-  const [selectedAccent, setSelectedAccent] = useState("indigo");
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelectedAccent(getAccentColor());
-  }, []);
+  const [selectedAccent, setSelectedAccent] = useState(() => getAccentColor());
   const handleAccentChange = (id: string) => {
     setAccentColor(id);
     setSelectedAccent(id);
@@ -691,6 +682,7 @@ export default function Sidebar() {
   // (voir l'évènement "chatSettingsChanged") pour forcer le recalcul du tri
   // et du filtrage ci-dessous.
   const [settingsVersion, setSettingsVersion] = useState(0);
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
   useEffect(() => {
     const onSettingsChanged = () => setSettingsVersion((v) => v + 1);
     window.addEventListener("chatSettingsChanged", onSettingsChanged);
@@ -709,6 +701,7 @@ export default function Sidebar() {
     });
   const visibleUsers = users
     .filter((u: User) => !isConversationHidden(u._id))
+    .filter((u: User) => !activeTagFilter || getContactTag(u._id) === activeTagFilter)
     .sort((a: User, b: User) => {
       const pinnedDiff = Number(isConversationPinned(b._id)) - Number(isConversationPinned(a._id));
       return pinnedDiff;
@@ -834,15 +827,12 @@ export default function Sidebar() {
               </div>
               <div className="flex items-center justify-between gap-2">
                 {(() => {
-                  const typers = typingGroupSenders.filter(
-                    (t: { groupId: string; senderName: string }) =>
-                      t.groupId === group._id,
-                  );
+                  const typers = typingGroupSenders.filter((t: { groupId: string; }) => t.groupId === group._id);
                   const draft = getDraft(group._id);
                   if (typers.length > 0) {
                     return (
                       <p className="text-sm text-accent-600 dark:text-accent-400 truncate italic">
-                        {typers.map((t: { groupId: string; senderName: string }) => t.senderName).join(", ")} en train d&apos;écrire...
+                        {typers.map((t: { senderName: unknown; }) => t.senderName).join(", ")} en train d&apos;écrire...
                       </p>
                     );
                   }
@@ -892,6 +882,24 @@ export default function Sidebar() {
           </p>
         )}
 
+        {getAllUsedTags().length > 0 && (
+          <div className="px-3 pt-2 flex items-center gap-1.5 flex-wrap">
+            {getAllUsedTags().map((tag) => (
+              <button
+                key={tag}
+                onClick={() => setActiveTagFilter(activeTagFilter === tag ? null : tag)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                  activeTagFilter === tag
+                    ? "bg-accent-600 text-white border-accent-600"
+                    : "border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-accent-600"
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
+
         {visibleUsers.length > 0 && (
           <div className="px-3 pt-2 text-xs font-semibold text-zinc-400 uppercase">
             Contacts
@@ -924,8 +932,13 @@ export default function Sidebar() {
               </div>
               <div className="flex-1 min-w-0 text-left">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium truncate">
-                    {getNickname(user._id) || user.username}
+                  <span className="font-medium truncate flex items-center gap-1.5 min-w-0">
+                    <span className="truncate">{getNickname(user._id) || user.username}</span>
+                    {getContactTag(user._id) && (
+                      <span className="text-[10px] shrink-0 bg-accent-50 dark:bg-accent-950 text-accent-700 dark:text-accent-400 px-1.5 py-0.5 rounded-full font-medium">
+                        {getContactTag(user._id)}
+                      </span>
+                    )}
                   </span>
                   {user.lastMessage && (
                     <span className="text-xs text-zinc-400 flex-shrink-0">

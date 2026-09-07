@@ -11,11 +11,11 @@ type Message = {
   status: string; // État du message (ex: 'sent', 'delivered', 'read')
   createdAt: string; // Date de création du message au format ISO (chaîne de caractères)
   linkPreview?: {
-    url?: string | null;
-    title?: string | null;
-    description?: string | null;
-    image?: string | null;
-  } | null;
+    url?: string;
+    title?: string;
+    description?: string;
+    image?: string;
+  };
 };
 
 // Définit un type d'objet personnalisé représentant un membre d'un groupe
@@ -69,6 +69,7 @@ import {
   setNickname,
   markConversationUnread,
 } from "@/lib/conversationSettings";
+import { getContactTag, setContactTag, getAllUsedTags } from "@/lib/contactTags";
 import {
   NOTIFICATION_SOUNDS,
   getConversationNotificationSound,
@@ -268,17 +269,12 @@ export default function ChatContainer() {
   // Son de notification propre à cette conversation (audible dès qu'un
   // message arrive, même hors de cette conversation)
   const [showNotificationSoundMenu, setShowNotificationSoundMenu] = useState(false);
-  const [notificationSound, setNotificationSoundState] = useState("");
-  useEffect(() => {
-    if (conversationId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setNotificationSoundState(getConversationNotificationSound(conversationId));
-    }
-  }, [conversationId]);
+  const notificationSound = conversationId
+    ? getConversationNotificationSound(conversationId)
+    : "";
   const handleSetNotificationSound = (soundId: string) => {
     if (!conversationId) return;
     setConversationNotificationSound(conversationId, soundId);
-    setNotificationSoundState(getConversationNotificationSound(conversationId));
   };
 
   // Notifications coupées : préférence stockée côté serveur, dérivée
@@ -288,21 +284,28 @@ export default function ChatContainer() {
   const isMuted = !!(
     conversationId && authUser?.mutedConversations?.includes(conversationId)
   );
-  const [isPinned, setIsPinned] = useState(false);
-  const [nickname, setNicknameState] = useState("");
+  const [, setSettingsVersion] = useState(0);
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState("");
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsPinned(isConversationPinned(conversationId));
-    setNicknameState(selectedUser ? getNickname(conversationId) : "");
-  }, [conversationId, selectedUser]);
+  const [isEditingTag, setIsEditingTag] = useState(false);
+  const [tagDraft, setTagDraft] = useState("");
+  const isPinned = isConversationPinned(conversationId);
+  const nickname = selectedUser ? getNickname(conversationId) : "";
+  const contactTag = selectedUser ? getContactTag(conversationId) : "";
 
   const handleSaveNickname = () => {
     if (!conversationId) return;
     setNickname(conversationId, nicknameDraft);
-    setNicknameState(nicknameDraft.trim());
+    setSettingsVersion((version) => version + 1);
     setIsEditingNickname(false);
+    window.dispatchEvent(new Event("chatSettingsChanged"));
+  };
+
+  const handleSaveTag = (tag: string) => {
+    if (!conversationId) return;
+    setContactTag(conversationId, tag);
+    setSettingsVersion((version) => version + 1);
+    setIsEditingTag(false);
     window.dispatchEvent(new Event("chatSettingsChanged"));
   };
 
@@ -318,7 +321,8 @@ export default function ChatContainer() {
 
   const handleTogglePin = () => {
     if (!conversationId) return;
-    setIsPinned(toggleConversationPinned(conversationId));
+    toggleConversationPinned(conversationId);
+    setSettingsVersion((version) => version + 1);
     window.dispatchEvent(new Event("chatSettingsChanged"));
   };
 
@@ -1499,9 +1503,7 @@ export default function ChatContainer() {
             <div className="flex flex-col items-start gap-1">
               {typingGroupUsers.length > 0 && (
                 <p className="text-xs text-zinc-400 px-1">
-                  {typingGroupUsers
-                    .map((u: { senderName: string }) => u.senderName)
-                    .join(", ")}
+                  {typingGroupUsers.map((u: { senderName: unknown; }) => u.senderName).join(", ")}
                   {typingGroupUsers.length > 1
                     ? " sont en train d'écrire..."
                     : " en train d'écrire..."}
@@ -2035,6 +2037,51 @@ export default function ChatContainer() {
                 <div>
                   <p className="text-xs text-zinc-400 uppercase">Email</p>
                   <p className="text-sm">{selectedUser.email}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-400 uppercase mb-1">Étiquette</p>
+                  {isEditingTag ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        autoFocus
+                        list="contact-tag-suggestions"
+                        value={tagDraft}
+                        onChange={(e) => setTagDraft(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSaveTag(tagDraft)}
+                        placeholder="Famille, Travail, Amis..."
+                        className="flex-1 text-sm border-b border-accent-600 bg-transparent outline-none px-1 py-0.5"
+                      />
+                      <datalist id="contact-tag-suggestions">
+                        {getAllUsedTags().map((t) => (
+                          <option key={t} value={t} />
+                        ))}
+                      </datalist>
+                      <button
+                        onClick={() => handleSaveTag(tagDraft)}
+                        className="text-accent-600 hover:text-accent-700 transition"
+                        aria-label="Valider l'étiquette"
+                      >
+                        <UserCheck size={16} strokeWidth={2} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setTagDraft(contactTag);
+                        setIsEditingTag(true);
+                      }}
+                      className="flex items-center gap-1.5 text-sm hover:text-accent-600 transition"
+                    >
+                      {contactTag ? (
+                        <span className="bg-accent-50 dark:bg-accent-950 text-accent-700 dark:text-accent-400 px-2 py-0.5 rounded-full text-xs font-medium">
+                          {contactTag}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400">Ajouter une étiquette</span>
+                      )}
+                      <Pencil size={12} strokeWidth={2} className="text-zinc-400 shrink-0" />
+                    </button>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs text-zinc-400 uppercase mb-1">
