@@ -253,8 +253,8 @@ export default function Sidebar() {
     setRingtone(id);
     setSelectedRingtone(id);
   };
-  const [selectedNotificationSound, setSelectedNotificationSound] = useState(() =>
-    getDefaultNotificationSound()
+  const [selectedNotificationSound, setSelectedNotificationSound] = useState(
+    getDefaultNotificationSound(),
   );
   const [showNotificationSoundMenu, setShowNotificationSoundMenu] = useState(false);
   const handleDefaultNotificationSoundChange = (id: string) => {
@@ -884,6 +884,16 @@ export default function Sidebar() {
 
         {getAllUsedTags().length > 0 && (
           <div className="px-3 pt-2 flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setActiveTagFilter(null)}
+              className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                activeTagFilter === null
+                  ? "bg-accent-600 text-white border-accent-600"
+                  : "border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-accent-600"
+              }`}
+            >
+              Tous
+            </button>
             {getAllUsedTags().map((tag) => (
               <button
                 key={tag}
