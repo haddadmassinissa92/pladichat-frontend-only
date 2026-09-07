@@ -124,6 +124,7 @@ export default function ChatContainer() {
     removeMember,
     toggleBlockMember,
     toggleDiscoverable,
+    toggleAdmin,
     approveJoinRequest,
     rejectJoinRequest,
     searchMessages,
@@ -572,6 +573,22 @@ export default function ChatContainer() {
     !!selectedGroup?.blockedMembers?.some(
       (id: string) => id.toString() === memberId,
     );
+
+  // Un membre est co-administrateur du groupe s'il figure dans admins
+  const isMemberAdmin = (memberId: string) =>
+    !!selectedGroup?.admins?.some((id: string) => id.toString() === memberId);
+
+  // Créateur OU co-administrateur : peut gérer le groupe au quotidien
+  // (renommer, ajouter/retirer/bloquer des membres, rendre découvrable).
+  // Nommer/démettre un co-admin et supprimer le groupe restent réservés
+  // au seul créateur (voir isGroupCreator plus loin, à chaque usage précis).
+  const isGroupCreator = selectedGroup?.createdBy === authUser?._id;
+  const isGroupAdmin = isGroupCreator || isMemberAdmin(authUser?._id || "");
+
+  const handleToggleAdminRole = async (memberId: string) => {
+    if (!selectedGroup) return;
+    await toggleAdmin(selectedGroup._id, memberId);
+  };
 
   const handleOpenRenameGroup = () => {
     if (!selectedGroup) return;
@@ -1276,7 +1293,7 @@ export default function ChatContainer() {
                     <Trash2 size={16} strokeWidth={2} className="shrink-0" />
                     Supprimer la conversation
                   </button>
-                  {selectedGroup.createdBy === authUser?._id && (
+                  {isGroupAdmin && (
                     <>
                       <button
                         onClick={handleOpenRenameGroup}
@@ -1321,14 +1338,16 @@ export default function ChatContainer() {
                           Demandes d&apos;adhésion ({pendingJoinRequestsCount})
                         </button>
                       )}
-                      <button
-                        onClick={handleOpenDeleteGroupConfirm}
-                        className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
-                      >
-                        <Trash2 size={16} strokeWidth={2} className="shrink-0" />
-                        Supprimer le groupe
-                      </button>
                     </>
+                  )}
+                  {isGroupCreator && (
+                    <button
+                      onClick={handleOpenDeleteGroupConfirm}
+                      className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                    >
+                      <Trash2 size={16} strokeWidth={2} className="shrink-0" />
+                      Supprimer le groupe
+                    </button>
                   )}
                 </div>
               </>
@@ -1794,28 +1813,52 @@ export default function ChatContainer() {
             <h3 className="font-bold mb-3">Gérer les membres</h3>
             <div className="custom-scrollbar max-h-64 overflow-y-auto mb-3 flex flex-col gap-1">
               {selectedGroup.members
-                .filter((m: GroupMember) => m._id !== authUser?._id)
+                .filter(
+                  (m: GroupMember) =>
+                    m._id !== authUser?._id && m._id !== selectedGroup.createdBy,
+                )
                 .map((member: GroupMember) => (
                   <div
                     key={member._id}
                     className="flex items-center justify-between py-2 text-sm border-b border-zinc-100 dark:border-zinc-800 last:border-0"
                   >
-                    <span className="truncate">{member.username}</span>
+                    <span className="truncate flex items-center gap-1.5">
+                      {member.username}
+                      {isMemberAdmin(member._id) && (
+                        <span className="text-xs text-accent-600 dark:text-accent-400">
+                          (admin)
+                        </span>
+                      )}
+                    </span>
                     <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => handleToggleBlockMember(member._id)}
-                        className="text-xs text-amber-600"
-                      >
-                        {isMemberBlockedInGroup(member._id)
-                          ? "Débloquer"
-                          : "Bloquer"}
-                      </button>
-                      <button
-                        onClick={() => handleRemoveMember(member._id)}
-                        className="text-xs text-red-600"
-                      >
-                        Retirer
-                      </button>
+                      {isGroupCreator && (
+                        <button
+                          onClick={() => handleToggleAdminRole(member._id)}
+                          className="text-xs text-accent-600"
+                        >
+                          {isMemberAdmin(member._id)
+                            ? "Retirer admin"
+                            : "Rendre admin"}
+                        </button>
+                      )}
+                      {(isGroupCreator || !isMemberAdmin(member._id)) && (
+                        <>
+                          <button
+                            onClick={() => handleToggleBlockMember(member._id)}
+                            className="text-xs text-amber-600"
+                          >
+                            {isMemberBlockedInGroup(member._id)
+                              ? "Débloquer"
+                              : "Bloquer"}
+                          </button>
+                          <button
+                            onClick={() => handleRemoveMember(member._id)}
+                            className="text-xs text-red-600"
+                          >
+                            Retirer
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -2254,13 +2297,19 @@ export default function ChatContainer() {
                             (créateur)
                           </span>
                         )}
+                        {member._id !== selectedGroup.createdBy &&
+                          isMemberAdmin(member._id) && (
+                            <span className="text-xs text-accent-600 dark:text-accent-400 ml-1">
+                              (admin)
+                            </span>
+                          )}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                {/* Actions rapides réservées au créateur du groupe */}
-                {selectedGroup.createdBy === authUser?._id && (
+                {/* Actions rapides réservées au créateur et aux co-administrateurs */}
+                {isGroupAdmin && (
                   <div className="border-t border-zinc-200 dark:border-zinc-800 pt-3 space-y-1">
                     <button
                       onClick={() => {
@@ -2295,16 +2344,18 @@ export default function ChatContainer() {
                         ? "Rendre le groupe privé"
                         : "Rendre le groupe découvrable"}
                     </button>
-                    <button
-                      onClick={() => {
-                        setShowContactInfo(false);
-                        handleOpenDeleteGroupConfirm();
-                      }}
-                      className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
-                    >
-                      <Trash2 size={15} strokeWidth={2} className="shrink-0" />
-                      Supprimer le groupe
-                    </button>
+                    {isGroupCreator && (
+                      <button
+                        onClick={() => {
+                          setShowContactInfo(false);
+                          handleOpenDeleteGroupConfirm();
+                        }}
+                        className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                      >
+                        <Trash2 size={15} strokeWidth={2} className="shrink-0" />
+                        Supprimer le groupe
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

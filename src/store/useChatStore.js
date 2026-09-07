@@ -708,6 +708,23 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Promeut ou rétrograde un membre comme co-administrateur du groupe
+  toggleAdmin: async (groupId, memberId) => {
+    try {
+      const res = await axiosInstance.put(
+        `/groups/toggle-admin/${groupId}`,
+        { memberId },
+      );
+      get().applyGroupUpdate(res.data);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   // Rend un groupe découvrable ou privé (bascule automatique)
   toggleDiscoverable: async (groupId) => {
     try {
