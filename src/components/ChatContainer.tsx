@@ -1023,7 +1023,7 @@ export default function ChatContainer() {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowUserMenu(false)}
                 />
-                <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48">
+                <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48 max-h-[70vh] overflow-y-auto custom-scrollbar">
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
@@ -1174,7 +1174,7 @@ export default function ChatContainer() {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowGroupMenu(false)}
                 />
-                <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-52">
+                <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-52 max-h-[70vh] overflow-y-auto custom-scrollbar">
                   <button
                     onClick={() => {
                       setShowGroupMenu(false);
