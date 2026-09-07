@@ -610,6 +610,40 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Invitations de groupe reçues, en attente d'une réponse
+  pendingGroupInvites: [],
+  getPendingGroupInvites: async () => {
+    try {
+      const res = await axiosInstance.get("/groups/invites/pending");
+      set({ pendingGroupInvites: res.data.invites });
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
+  // Accepte ou refuse une invitation à rejoindre un groupe
+  respondToGroupInvite: async (groupId, accept) => {
+    try {
+      const res = await axiosInstance.put(`/groups/invites/${groupId}/respond`, {
+        accept,
+      });
+      set({
+        pendingGroupInvites: get().pendingGroupInvites.filter(
+          (i) => i.groupId !== groupId,
+        ),
+      });
+      if (accept && res.data.group) {
+        set({ groups: [...get().groups, res.data.group] });
+      }
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   //
   setSelectedGroup: (group) =>
     set({ selectedGroup: group, selectedUser: null }),

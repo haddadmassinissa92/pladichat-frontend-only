@@ -686,7 +686,8 @@ export default function ChatContainer() {
   const usersNotInGroup = selectedGroup
     ? users.filter(
         (u: GroupMember) =>
-          !selectedGroup.members.some((m: GroupMember) => m._id === u._id),
+          !selectedGroup.members.some((m: GroupMember) => m._id === u._id) &&
+          !selectedGroup.pendingInvites?.some((id: string) => id === u._id),
       )
     : [];
 
@@ -1307,7 +1308,7 @@ export default function ChatContainer() {
                         className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                       >
                         <UserPlus size={16} strokeWidth={2} className="shrink-0" />
-                        Ajouter des membres
+                        Inviter des membres
                       </button>
                       <button
                         onClick={handleOpenManageMembers}
@@ -1762,15 +1763,26 @@ export default function ChatContainer() {
         </div>
       )}
 
-      {/* Modale : ajouter des membres */}
+      {/* Modale : inviter des membres (ils doivent accepter avant de
+          rejoindre réellement le groupe) */}
       {showAddMembers && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
-            <h3 className="font-bold mb-3">Ajouter des membres</h3>
+            <h3 className="font-bold mb-1">Inviter des membres</h3>
+            <p className="text-xs text-zinc-500 mb-3">
+              Chaque personne recevra une invitation et devra l&apos;accepter
+              pour rejoindre le groupe.
+            </p>
+            {selectedGroup && (selectedGroup.pendingInvites?.length || 0) > 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
+                {selectedGroup.pendingInvites.length} invitation
+                {selectedGroup.pendingInvites.length > 1 ? "s" : ""} en attente de réponse.
+              </p>
+            )}
             <div className="custom-scrollbar max-h-48 overflow-y-auto mb-3">
               {usersNotInGroup.length === 0 && (
                 <p className="text-sm text-zinc-400">
-                  Tous tes contacts sont déjà dans ce groupe.
+                  Tous tes contacts sont déjà dans ce groupe ou déjà invités.
                 </p>
               )}
               {usersNotInGroup.map((user: GroupMember) => (
@@ -1799,7 +1811,7 @@ export default function ChatContainer() {
                 disabled={membersToAdd.length === 0}
                 className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
               >
-                Ajouter
+                Inviter
               </button>
             </div>
           </div>
@@ -2329,7 +2341,7 @@ export default function ChatContainer() {
                       className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
                       <UserPlus size={15} strokeWidth={2} className="shrink-0" />
-                      Ajouter des membres
+                      Inviter des membres
                     </button>
                     <button
                       onClick={handleToggleDiscoverable}

@@ -153,6 +153,9 @@ export default function Sidebar() {
     getSentContactRequests,
     cancelContactRequest,
     previewDiscoverableGroup,
+    pendingGroupInvites,
+    getPendingGroupInvites,
+    respondToGroupInvite,
   } = useChatStore();
   const {
     onlineUsers,
@@ -253,8 +256,8 @@ export default function Sidebar() {
     setRingtone(id);
     setSelectedRingtone(id);
   };
-  const [selectedNotificationSound, setSelectedNotificationSound] = useState(
-    getDefaultNotificationSound(),
+  const [selectedNotificationSound, setSelectedNotificationSound] = useState(() =>
+    getDefaultNotificationSound()
   );
   const [showNotificationSoundMenu, setShowNotificationSoundMenu] = useState(false);
   const handleDefaultNotificationSoundChange = (id: string) => {
@@ -435,7 +438,8 @@ export default function Sidebar() {
     getUsers();
     getGroups();
     getContactRequests();
-  }, [getUsers, getGroups, getContactRequests]);
+    getPendingGroupInvites();
+  }, [getUsers, getGroups, getContactRequests, getPendingGroupInvites]);
 
   useEffect(() => {
     if (!socket) return;
@@ -471,6 +475,7 @@ export default function Sidebar() {
     // on rafraîchit la liste pour refléter le changement (utile même quand ce
     // groupe n'est pas la conversation actuellement ouverte)
     socket.on("groupUpdated", refresh);
+    socket.on("groupInviteReceived", getPendingGroupInvites);
 
     // On a été retiré d'un groupe : on rafraîchit la liste (il disparaîtra),
     // et si on avait cette conversation ouverte, on la referme
@@ -568,6 +573,7 @@ export default function Sidebar() {
       socket.off("conversationCleared", refresh);
       socket.off("messagesRead", refresh);
       socket.off("groupUpdated", refresh);
+      socket.off("groupInviteReceived", getPendingGroupInvites);
       socket.off("removedFromGroup", handleRemovedFromGroup);
       socket.off("joinRequestReceived", handleJoinRequestReceived);
       socket.off("joinRequestApproved", handleJoinRequestApproved);
@@ -622,6 +628,7 @@ export default function Sidebar() {
     handleUserJoinedGroupCall,
     handleUserLeftGroupCall,
     handleCallUpgradedToGroup,
+    getPendingGroupInvites,
   ]);
 
   const toggleMember = (userId: string) => {
@@ -748,9 +755,9 @@ export default function Sidebar() {
             title="Ajouter un contact"
           >
             <UserPlus size={20} strokeWidth={2} />
-            {contactRequests.length > 0 && (
+            {contactRequests.length + pendingGroupInvites.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] leading-none rounded-full w-4 h-4 flex items-center justify-center">
-                {contactRequests.length}
+                {contactRequests.length + pendingGroupInvites.length}
               </span>
             )}
           </button>
@@ -1713,6 +1720,51 @@ export default function Sidebar() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
             <h3 className="font-bold mb-3">Ajouter un contact</h3>
+
+            {/* Invitations de groupe reçues, en attente d'une réponse */}
+            {pendingGroupInvites.length > 0 && (
+              <div className="mb-3 pb-3 border-b border-zinc-200 dark:border-zinc-700">
+                <p className="text-xs text-zinc-400 uppercase mb-1">
+                  Invitations de groupe ({pendingGroupInvites.length})
+                </p>
+                <div className="flex flex-col gap-1">
+                  {pendingGroupInvites.map((invite: { groupId: string; groupName: string; memberCount: number }) => (
+                    <div
+                      key={invite.groupId}
+                      className="py-2 text-sm border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Avatar
+                          fallback={invite.groupName[0]?.toUpperCase()}
+                          colorClass="bg-emerald-600"
+                          size="w-9 h-9 text-sm"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{invite.groupName}</p>
+                          <p className="text-xs text-zinc-400">
+                            {invite.memberCount} membre{invite.memberCount > 1 ? "s" : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <button
+                          onClick={() => respondToGroupInvite(invite.groupId, true)}
+                          className="text-xs px-3 py-1.5 rounded-full bg-accent-600 text-white"
+                        >
+                          Accepter
+                        </button>
+                        <button
+                          onClick={() => respondToGroupInvite(invite.groupId, false)}
+                          className="text-xs px-3 py-1.5 rounded-full border border-zinc-300 dark:border-zinc-700"
+                        >
+                          Refuser
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Demandes reçues, en attente d'une réponse */}
             {contactRequests.length > 0 && (
