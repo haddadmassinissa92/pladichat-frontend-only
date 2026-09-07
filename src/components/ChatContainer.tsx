@@ -144,6 +144,7 @@ export default function ChatContainer() {
     toggleBlockUser,
     onlineUsers,
     toggleMuteConversation,
+    toggleHideOnlineStatus,
     setDisappearingTimer,
   } = useAuthStore();
   const { startCall, callStatus } = useCallStore();
@@ -284,6 +285,13 @@ export default function ChatContainer() {
   const isMuted = !!(
     conversationId && authUser?.mutedConversations?.includes(conversationId)
   );
+  const isHiddenFromContact = !!(
+    selectedUser && authUser?.hiddenFromOnlineStatus?.includes(selectedUser._id)
+  );
+  const handleToggleHideOnlineStatus = async () => {
+    if (!selectedUser) return;
+    await toggleHideOnlineStatus(selectedUser._id);
+  };
   const [, setSettingsVersion] = useState(0);
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState("");
@@ -2083,6 +2091,19 @@ export default function ChatContainer() {
                     </button>
                   )}
                 </div>
+                <button
+                  onClick={handleToggleHideOnlineStatus}
+                  className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 -mx-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                >
+                  {isHiddenFromContact ? (
+                    <EyeOff size={15} strokeWidth={2} className="shrink-0" />
+                  ) : (
+                    <Eye size={15} strokeWidth={2} className="shrink-0" />
+                  )}
+                  {isHiddenFromContact
+                    ? `Statut en ligne caché à ${selectedUser.username}`
+                    : `Cacher mon statut en ligne à ${selectedUser.username}`}
+                </button>
                 <div>
                   <p className="text-xs text-zinc-400 uppercase mb-1">
                     Photos ({messages.filter((m: Message) => m.image).length})

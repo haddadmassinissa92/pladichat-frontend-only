@@ -284,6 +284,26 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Cache (ou réaffiche) mon propre statut "en ligne" à un contact précis
+  toggleHideOnlineStatus: async (contactId) => {
+    try {
+      const res = await axiosInstance.put(`/users/hide-online-status/${contactId}`);
+      const current = get().authUser?.hiddenFromOnlineStatus || [];
+      set({
+        authUser: {
+          ...get().authUser,
+          hiddenFromOnlineStatus: res.data.hidden
+            ? [...current, contactId]
+            : current.filter((id) => id !== contactId),
+        },
+      });
+      return res.data.hidden;
+    } catch (error) {
+      console.error(error);
+      return get().authUser?.hiddenFromOnlineStatus?.includes(contactId) || false;
+    }
+  },
+
   // Change le nom d'utilisateur du compte connecté
   updateUsername: async (username) => {
     try {
