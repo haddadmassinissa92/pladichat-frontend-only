@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle } from "lucide-react";
+import { MdWarning } from "react-icons/md";
 
 export default function ErrorPage({
   error,
@@ -16,7 +16,7 @@ export default function ErrorPage({
 
   return (
     <div className="h-dvh flex flex-col items-center justify-center text-center p-6 bg-white dark:bg-zinc-950">
-      <AlertTriangle
+      <MdWarning
         size={56}
         strokeWidth={1.5}
         className="text-red-600 mb-4"

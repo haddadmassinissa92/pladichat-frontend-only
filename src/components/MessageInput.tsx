@@ -6,7 +6,7 @@ import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
-import { Image as ImageIcon, Mic, X, SendHorizontal, Smile } from "lucide-react";
+import { MdImage, MdMic, MdClose, MdSend, MdEmojiEmotions } from "react-icons/md";
 import EmojiPicker from "./EmojiPicker";
 import { getDraft, saveDraft, clearDraft } from "@/lib/drafts";
 
@@ -25,10 +25,10 @@ export default function MessageInput() {
   // Le panneau d'emojis mobile est téléporté directement dans <body> via un
   // portail (voir plus bas) pour garantir un vrai positionnement "fixed" par
   // rapport à l'écran, sans être affecté par les animations de la page
-  // (transform sur les conteneurs parents) qui casseraient sinon son ancrage
-  const [mounted, setMounted] = useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setMounted(true), []);
+  // (transform sur les conteneurs parents) qui casseraient sinon son ancrage.
+  // On évite un `setState` dans un effet : le portail ne doit être rendu que
+  // côté navigateur, ce qui est déjà garanti par l'environnement client.
+  const mounted = typeof window !== "undefined" && typeof document !== "undefined";
 
   // etats pour la gestion des messages, modification, suppression et réponse
   const sendMessage = useChatStore((state) => state.sendMessage);
@@ -54,9 +54,14 @@ export default function MessageInput() {
       saveDraft(prevId, textRef.current);
       window.dispatchEvent(new Event("chatSettingsChanged"));
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setText(getDraft(conversationId));
-    previousConversationIdRef.current = conversationId;
+
+    const nextText = getDraft(conversationId);
+    const rafId = window.requestAnimationFrame(() => {
+      setText(nextText);
+      previousConversationIdRef.current = conversationId;
+    });
+
+    return () => window.cancelAnimationFrame(rafId);
   }, [conversationId]);
 
   // Sauvegarde aussi en continu pendant la frappe (léger debounce), pour ne
@@ -271,7 +276,7 @@ export default function MessageInput() {
             className="ml-2 text-zinc-400 hover:text-zinc-600"
             aria-label="Annuler la réponse"
           >
-            <X size={16} strokeWidth={2} />
+            <MdClose size={16} strokeWidth={2} />
           </button>
         </div>
       )}
@@ -285,7 +290,7 @@ export default function MessageInput() {
               className="absolute top-2 right-2 z-10 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center"
               aria-label="Retirer l'image"
             >
-              <X size={16} strokeWidth={2.5} />
+              <MdClose size={16} strokeWidth={2.5} />
             </button>
             <Image
               src={imagePreview}
@@ -315,7 +320,7 @@ export default function MessageInput() {
             className="text-zinc-400 hover:text-zinc-600"
             aria-label="Retirer l'audio"
           >
-            <X size={16} strokeWidth={2} />
+            <MdClose size={16} strokeWidth={2} />
           </button>
         </div>
       )}
@@ -335,7 +340,7 @@ export default function MessageInput() {
             className="text-zinc-500 hover:text-accent-600 transition shrink-0"
             aria-label="Ajouter une image"
           >
-            <ImageIcon size={22} strokeWidth={2} />
+            <MdImage size={22} strokeWidth={2} />
           </button>
 
           <input
@@ -353,7 +358,7 @@ export default function MessageInput() {
             className="shrink-0 text-zinc-500 hover:text-accent-600 transition"
             aria-label="Ajouter un emoji"
           >
-            <Smile size={22} strokeWidth={2} />
+            <MdEmojiEmotions size={22} strokeWidth={2} />
           </button>
 
           <button
@@ -366,7 +371,7 @@ export default function MessageInput() {
             }`}
             aria-label="Enregistrer un message audio"
           >
-            <Mic size={22} strokeWidth={2} />
+            <MdMic size={22} strokeWidth={2} />
           </button>
         </div>
 
@@ -376,7 +381,7 @@ export default function MessageInput() {
           aria-label="Envoyer"
           className="bg-accent-600 text-white rounded-full w-11 h-11 flex items-center justify-center hover:bg-accent-700 transition disabled:opacity-50 shrink-0"
         >
-          <SendHorizontal size={20} strokeWidth={2} />
+          <MdSend size={20} strokeWidth={2} />
         </button>
       </div>
 
@@ -411,7 +416,7 @@ export default function MessageInput() {
                     className="text-zinc-500 hover:text-accent-600 transition"
                     aria-label="Fermer les emojis"
                   >
-                    <X size={18} strokeWidth={2} />
+                    <MdClose size={18} strokeWidth={2} />
                   </button>
                 </div>
                 <EmojiPicker onSelect={handleEmojiSelect} fullWidth />

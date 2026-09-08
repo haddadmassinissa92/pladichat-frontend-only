@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Phone, PhoneOff, Video, Mic, MicOff, VideoOff, UserPlus } from "lucide-react";
+import { MdMic, MdMicOff, MdPersonAdd, MdCall, MdCallEnd, MdVideocam, MdVideocamOff } from "react-icons/md";
 import { useCallStore } from "@/store/useCallStore";
 import { useChatStore } from "@/store/useChatStore";
 import Avatar from "./Avatar";
@@ -135,8 +135,10 @@ export default function CallModal() {
   const [needsTapToPlay, setNeedsTapToPlay] = useState(false);
 
   useEffect(() => {
-    /* eslint-disable-next-line react-hooks/set-state-in-effect */
-    if (callStatus === "idle") setNeedsTapToPlay(false);
+    if (callStatus !== "idle") return;
+
+    const timeout = setTimeout(() => setNeedsTapToPlay(false), 0);
+    return () => clearTimeout(timeout);
   }, [callStatus]);
 
   // Vignette de ma propre caméra, déplaçable n'importe où sur l'écran
@@ -144,11 +146,6 @@ export default function CallModal() {
   const pipRef = useRef<HTMLDivElement>(null);
   const [pipPos, setPipPos] = useState<{ left: number; top: number } | null>(null);
   const dragData = useRef<{ startX: number; startY: number; origLeft: number; origTop: number } | null>(null);
-
-  useEffect(() => {
-    /* eslint-disable-next-line react-hooks/set-state-in-effect */
-    if (callStatus === "idle") setPipPos(null);
-  }, [callStatus]);
 
   const handlePipPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = pipRef.current;
@@ -254,9 +251,7 @@ export default function CallModal() {
   // sidebar/chat sur mobile), ce qui casse le "position: fixed" de la
   // modale d'appel si elle reste dans cette hiérarchie — elle se comportait
   // alors comme encastrée dans la page au lieu de couvrir tout l'écran
-  const [mounted, setMounted] = useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setMounted(true), []);
+  const mounted = true;
 
   const participantList = Object.entries(participants) as [
     string,
@@ -347,7 +342,7 @@ export default function CallModal() {
               onClick={handleTapToPlay}
               className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/80 text-white"
             >
-              <Video size={40} strokeWidth={1.5} />
+              <MdVideocam size={40} />
               <p className="text-sm font-medium">Appuie pour activer l&apos;appel</p>
             </button>
           )}
@@ -477,14 +472,14 @@ export default function CallModal() {
                   className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label="Refuser"
                 >
-                  <PhoneOff size={26} strokeWidth={2} />
+                  <MdCallEnd size={26} />
                 </button>
                 <button
                   onClick={acceptCall}
                   className="bg-emerald-600 hover:bg-emerald-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label="Accepter"
                 >
-                  <Phone size={26} strokeWidth={2} />
+                  <MdCall size={26} />
                 </button>
               </>
             )}
@@ -496,14 +491,14 @@ export default function CallModal() {
                   className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label="Refuser"
                 >
-                  <PhoneOff size={26} strokeWidth={2} />
+                  <MdCallEnd size={26} />
                 </button>
                 <button
                   onClick={acceptGroupCall}
                   className="bg-emerald-600 hover:bg-emerald-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label="Rejoindre"
                 >
-                  <Phone size={26} strokeWidth={2} />
+                  <MdCall size={26} />
                 </button>
               </>
             )}
@@ -514,7 +509,7 @@ export default function CallModal() {
                 className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                 aria-label="Annuler l'appel"
               >
-                <PhoneOff size={26} strokeWidth={2} />
+                <MdCallEnd size={26} />
               </button>
             )}
 
@@ -527,7 +522,7 @@ export default function CallModal() {
                   }`}
                   aria-label="Couper/réactiver le micro"
                 >
-                  {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
+                  {isMuted ? <MdMicOff size={22} /> : <MdMic size={22} />}
                 </button>
 
                 {callType === "video" && (
@@ -538,7 +533,7 @@ export default function CallModal() {
                     }`}
                     aria-label="Couper/réactiver la caméra"
                   >
-                    {isCameraOff ? <VideoOff size={22} /> : <Video size={22} />}
+                    {isCameraOff ? <MdVideocamOff size={22} /> : <MdVideocam size={22} />}
                   </button>
                 )}
 
@@ -547,7 +542,7 @@ export default function CallModal() {
                   className="bg-white/20 hover:bg-white/30 transition rounded-full w-14 h-14 flex items-center justify-center"
                   aria-label="Ajouter un participant"
                 >
-                  <UserPlus size={22} />
+                  <MdPersonAdd size={22} />
                 </button>
 
                 <button
@@ -555,7 +550,7 @@ export default function CallModal() {
                   className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label={callMode === "group" ? "Quitter l'appel" : "Raccrocher"}
                 >
-                  <PhoneOff size={26} strokeWidth={2} />
+                  <MdCallEnd size={26} />
                 </button>
               </>
             )}

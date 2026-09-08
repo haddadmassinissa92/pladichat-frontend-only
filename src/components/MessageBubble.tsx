@@ -7,7 +7,7 @@ import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import EmojiPicker from "./EmojiPicker";
 import Avatar from "./Avatar";
-import { SmilePlus, Plus, X, Check, CheckCheck, Forward } from "lucide-react";
+import { MdAddReaction, MdAdd, MdClose, MdCheck, MdDoneAll, MdForward } from "react-icons/md";
 
 // Type volontairement souple : couvre à la fois la forme d'un contact
 // ({_id, username, avatar}) et celle d'un groupe ({_id, name}), pour la
@@ -329,9 +329,9 @@ export default function MessageBubble({
             {isMine && (
               <span className="inline-flex ml-2 opacity-70 align-middle">
                 {msg.status === "read" ? (
-                  <CheckCheck size={14} strokeWidth={2} />
+                  <MdDoneAll size={14} strokeWidth={2} />
                 ) : (
-                  <Check size={14} strokeWidth={2} />
+                  <MdCheck size={14} strokeWidth={2} />
                 )}
               </span>
             )}
@@ -346,7 +346,7 @@ export default function MessageBubble({
               className="opacity-0 group-hover:opacity-100 transition px-1 self-center text-zinc-500 hover:text-accent-600"
               aria-label="Réagir"
             >
-              <SmilePlus size={16} strokeWidth={2} />
+              <MdAddReaction size={16} strokeWidth={2} />
             </button>
 
             {showReactionPicker && (
@@ -377,7 +377,7 @@ export default function MessageBubble({
                     className="text-zinc-400 hover:text-zinc-600 px-1"
                     aria-label="Plus d'emojis"
                   >
-                    <Plus size={16} strokeWidth={2} />
+                    <MdAdd size={16} strokeWidth={2} />
                   </button>
                 </div>
               </>
@@ -462,7 +462,7 @@ export default function MessageBubble({
                 className="text-zinc-400 hover:text-zinc-600 px-1"
                 aria-label="Plus d'emojis"
               >
-                <Plus size={16} strokeWidth={2} />
+                <MdAdd size={16} strokeWidth={2} />
               </button>
             </div>
             <button
@@ -485,7 +485,7 @@ export default function MessageBubble({
               }}
               className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
-              <Forward size={15} strokeWidth={2} />
+              <MdForward size={15} strokeWidth={2} />
               Transférer
             </button>
             {isMine && (
@@ -558,28 +558,32 @@ export default function MessageBubble({
             />
             <div className="custom-scrollbar max-h-72 overflow-y-auto flex flex-col gap-1">
               {(groups as ForwardTarget[])
-                .filter((g) => g.name?.toLowerCase().includes(forwardSearch.toLowerCase()))
-                .map((g) => (
-                  <button
-                    key={g._id}
-                    onClick={async () => {
-                      const result = await forwardMessage(msg, { groupId: g._id });
-                      if (result.success) setForwardedToId(g._id);
-                    }}
-                    disabled={forwardedToId === g._id}
-                    className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
-                  >
-                    <Avatar
-                      fallback={g.name?.[0]?.toUpperCase() ?? "?"}
-                      colorClass="bg-emerald-600"
-                      size="w-9 h-9 text-sm"
-                    />
-                    <span className="truncate flex-1">{g.name}</span>
-                    {forwardedToId === g._id && (
-                      <Check size={16} strokeWidth={2} className="text-emerald-600 shrink-0" />
-                    )}
-                  </button>
-                ))}
+                .filter((g) => (g.name ?? "").toLowerCase().includes(forwardSearch.toLowerCase()))
+                .map((g) => {
+                  const groupName = g.name ?? "Groupe";
+
+                  return (
+                    <button
+                      key={g._id}
+                      onClick={async () => {
+                        const result = await forwardMessage(msg, { groupId: g._id });
+                        if (result.success) setForwardedToId(g._id);
+                      }}
+                      disabled={forwardedToId === g._id}
+                      className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
+                    >
+                      <Avatar
+                        fallback={groupName[0]?.toUpperCase() ?? "G"}
+                        colorClass="bg-emerald-600"
+                        size="w-9 h-9 text-sm"
+                      />
+                      <span className="truncate flex-1">{groupName}</span>
+                      {forwardedToId === g._id && (
+                        <MdCheck size={16} strokeWidth={2} className="text-emerald-600 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
               {(users as ForwardTarget[])
                 .filter((u) => u.username?.toLowerCase().includes(forwardSearch.toLowerCase()))
                 .map((u) => (
@@ -594,13 +598,13 @@ export default function MessageBubble({
                   >
                     <Avatar
                       src={u.avatar}
-                      fallback={u.username?.[0]?.toUpperCase() ?? "?"}
+                      fallback={u.username?.[0]?.toUpperCase() ?? "U"}
                       colorClass="bg-accent-600"
                       size="w-9 h-9 text-sm"
                     />
                     <span className="truncate flex-1">{u.username}</span>
                     {forwardedToId === u._id && (
-                      <Check size={16} strokeWidth={2} className="text-emerald-600 shrink-0" />
+                      <MdCheck size={16} strokeWidth={2} className="text-emerald-600 shrink-0" />
                     )}
                   </button>
                 ))}
@@ -626,7 +630,7 @@ export default function MessageBubble({
             className="absolute top-4 right-4 text-white"
             aria-label="Fermer l'aperçu"
           >
-            <X size={32} strokeWidth={2} />
+            <MdClose size={32} strokeWidth={2} />
           </button>
           <Image
             src={msg.image}

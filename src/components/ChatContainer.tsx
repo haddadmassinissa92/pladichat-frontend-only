@@ -31,7 +31,7 @@ import Link from "next/link";
 import Avatar from "./Avatar";
 
 // Icône propre et cohérente avec le reste de l'application
-import { Palette, ArrowLeft, ArrowDown, MoreVertical, Search, ChevronUp, ChevronDown, X, Ban, Pencil, UserPlus, Users, Eye, EyeOff, UserCheck, Trash2, Phone, Video, Bell, BellOff, Pin, Download, Link2, Clock, Circle, Volume2, Calendar } from "lucide-react";
+import { MdPalette, MdArrowBack, MdArrowDownward, MdMoreVert, MdSearch, MdExpandLess, MdExpandMore, MdClose, MdBlock, MdEdit, MdPersonAdd, MdGroup, MdVisibility, MdVisibilityOff, MdHowToReg, MdDelete, MdNotifications, MdNotificationsOff, MdPushPin, MdDownload, MdLink, MdAccessTime, MdCircle, MdVolumeUp, MdCalendarToday, MdCall, MdVideocam } from "react-icons/md";
 import { useCallStore } from "@/store/useCallStore";
 
 // Gestionnaires d'états globaux (Zustand) pour le chat et l'authentification
@@ -952,7 +952,7 @@ export default function ChatContainer() {
           className="sm:hidden p-1 -ml-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
           aria-label="Retour"
         >
-          <ArrowLeft size={22} strokeWidth={2} />
+          <MdArrowBack size={22} strokeWidth={2} />
         </button>
 
         {/* Avatar de la conversation : photo de profil pour un contact,
@@ -981,7 +981,7 @@ export default function ChatContainer() {
         >
           <span className="truncate">{displayName}</span>
           {disappearingSeconds > 0 && (
-            <Clock size={14} strokeWidth={2} className="text-zinc-400 shrink-0" />
+            <MdAccessTime size={14} strokeWidth={2} className="text-zinc-400 shrink-0" />
           )}
         </h2>
 
@@ -995,14 +995,14 @@ export default function ChatContainer() {
               className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
               aria-label="Appel audio"
             >
-              <Phone size={22} strokeWidth={2} />
+              <MdCall size={22} />
             </button>
             <button
               onClick={() => handleStartCall("video")}
               className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
               aria-label="Appel vidéo"
             >
-              <Video size={24} fill="currentColor" stroke="none" />
+              <MdVideocam size={26} />
             </button>
           </>
         )}
@@ -1016,7 +1016,7 @@ export default function ChatContainer() {
               className="text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
               aria-label="Options"
             >
-              <MoreVertical size={20} strokeWidth={2} />
+              <MdMoreVert size={20} strokeWidth={2} />
             </button>
             {showUserMenu && (
               <>
@@ -1032,7 +1032,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Search size={16} strokeWidth={2} className="shrink-0" />
+                    <MdSearch size={16} strokeWidth={2} className="shrink-0" />
                     Recherche
                   </button>
                   <button
@@ -1043,7 +1043,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Calendar size={16} strokeWidth={2} className="shrink-0" />
+                    <MdCalendarToday size={16} strokeWidth={2} className="shrink-0" />
                     Aller à une date
                   </button>
                   <button
@@ -1053,7 +1053,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Palette size={16} strokeWidth={2} className="shrink-0" />
+                    <MdPalette size={16} strokeWidth={2} className="shrink-0" />
                     Thème
                   </button>
                   <button
@@ -1063,7 +1063,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Clock size={16} strokeWidth={2} className="shrink-0" />
+                    <MdAccessTime size={16} strokeWidth={2} className="shrink-0" />
                     Messages éphémères
                     {disappearingSeconds > 0 && (
                       <span className="text-zinc-400">(actif)</span>
@@ -1076,7 +1076,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Volume2 size={16} strokeWidth={2} className="shrink-0" />
+                    <MdVolumeUp size={16} strokeWidth={2} className="shrink-0" />
                     Notification
                   </button>
                   <button
@@ -1087,9 +1087,9 @@ export default function ChatContainer() {
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     {isMuted ? (
-                      <BellOff size={16} strokeWidth={2} className="shrink-0" />
+                      <MdNotificationsOff size={16} strokeWidth={2} className="shrink-0" />
                     ) : (
-                      <Bell size={16} strokeWidth={2} className="shrink-0" />
+                      <MdNotifications size={16} strokeWidth={2} className="shrink-0" />
                     )}
                     {isMuted ? "Réactiver les notifications" : "Mettre en sourdine"}
                   </button>
@@ -1100,7 +1100,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Pin size={16} strokeWidth={2} className="shrink-0" />
+                    <MdPushPin size={16} strokeWidth={2} className="shrink-0" />
                     {isPinned ? "Désépingler" : "Épingler cette conversation"}
                   </button>
                   <button
@@ -1110,7 +1110,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Circle size={16} strokeWidth={2} className="shrink-0 fill-current" />
+                    <MdCircle size={16} strokeWidth={2} className="shrink-0 fill-current" />
                     Marquer comme non lu
                   </button>
                   <button
@@ -1120,7 +1120,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Download size={16} strokeWidth={2} className="shrink-0" />
+                    <MdDownload size={16} strokeWidth={2} className="shrink-0" />
                     Exporter en .txt
                   </button>
                   <button
@@ -1130,7 +1130,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Download size={16} strokeWidth={2} className="shrink-0" />
+                    <MdDownload size={16} strokeWidth={2} className="shrink-0" />
                     Exporter en PDF
                   </button>
                   <button
@@ -1140,14 +1140,14 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
-                    <Trash2 size={16} strokeWidth={2} className="shrink-0" />
+                    <MdDelete size={16} strokeWidth={2} className="shrink-0" />
                     Supprimer la conversation
                   </button>
                   <button
                     onClick={handleToggleBlock}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
-                    <Ban size={16} strokeWidth={2} className="shrink-0" />
+                    <MdBlock size={16} strokeWidth={2} className="shrink-0" />
                     {isBlockedByMe
                       ? `Débloquer ${selectedUser.username}`
                       : `Bloquer ${selectedUser.username}`}
@@ -1167,7 +1167,7 @@ export default function ChatContainer() {
               className="text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
               aria-label="Options du groupe"
             >
-              <MoreVertical size={20} strokeWidth={2} />
+              <MdMoreVert size={20} strokeWidth={2} />
             </button>
             {showGroupMenu && (
               <>
@@ -1183,7 +1183,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Search size={16} strokeWidth={2} className="shrink-0" />
+                    <MdSearch size={16} strokeWidth={2} className="shrink-0" />
                     Recherche
                   </button>
                   <button
@@ -1194,7 +1194,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Calendar size={16} strokeWidth={2} className="shrink-0" />
+                    <MdCalendarToday size={16} strokeWidth={2} className="shrink-0" />
                     Aller à une date
                   </button>
                   <button
@@ -1204,7 +1204,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Palette size={16} strokeWidth={2} className="shrink-0" />
+                    <MdPalette size={16} strokeWidth={2} className="shrink-0" />
                     Thème
                   </button>
                   <button
@@ -1214,7 +1214,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Clock size={16} strokeWidth={2} className="shrink-0" />
+                    <MdAccessTime size={16} strokeWidth={2} className="shrink-0" />
                     Messages éphémères
                     {disappearingSeconds > 0 && (
                       <span className="text-zinc-400">(actif)</span>
@@ -1227,7 +1227,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Volume2 size={16} strokeWidth={2} className="shrink-0" />
+                    <MdVolumeUp size={16} strokeWidth={2} className="shrink-0" />
                     Notification
                   </button>
                   <button
@@ -1238,9 +1238,9 @@ export default function ChatContainer() {
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
                     {isMuted ? (
-                      <BellOff size={16} strokeWidth={2} className="shrink-0" />
+                      <MdNotificationsOff size={16} strokeWidth={2} className="shrink-0" />
                     ) : (
-                      <Bell size={16} strokeWidth={2} className="shrink-0" />
+                      <MdNotifications size={16} strokeWidth={2} className="shrink-0" />
                     )}
                     {isMuted ? "Réactiver les notifications" : "Mettre en sourdine"}
                   </button>
@@ -1251,7 +1251,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Pin size={16} strokeWidth={2} className="shrink-0" />
+                    <MdPushPin size={16} strokeWidth={2} className="shrink-0" />
                     {isPinned ? "Désépingler" : "Épingler cette conversation"}
                   </button>
                   <button
@@ -1261,7 +1261,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Circle size={16} strokeWidth={2} className="shrink-0 fill-current" />
+                    <MdCircle size={16} strokeWidth={2} className="shrink-0 fill-current" />
                     Marquer comme non lu
                   </button>
                   <button
@@ -1271,7 +1271,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Download size={16} strokeWidth={2} className="shrink-0" />
+                    <MdDownload size={16} strokeWidth={2} className="shrink-0" />
                     Exporter en .txt
                   </button>
                   <button
@@ -1281,7 +1281,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                   >
-                    <Download size={16} strokeWidth={2} className="shrink-0" />
+                    <MdDownload size={16} strokeWidth={2} className="shrink-0" />
                     Exporter en PDF
                   </button>
                   <button
@@ -1291,7 +1291,7 @@ export default function ChatContainer() {
                     }}
                     className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   >
-                    <Trash2 size={16} strokeWidth={2} className="shrink-0" />
+                    <MdDelete size={16} strokeWidth={2} className="shrink-0" />
                     Supprimer la conversation
                   </button>
                   {isGroupAdmin && (
@@ -1300,21 +1300,21 @@ export default function ChatContainer() {
                         onClick={handleOpenRenameGroup}
                         className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                       >
-                        <Pencil size={16} strokeWidth={2} className="shrink-0" />
+                        <MdEdit size={16} strokeWidth={2} className="shrink-0" />
                         Renommer le groupe
                       </button>
                       <button
                         onClick={handleOpenAddMembers}
                         className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                       >
-                        <UserPlus size={16} strokeWidth={2} className="shrink-0" />
+                        <MdPersonAdd size={16} strokeWidth={2} className="shrink-0" />
                         Inviter des membres
                       </button>
                       <button
                         onClick={handleOpenManageMembers}
                         className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                       >
-                        <Users size={16} strokeWidth={2} className="shrink-0" />
+                        <MdGroup size={16} strokeWidth={2} className="shrink-0" />
                         Gérer les membres
                       </button>
                       <button
@@ -1322,9 +1322,9 @@ export default function ChatContainer() {
                         className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                       >
                         {selectedGroup.isDiscoverable ? (
-                          <EyeOff size={16} strokeWidth={2} className="shrink-0" />
+                          <MdVisibilityOff size={16} strokeWidth={2} className="shrink-0" />
                         ) : (
-                          <Eye size={16} strokeWidth={2} className="shrink-0" />
+                          <MdVisibility size={16} strokeWidth={2} className="shrink-0" />
                         )}
                         {selectedGroup.isDiscoverable
                           ? "Rendre le groupe privé"
@@ -1335,7 +1335,7 @@ export default function ChatContainer() {
                           onClick={handleOpenJoinRequests}
                           className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                         >
-                          <UserCheck size={16} strokeWidth={2} className="shrink-0" />
+                          <MdHowToReg size={16} strokeWidth={2} className="shrink-0" />
                           Demandes d&apos;adhésion ({pendingJoinRequestsCount})
                         </button>
                       )}
@@ -1346,7 +1346,7 @@ export default function ChatContainer() {
                       onClick={handleOpenDeleteGroupConfirm}
                       className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                     >
-                      <Trash2 size={16} strokeWidth={2} className="shrink-0" />
+                      <MdDelete size={16} strokeWidth={2} className="shrink-0" />
                       Supprimer le groupe
                     </button>
                   )}
@@ -1360,7 +1360,7 @@ export default function ChatContainer() {
       {/* Barre de recherche dans l'historique de la conversation */}
       {showSearch && (
         <div className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
-          <Search size={16} strokeWidth={2} className="text-zinc-400 shrink-0" />
+          <MdSearch size={16} strokeWidth={2} className="text-zinc-400 shrink-0" />
           <input
             type="text"
             autoFocus
@@ -1382,7 +1382,7 @@ export default function ChatContainer() {
             className="text-zinc-500 hover:text-accent-600 disabled:opacity-30 shrink-0"
             aria-label="Résultat précédent"
           >
-            <ChevronUp size={18} strokeWidth={2} />
+            <MdExpandLess size={18} strokeWidth={2} />
           </button>
           <button
             onClick={handleNextResult}
@@ -1390,14 +1390,14 @@ export default function ChatContainer() {
             className="text-zinc-500 hover:text-accent-600 disabled:opacity-30 shrink-0"
             aria-label="Résultat suivant"
           >
-            <ChevronDown size={18} strokeWidth={2} />
+            <MdExpandMore size={18} strokeWidth={2} />
           </button>
           <button
             onClick={handleCloseSearch}
             className="text-zinc-500 hover:text-accent-600 shrink-0"
             aria-label="Fermer la recherche"
           >
-            <X size={18} strokeWidth={2} />
+            <MdClose size={18} strokeWidth={2} />
           </button>
         </div>
       )}
@@ -1431,7 +1431,7 @@ export default function ChatContainer() {
           facilement au fil normal des messages récents */}
       {isViewingAroundDate && (
         <div className="px-4 py-2 flex items-center justify-center gap-2 text-xs bg-accent-50 dark:bg-accent-950 text-accent-700 dark:text-accent-400">
-          <Clock size={13} strokeWidth={2} />
+          <MdAccessTime size={13} strokeWidth={2} />
           Tu consultes d&apos;anciens messages
           <button
             onClick={handleReturnToRecentMessages}
@@ -1556,7 +1556,7 @@ export default function ChatContainer() {
             aria-label="Aller aux nouveaux messages"
             className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-accent-600 text-white shadow-lg flex items-center gap-2 rounded-full sm:px-4 sm:py-2 w-10 h-10 sm:w-auto sm:h-auto justify-center"
           >
-            <ArrowDown size={18} strokeWidth={2.5} className="shrink-0" />
+            <MdArrowDownward size={18} strokeWidth={2.5} className="shrink-0" />
             <span className="hidden sm:inline text-sm font-medium">
               {newMessagesCount} nouveau{newMessagesCount > 1 ? "x" : ""}{" "}
               message
@@ -1719,7 +1719,7 @@ export default function ChatContainer() {
                     className="px-3 py-2 text-zinc-400 hover:text-accent-600 transition"
                     aria-label={`Écouter ${s.label}`}
                   >
-                    <Volume2 size={16} strokeWidth={2} />
+                    <MdVolumeUp size={16} strokeWidth={2} />
                   </button>
                 </div>
               ))}
@@ -2035,7 +2035,7 @@ export default function ChatContainer() {
                     className="text-accent-600 hover:text-accent-700 transition"
                     aria-label="Valider le surnom"
                   >
-                    <UserCheck size={18} strokeWidth={2} />
+                    <MdHowToReg size={18} strokeWidth={2} />
                   </button>
                 </div>
               ) : (
@@ -2050,7 +2050,7 @@ export default function ChatContainer() {
                       className="text-zinc-400 hover:text-accent-600 transition"
                       aria-label="Modifier le surnom"
                     >
-                      <Pencil size={14} strokeWidth={2} />
+                      <MdEdit size={14} strokeWidth={2} />
                     </button>
                   )}
                 </h3>
@@ -2077,9 +2077,9 @@ export default function ChatContainer() {
                 className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
                 {isMuted ? (
-                  <BellOff size={15} strokeWidth={2} className="shrink-0" />
+                  <MdNotificationsOff size={15} strokeWidth={2} className="shrink-0" />
                 ) : (
-                  <Bell size={15} strokeWidth={2} className="shrink-0" />
+                  <MdNotifications size={15} strokeWidth={2} className="shrink-0" />
                 )}
                 {isMuted
                   ? "Réactiver les notifications"
@@ -2089,7 +2089,7 @@ export default function ChatContainer() {
                 onClick={handleHideConversation}
                 className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
-                <EyeOff size={15} strokeWidth={2} className="shrink-0" />
+                <MdVisibilityOff size={15} strokeWidth={2} className="shrink-0" />
                 Masquer cette conversation
               </button>
             </div>
@@ -2124,7 +2124,7 @@ export default function ChatContainer() {
                         className="text-accent-600 hover:text-accent-700 transition"
                         aria-label="Valider l'étiquette"
                       >
-                        <UserCheck size={16} strokeWidth={2} />
+                        <MdHowToReg size={16} strokeWidth={2} />
                       </button>
                     </div>
                   ) : (
@@ -2142,7 +2142,7 @@ export default function ChatContainer() {
                       ) : (
                         <span className="text-zinc-400">Ajouter une étiquette</span>
                       )}
-                      <Pencil size={12} strokeWidth={2} className="text-zinc-400 shrink-0" />
+                      <MdEdit size={12} strokeWidth={2} className="text-zinc-400 shrink-0" />
                     </button>
                   )}
                 </div>
@@ -2151,9 +2151,9 @@ export default function ChatContainer() {
                   className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 -mx-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                 >
                   {isHiddenFromContact ? (
-                    <EyeOff size={15} strokeWidth={2} className="shrink-0" />
+                    <MdVisibilityOff size={15} strokeWidth={2} className="shrink-0" />
                   ) : (
-                    <Eye size={15} strokeWidth={2} className="shrink-0" />
+                    <MdVisibility size={15} strokeWidth={2} className="shrink-0" />
                   )}
                   {isHiddenFromContact
                     ? `Statut en ligne caché à ${selectedUser.username}`
@@ -2227,7 +2227,7 @@ export default function ChatContainer() {
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 text-sm text-accent-600 dark:text-accent-400 hover:underline truncate"
                           >
-                            <Link2 size={14} strokeWidth={2} className="shrink-0" />
+                            <MdLink size={14} strokeWidth={2} className="shrink-0" />
                             <span className="truncate">
                               {m.linkPreview?.title || m.linkPreview?.url}
                             </span>
@@ -2252,7 +2252,7 @@ export default function ChatContainer() {
                           }}
                           className="w-full flex items-center gap-2 text-sm text-left px-2 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                         >
-                          <Users size={14} strokeWidth={2} className="shrink-0 text-zinc-400" />
+                          <MdGroup size={14} strokeWidth={2} className="shrink-0 text-zinc-400" />
                           <span className="truncate">{g.name}</span>
                         </button>
                       ))}
@@ -2266,7 +2266,7 @@ export default function ChatContainer() {
                   }}
                   className="w-full flex items-center gap-2 text-left text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg px-2 py-2 transition"
                 >
-                  <Ban size={15} strokeWidth={2} className="shrink-0" />
+                  <MdBlock size={15} strokeWidth={2} className="shrink-0" />
                   {isBlockedByMe
                     ? `Débloquer ${selectedUser.username}`
                     : `Bloquer ${selectedUser.username}`}
@@ -2330,7 +2330,7 @@ export default function ChatContainer() {
                       }}
                       className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
-                      <Pencil size={15} strokeWidth={2} className="shrink-0" />
+                      <MdEdit size={15} strokeWidth={2} className="shrink-0" />
                       Renommer le groupe
                     </button>
                     <button
@@ -2340,7 +2340,7 @@ export default function ChatContainer() {
                       }}
                       className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
-                      <UserPlus size={15} strokeWidth={2} className="shrink-0" />
+                      <MdPersonAdd size={15} strokeWidth={2} className="shrink-0" />
                       Inviter des membres
                     </button>
                     <button
@@ -2348,9 +2348,9 @@ export default function ChatContainer() {
                       className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                     >
                       {selectedGroup.isDiscoverable ? (
-                        <EyeOff size={15} strokeWidth={2} className="shrink-0" />
+                        <MdVisibilityOff size={15} strokeWidth={2} className="shrink-0" />
                       ) : (
-                        <Eye size={15} strokeWidth={2} className="shrink-0" />
+                        <MdVisibility size={15} strokeWidth={2} className="shrink-0" />
                       )}
                       {selectedGroup.isDiscoverable
                         ? "Rendre le groupe privé"
@@ -2364,7 +2364,7 @@ export default function ChatContainer() {
                         }}
                         className="w-full flex items-center gap-2 text-left text-sm px-2 py-2 rounded-lg text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                       >
-                        <Trash2 size={15} strokeWidth={2} className="shrink-0" />
+                        <MdDelete size={15} strokeWidth={2} className="shrink-0" />
                         Supprimer le groupe
                       </button>
                     )}
@@ -2394,7 +2394,7 @@ export default function ChatContainer() {
             className="absolute top-4 right-4 text-white"
             aria-label="Fermer l'aperçu"
           >
-            <X size={32} strokeWidth={2} />
+            <MdClose size={32} strokeWidth={2} />
           </button>
           <Image
             src={fullscreenMediaUrl}
