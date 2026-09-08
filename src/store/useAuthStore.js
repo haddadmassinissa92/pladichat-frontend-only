@@ -347,6 +347,28 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Met à jour le mode "ne pas déranger" (activation et/ou plage horaire).
+  // Capture automatiquement le décalage de fuseau horaire actuel du
+  // navigateur, pour que le serveur puisse comparer correctement même s'il
+  // tourne lui-même dans un autre fuseau.
+  updateDoNotDisturb: async (updates) => {
+    try {
+      const res = await axiosInstance.put("/users/do-not-disturb", {
+        ...updates,
+        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
+      });
+      set({
+        authUser: { ...get().authUser, doNotDisturb: res.data.doNotDisturb },
+      });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   // Change le nom d'utilisateur du compte connecté
   updateUsername: async (username) => {
     try {

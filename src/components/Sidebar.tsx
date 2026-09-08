@@ -117,6 +117,30 @@ function toggleTheme(): boolean {
   return isDark;
 }
 
+// Vérifie si l'heure actuelle (celle de cet appareil) tombe dans la plage
+// "ne pas déranger" configurée, pour couper le son de notification en local
+// sans attendre un aller-retour serveur
+function isCurrentlyInDoNotDisturb(dnd?: {
+  enabled: boolean;
+  start: string;
+  end: string;
+}): boolean {
+  if (!dnd || !dnd.enabled) return false;
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const [startH, startM] = dnd.start.split(":").map(Number);
+  const [endH, endM] = dnd.end.split(":").map(Number);
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+
+  if (startMinutes === endMinutes) return false;
+  if (startMinutes < endMinutes) {
+    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+  }
+  return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+}
+
 export default function Sidebar() {
   const {
     users,
@@ -182,6 +206,7 @@ export default function Sidebar() {
     getBlockedUsersList,
     toggleBlockUser,
     toggleMuteConversation,
+    updateDoNotDisturb,
   } = useAuthStore();
   const {
     handleIncomingCall,
@@ -537,8 +562,9 @@ export default function Sidebar() {
       unhideConversation(msg.group || msg.sender || "");
 
       // Joue le son de notification propre à cette conversation, sauf si
-      // c'est nous-même qui venons d'envoyer ce message, ou si les
-      // notifications sont coupées pour cette conversation précise.
+      // c'est nous-même qui venons d'envoyer ce message, si les
+      // notifications sont coupées pour cette conversation précise, ou si
+      // le mode "ne pas déranger" est actuellement actif.
       // On relit l'état actuel du store (plutôt que la variable "authUser"
       // de la fermeture de ce composant) pour toujours avoir la dernière
       // liste de conversations en sourdine, même si elle vient de changer
@@ -546,7 +572,8 @@ export default function Sidebar() {
       const currentAuthUser = useAuthStore.getState().authUser;
       const conversationId = msg.group || msg.sender || "";
       const isMuted = (currentAuthUser?.mutedConversations || []).includes(conversationId);
-      if (msg.sender !== currentAuthUser?._id && !isMuted) {
+      const isDnd = isCurrentlyInDoNotDisturb(currentAuthUser?.doNotDisturb);
+      if (msg.sender !== currentAuthUser?._id && !isMuted && !isDnd) {
         playNotificationSound(conversationId);
       }
     };
@@ -1557,6 +1584,48 @@ export default function Sidebar() {
                   }`}
                 />
               </button>
+            </div>
+
+            <div className="px-2 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <BellOff size={16} strokeWidth={2} />
+                  Ne pas déranger
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateDoNotDisturb({ enabled: !authUser?.doNotDisturb?.enabled })
+                  }
+                  aria-label="Basculer le mode ne pas déranger"
+                  className={`relative w-10 h-5 rounded-full transition-colors ${
+                    authUser?.doNotDisturb?.enabled ? "bg-accent-600" : "bg-zinc-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                      authUser?.doNotDisturb?.enabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+              {authUser?.doNotDisturb?.enabled && (
+                <div className="flex items-center gap-2 mt-2 pl-6">
+                  <input
+                    type="time"
+                    value={authUser.doNotDisturb.start || "22:00"}
+                    onChange={(e) => updateDoNotDisturb({ start: e.target.value })}
+                    className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-2 py-1 bg-transparent text-sm"
+                  />
+                  <span className="text-zinc-400">à</span>
+                  <input
+                    type="time"
+                    value={authUser.doNotDisturb.end || "07:00"}
+                    onChange={(e) => updateDoNotDisturb({ end: e.target.value })}
+                    className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-2 py-1 bg-transparent text-sm"
+                  />
+                </div>
+              )}
             </div>
 
             <button
