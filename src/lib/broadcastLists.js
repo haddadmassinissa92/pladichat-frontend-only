@@ -22,6 +22,11 @@ export function getBroadcastLists() {
   return readLists();
 }
 
+/**
+ * @param {string} name
+ * @param {string[]} memberIds
+ * @param {string | null} [existingId]
+ */
 export function saveBroadcastList(name, memberIds, existingId = null) {
   const lists = readLists();
   if (existingId) {
