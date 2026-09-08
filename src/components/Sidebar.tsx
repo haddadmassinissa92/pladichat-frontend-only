@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, Send } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, Send, Download } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -172,6 +172,7 @@ export default function Sidebar() {
     socket,
     changePassword,
     deleteAccount,
+    exportAccountData,
     updateUsername,
     updateEmail,
     blockedUsersList,
@@ -252,6 +253,13 @@ export default function Sidebar() {
   const handleDeleteBroadcastList = (id: string) => {
     deleteBroadcastList(id);
     setBroadcastListsData(getBroadcastLists());
+  };
+
+  const [isExportingAccount, setIsExportingAccount] = useState(false);
+  const handleExportAccount = async () => {
+    setIsExportingAccount(true);
+    await exportAccountData();
+    setIsExportingAccount(false);
   };
 
   const handleSendBroadcast = async () => {
@@ -1411,6 +1419,15 @@ export default function Sidebar() {
             >
               <Megaphone size={16} strokeWidth={2} className="shrink-0" />
               Listes de diffusion
+            </button>
+
+            <button
+              onClick={handleExportAccount}
+              disabled={isExportingAccount}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
+            >
+              <Download size={16} strokeWidth={2} className="shrink-0" />
+              {isExportingAccount ? "Export en cours..." : "Exporter mes données"}
             </button>
             </div>
 

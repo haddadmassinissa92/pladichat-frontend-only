@@ -238,6 +238,49 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Télécharge une sauvegarde complète du compte : profil, contacts,
+  // groupes, tous les messages (depuis le serveur), et toutes les
+  // préférences propres à cet appareil (surnoms, étiquettes, couleur,
+  // sonnerie, fonds d'écran, listes de diffusion...), regroupées
+  // automatiquement en cherchant toutes les clés locales de l'application
+  exportAccountData: async () => {
+    try {
+      const res = await axiosInstance.get("/users/export-data");
+
+      const preferences = {};
+      if (typeof window !== "undefined") {
+        Object.keys(localStorage)
+          .filter((key) => key.startsWith("chat"))
+          .forEach((key) => {
+            try {
+              preferences[key] = JSON.parse(localStorage.getItem(key));
+            } catch {
+              preferences[key] = localStorage.getItem(key);
+            }
+          });
+      }
+
+      const fullExport = { ...res.data, preferences };
+
+      const blob = new Blob([JSON.stringify(fullExport, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pladichat-export-${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   // Fonction pour bloquer ou débloquer un utilisateur (bascule automatique)
   toggleBlockUser: async (userId) => {
     try {
