@@ -25,10 +25,10 @@ export default function MessageInput() {
   // Le panneau d'emojis mobile est téléporté directement dans <body> via un
   // portail (voir plus bas) pour garantir un vrai positionnement "fixed" par
   // rapport à l'écran, sans être affecté par les animations de la page
-  // (transform sur les conteneurs parents) qui casseraient sinon son ancrage.
-  // On évite un `setState` dans un effet : le portail ne doit être rendu que
-  // côté navigateur, ce qui est déjà garanti par l'environnement client.
-  const mounted = typeof window !== "undefined" && typeof document !== "undefined";
+  // (transform sur les conteneurs parents) qui casseraient sinon son ancrage
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMounted(true), []);
 
   // etats pour la gestion des messages, modification, suppression et réponse
   const sendMessage = useChatStore((state) => state.sendMessage);
@@ -42,35 +42,27 @@ export default function MessageInput() {
   // si on tapait encore quand on a cliqué sur une autre conversation.
   const conversationId = selectedUser?._id || selectedGroup?._id || null;
   const previousConversationIdRef = useRef<string | null>(null);
-  const textRef = useRef(text);
-
   useEffect(() => {
-    textRef.current = text;
-  }, [text]);
-
-  useEffect(() => {
-    const prevId = previousConversationIdRef.current;
-    if (prevId && prevId !== conversationId) {
-      saveDraft(prevId, textRef.current);
+    if (
+      previousConversationIdRef.current &&
+      previousConversationIdRef.current !== conversationId
+    ) {
+      saveDraft(previousConversationIdRef.current, text);
       window.dispatchEvent(new Event("chatSettingsChanged"));
     }
-
-    const nextText = getDraft(conversationId);
-    const rafId = window.requestAnimationFrame(() => {
-      setText(nextText);
-      previousConversationIdRef.current = conversationId;
-    });
-
-    return () => window.cancelAnimationFrame(rafId);
-  }, [conversationId]);
+    // Le changement de conversation impose une restauration du brouillon
+    // courant, ce qui nécessite une mise à jour d'état explicite ici.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setText(getDraft(conversationId));
+    previousConversationIdRef.current = conversationId;
+  }, [conversationId, text]);
 
   // Sauvegarde aussi en continu pendant la frappe (léger debounce), pour ne
-  // pas perdre le brouillon en cas de fermeture accidentelle de l'onglet.
-  // Ne prévient pas la sidebar à chaque frappe (uniquement au changement de
-  // conversation ci-dessus, et après l'envoi plus bas) pour rester léger.
+  // pas perdre le brouillon en cas de fermeture accidentelle de l'onglet
   useEffect(() => {
     const timeout = setTimeout(() => {
       saveDraft(conversationId, text);
+      window.dispatchEvent(new Event("chatSettingsChanged"));
     }, 400);
     return () => clearTimeout(timeout);
   }, [text, conversationId]);

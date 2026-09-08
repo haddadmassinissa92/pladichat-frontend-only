@@ -237,6 +237,53 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Programme l'envoi d'un message texte à une date/heure future, pour la
+  // conversation actuellement ouverte
+  scheduleMessage: async (text, scheduledFor) => {
+    const { selectedUser, selectedGroup } = get();
+    try {
+      const targetId = selectedGroup ? selectedGroup._id : selectedUser._id;
+      const body = selectedGroup
+        ? { text, scheduledFor, groupId: selectedGroup._id }
+        : { text, scheduledFor };
+
+      await axiosInstance.post(`/messages/schedule/${targetId}`, body);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
+  // Liste tous les messages programmés en attente de l'utilisateur connecté
+  scheduledMessages: [],
+  getScheduledMessages: async () => {
+    try {
+      const res = await axiosInstance.get("/messages/scheduled/mine");
+      set({ scheduledMessages: res.data.scheduled });
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
+  // Annule un message programmé avant son envoi
+  cancelScheduledMessage: async (id) => {
+    try {
+      await axiosInstance.delete(`/messages/scheduled/${id}`);
+      set({
+        scheduledMessages: get().scheduledMessages.filter((m) => m._id !== id),
+      });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   // Fonction pour définir le message auquel l'utilisateur répond
   setReplyingTo: (message) => set({ replyingTo: message }),
 

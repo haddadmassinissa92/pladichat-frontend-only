@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, Send, Download } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, Send, Download, Clock } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -162,6 +162,9 @@ export default function Sidebar() {
     getPendingGroupInvites,
     respondToGroupInvite,
     sendBroadcastMessage,
+    scheduledMessages,
+    getScheduledMessages,
+    cancelScheduledMessage,
   } = useChatStore();
   const {
     onlineUsers,
@@ -261,6 +264,8 @@ export default function Sidebar() {
     await exportAccountData();
     setIsExportingAccount(false);
   };
+
+  const [showScheduledMessages, setShowScheduledMessages] = useState(false);
 
   const handleSendBroadcast = async () => {
     if (!composingBroadcast || !broadcastText.trim()) return;
@@ -1422,6 +1427,21 @@ export default function Sidebar() {
             </button>
 
             <button
+              onClick={() => {
+                setShowMyProfile(false);
+                getScheduledMessages();
+                setShowScheduledMessages(true);
+              }}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <Clock size={16} strokeWidth={2} className="shrink-0" />
+              Messages programmés
+              {scheduledMessages.length > 0 && (
+                <span className="text-zinc-400">({scheduledMessages.length})</span>
+              )}
+            </button>
+
+            <button
               onClick={handleExportAccount}
               disabled={isExportingAccount}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
@@ -1804,6 +1824,68 @@ export default function Sidebar() {
             <button
               onClick={() => setShowQrCodeOnly(false)}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : liste des messages programmés en attente, avec annulation */}
+      {showScheduledMessages && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowScheduledMessages(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-3">Messages programmés</h3>
+            <div className="custom-scrollbar max-h-80 overflow-y-auto flex flex-col gap-1">
+              {scheduledMessages.length === 0 && (
+                <p className="text-sm text-zinc-400">
+                  Aucun message programmé pour le moment.
+                </p>
+              )}
+              {scheduledMessages.map((m: {
+                _id: string;
+                text: string;
+                scheduledFor: string;
+                receiver?: { username: string };
+                group?: { name: string };
+              }) => (
+                <div
+                  key={m._id}
+                  className="py-2 text-sm border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-medium truncate">
+                      {m.group ? m.group.name : m.receiver?.username}
+                    </span>
+                    <button
+                      onClick={() => cancelScheduledMessage(m._id)}
+                      className="text-xs shrink-0 px-2.5 py-1 rounded-full border border-red-300 text-red-600 dark:border-red-800"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                  <p className="text-zinc-500 dark:text-zinc-400 truncate">{m.text}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    {new Date(m.scheduledFor).toLocaleString("fr-FR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowScheduledMessages(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
             >
               Fermer
             </button>
