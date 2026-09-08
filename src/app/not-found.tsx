@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { MdHelpOutline } from "react-icons/md";
+import { FileQuestion } from "lucide-react";
 
 export default function NotFound() {
   return (
     <div className="h-dvh flex flex-col items-center justify-center text-center p-6 bg-white dark:bg-zinc-950">
-      <MdHelpOutline
+      <FileQuestion
         size={56}
         strokeWidth={1.5}
         className="text-accent-600 mb-4"

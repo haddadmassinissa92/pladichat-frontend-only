@@ -7,7 +7,7 @@ import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import EmojiPicker from "./EmojiPicker";
 import Avatar from "./Avatar";
-import { MdAddReaction, MdAdd, MdClose, MdCheck, MdDoneAll, MdForward } from "react-icons/md";
+import { SmilePlus, Plus, X, Check, CheckCheck, Forward } from "lucide-react";
 
 // Type volontairement souple : couvre à la fois la forme d'un contact
 // ({_id, username, avatar}) et celle d'un groupe ({_id, name}), pour la
@@ -329,9 +329,9 @@ export default function MessageBubble({
             {isMine && (
               <span className="inline-flex ml-2 opacity-70 align-middle">
                 {msg.status === "read" ? (
-                  <MdDoneAll size={14} strokeWidth={2} />
+                  <CheckCheck size={14} strokeWidth={2} />
                 ) : (
-                  <MdCheck size={14} strokeWidth={2} />
+                  <Check size={14} strokeWidth={2} />
                 )}
               </span>
             )}
@@ -346,7 +346,7 @@ export default function MessageBubble({
               className="opacity-0 group-hover:opacity-100 transition px-1 self-center text-zinc-500 hover:text-accent-600"
               aria-label="Réagir"
             >
-              <MdAddReaction size={16} strokeWidth={2} />
+              <SmilePlus size={16} strokeWidth={2} />
             </button>
 
             {showReactionPicker && (
@@ -377,7 +377,7 @@ export default function MessageBubble({
                     className="text-zinc-400 hover:text-zinc-600 px-1"
                     aria-label="Plus d'emojis"
                   >
-                    <MdAdd size={16} strokeWidth={2} />
+                    <Plus size={16} strokeWidth={2} />
                   </button>
                 </div>
               </>
@@ -462,7 +462,7 @@ export default function MessageBubble({
                 className="text-zinc-400 hover:text-zinc-600 px-1"
                 aria-label="Plus d'emojis"
               >
-                <MdAdd size={16} strokeWidth={2} />
+                <Plus size={16} strokeWidth={2} />
               </button>
             </div>
             <button
@@ -485,7 +485,7 @@ export default function MessageBubble({
               }}
               className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
-              <MdForward size={15} strokeWidth={2} />
+              <Forward size={15} strokeWidth={2} />
               Transférer
             </button>
             {isMine && (
@@ -579,7 +579,7 @@ export default function MessageBubble({
                       />
                       <span className="truncate flex-1">{groupName}</span>
                       {forwardedToId === g._id && (
-                        <MdCheck size={16} strokeWidth={2} className="text-emerald-600 shrink-0" />
+                        <Check size={16} strokeWidth={2} className="text-emerald-600 shrink-0" />
                       )}
                     </button>
                   );
@@ -604,7 +604,7 @@ export default function MessageBubble({
                     />
                     <span className="truncate flex-1">{u.username}</span>
                     {forwardedToId === u._id && (
-                      <MdCheck size={16} strokeWidth={2} className="text-emerald-600 shrink-0" />
+                      <Check size={16} strokeWidth={2} className="text-emerald-600 shrink-0" />
                     )}
                   </button>
                 ))}
@@ -630,7 +630,7 @@ export default function MessageBubble({
             className="absolute top-4 right-4 text-white"
             aria-label="Fermer l'aperçu"
           >
-            <MdClose size={32} strokeWidth={2} />
+            <X size={32} strokeWidth={2} />
           </button>
           <Image
             src={msg.image}

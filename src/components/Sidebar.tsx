@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { MdSearch, MdAdd, MdPalette, MdCameraAlt, MdDarkMode, MdNotifications, MdNotificationsOff, MdLock, MdLogout, MdDelete, MdPersonAdd, MdClose, MdMusicNote, MdVolumeUp, MdHowToReg, MdEdit, MdBlock, MdLink, MdVisibilityOff, MdQrCode2, MdExplore, MdCampaign, MdSend, MdDownload } from "react-icons/md";
+import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, Send, Download } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -832,7 +832,7 @@ export default function Sidebar() {
             aria-label="Ajouter un contact"
             title="Ajouter un contact"
           >
-            <MdPersonAdd size={20} strokeWidth={2} />
+            <UserPlus size={20} strokeWidth={2} />
             {contactRequests.length + pendingGroupInvites.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] leading-none rounded-full w-4 h-4 flex items-center justify-center">
                 {contactRequests.length + pendingGroupInvites.length}
@@ -845,7 +845,7 @@ export default function Sidebar() {
             aria-label="Découvrir des groupes"
             title="Découvrir des groupes"
           >
-            <MdExplore size={20} strokeWidth={2} />
+            <Compass size={20} strokeWidth={2} />
           </button>
           <button
             onClick={() => setShowGlobalSearch(true)}
@@ -853,14 +853,14 @@ export default function Sidebar() {
             aria-label="Rechercher dans mes messages"
             title="Rechercher dans mes messages"
           >
-            <MdSearch size={20} strokeWidth={2} />
+            <Search size={20} strokeWidth={2} />
           </button>
           <button
             onClick={() => setShowCreateGroup(true)}
             className="text-zinc-600 dark:text-zinc-300 hover:text-accent-600 transition"
             aria-label="Créer un groupe"
           >
-            <MdAdd size={22} strokeWidth={2} />
+            <Plus size={22} strokeWidth={2} />
           </button>
         </div>
       </div>
@@ -1247,7 +1247,7 @@ export default function Sidebar() {
                 aria-label="Changer la photo"
                 className="absolute bottom-0 right-0 bg-accent-600 hover:bg-accent-700 transition text-white rounded-full w-8 h-8 flex items-center justify-center border-2 border-white dark:border-zinc-900"
               >
-                <MdCameraAlt size={14} strokeWidth={2} />
+                <Camera size={14} strokeWidth={2} />
               </span>
             </button>
             {isEditingUsername ? (
@@ -1264,7 +1264,7 @@ export default function Sidebar() {
                   className="text-accent-600 hover:text-accent-700 transition"
                   aria-label="Valider le nom d'utilisateur"
                 >
-                  <MdHowToReg size={18} strokeWidth={2} />
+                  <UserCheck size={18} strokeWidth={2} />
                 </button>
               </div>
             ) : (
@@ -1279,7 +1279,7 @@ export default function Sidebar() {
                   className="text-zinc-400 hover:text-accent-600 transition"
                   aria-label="Modifier le nom d'utilisateur"
                 >
-                  <MdEdit size={14} strokeWidth={2} />
+                  <Pencil size={14} strokeWidth={2} />
                 </button>
               </h3>
             )}
@@ -1301,7 +1301,7 @@ export default function Sidebar() {
                   className="text-accent-600 hover:text-accent-700 transition"
                   aria-label="Valider l'adresse email"
                 >
-                  <MdHowToReg size={16} strokeWidth={2} />
+                  <UserCheck size={16} strokeWidth={2} />
                 </button>
               </div>
             ) : (
@@ -1316,7 +1316,7 @@ export default function Sidebar() {
                   className="text-zinc-400 hover:text-accent-600 transition"
                   aria-label="Modifier l'adresse email"
                 >
-                  <MdEdit size={12} strokeWidth={2} />
+                  <Pencil size={12} strokeWidth={2} />
                 </button>
               </p>
             )}
@@ -1338,7 +1338,7 @@ export default function Sidebar() {
               onClick={handleCopyShareLink}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdLink size={16} strokeWidth={2} className="shrink-0" />
+              <LinkIcon size={16} strokeWidth={2} className="shrink-0" />
               {linkCopied ? "Lien copié !" : "Copier mon lien d'ajout"}
             </button>
 
@@ -1346,7 +1346,7 @@ export default function Sidebar() {
               onClick={() => setShowQrCodeOnly(true)}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdQrCode2 size={16} strokeWidth={2} className="shrink-0" />
+              <QrCode size={16} strokeWidth={2} className="shrink-0" />
               Mon QR code
             </button>
 
@@ -1358,7 +1358,7 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdBlock size={16} strokeWidth={2} className="shrink-0" />
+              <Ban size={16} strokeWidth={2} className="shrink-0" />
               Utilisateurs bloqués
             </button>
 
@@ -1369,7 +1369,7 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdVisibilityOff size={16} strokeWidth={2} className="shrink-0" />
+              <EyeOff size={16} strokeWidth={2} className="shrink-0" />
               Conversations masquées
               {hiddenUsers.length + hiddenGroups.length > 0 && (
                 <span className="text-zinc-400">
@@ -1385,7 +1385,7 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdNotificationsOff size={16} strokeWidth={2} className="shrink-0" />
+              <BellOff size={16} strokeWidth={2} className="shrink-0" />
               Notifications coupées
               {mutedUsers.length + mutedGroups.length > 0 && (
                 <span className="text-zinc-400">
@@ -1402,7 +1402,7 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdPersonAdd size={16} strokeWidth={2} className="shrink-0" />
+              <UserPlus size={16} strokeWidth={2} className="shrink-0" />
               Demandes envoyées
               {sentContactRequests.length > 0 && (
                 <span className="text-zinc-400">({sentContactRequests.length})</span>
@@ -1417,7 +1417,7 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdCampaign size={16} strokeWidth={2} className="shrink-0" />
+              <Megaphone size={16} strokeWidth={2} className="shrink-0" />
               Listes de diffusion
             </button>
 
@@ -1426,7 +1426,7 @@ export default function Sidebar() {
               disabled={isExportingAccount}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
             >
-              <MdDownload size={16} strokeWidth={2} className="shrink-0" />
+              <Download size={16} strokeWidth={2} className="shrink-0" />
               {isExportingAccount ? "Export en cours..." : "Exporter mes données"}
             </button>
             </div>
@@ -1440,7 +1440,7 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdPalette size={16} strokeWidth={2} className="shrink-0" />
+              <Palette size={16} strokeWidth={2} className="shrink-0" />
               Fond d&apos;écran
             </button>
             <input
@@ -1458,7 +1458,7 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdMusicNote size={16} strokeWidth={2} className="shrink-0" />
+              <Music size={16} strokeWidth={2} className="shrink-0" />
               Sonnerie d&apos;appel
             </button>
 
@@ -1469,13 +1469,13 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdNotifications size={16} strokeWidth={2} className="shrink-0" />
+              <Bell size={16} strokeWidth={2} className="shrink-0" />
               Notification
             </button>
 
             <div className="px-2 py-2">
               <p className="flex items-center gap-2 text-sm mb-2">
-                <MdPalette size={16} strokeWidth={2} />
+                <Palette size={16} strokeWidth={2} />
                 Couleur d&apos;accent
               </p>
               <div className="flex items-center gap-2 flex-wrap">
@@ -1498,7 +1498,7 @@ export default function Sidebar() {
 
             <div className="flex items-center justify-between px-2 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800">
               <span className="flex items-center gap-2">
-                <MdDarkMode size={16} strokeWidth={2} />
+                <Moon size={16} strokeWidth={2} />
                 Mode sombre
               </span>
               <button
@@ -1519,7 +1519,7 @@ export default function Sidebar() {
 
             <div className="flex items-center justify-between px-2 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800">
               <span className="flex items-center gap-2">
-                <MdNotifications size={16} strokeWidth={2} />
+                <Bell size={16} strokeWidth={2} />
                 Notifications push
               </span>
               <button
@@ -1546,7 +1546,7 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <MdLock size={16} strokeWidth={2} className="shrink-0" />
+              <Lock size={16} strokeWidth={2} className="shrink-0" />
               Mot de passe
             </button>
 
@@ -1554,7 +1554,7 @@ export default function Sidebar() {
               onClick={logout}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
             >
-              <MdLogout size={16} strokeWidth={2} className="shrink-0" />
+              <LogOut size={16} strokeWidth={2} className="shrink-0" />
               Se déconnecter
             </button>
 
@@ -1565,7 +1565,7 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
             >
-              <MdLogout size={16} strokeWidth={2} className="shrink-0" />
+              <LogOut size={16} strokeWidth={2} className="shrink-0" />
               Se déconnecter de tous les appareils
             </button>
 
@@ -1576,7 +1576,7 @@ export default function Sidebar() {
               }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
             >
-              <MdDelete size={16} strokeWidth={2} className="shrink-0" />
+              <Trash2 size={16} strokeWidth={2} className="shrink-0" />
               Supprimer mon compte
             </button>
 
@@ -1768,7 +1768,7 @@ export default function Sidebar() {
             className="absolute top-4 right-4 text-white"
             aria-label="Fermer l'aperçu"
           >
-            <MdClose size={32} strokeWidth={2} />
+            <X size={32} strokeWidth={2} />
           </button>
           <Image
             src={authUser.avatar}
@@ -1855,14 +1855,14 @@ export default function Sidebar() {
                       className="text-zinc-400 hover:text-accent-600 transition"
                       aria-label="Modifier la liste"
                     >
-                      <MdEdit size={14} strokeWidth={2} />
+                      <Pencil size={14} strokeWidth={2} />
                     </button>
                     <button
                       onClick={() => handleDeleteBroadcastList(list.id)}
                       className="text-zinc-400 hover:text-red-600 transition"
                       aria-label="Supprimer la liste"
                     >
-                      <MdDelete size={14} strokeWidth={2} />
+                      <Trash2 size={14} strokeWidth={2} />
                     </button>
                   </div>
                 </div>
@@ -1874,7 +1874,7 @@ export default function Sidebar() {
               }
               className="w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition mb-2"
             >
-              <MdAdd size={16} strokeWidth={2} />
+              <Plus size={16} strokeWidth={2} />
               Nouvelle liste
             </button>
             <button
@@ -1977,7 +1977,7 @@ export default function Sidebar() {
                 disabled={!broadcastText.trim() || isSendingBroadcast}
                 className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
-                <MdSend size={14} strokeWidth={2} />
+                <Send size={14} strokeWidth={2} />
                 {isSendingBroadcast ? "Envoi..." : "Envoyer"}
               </button>
             </div>
@@ -2352,7 +2352,7 @@ export default function Sidebar() {
                     className="flex-1 flex items-center gap-2 text-left px-3 py-2.5 text-sm text-zinc-700 dark:text-zinc-200"
                   >
                     {selectedRingtone === r.id ? (
-                      <MdHowToReg size={16} strokeWidth={2} className="text-accent-600 shrink-0" />
+                      <UserCheck size={16} strokeWidth={2} className="text-accent-600 shrink-0" />
                     ) : (
                       <span className="w-4 shrink-0" />
                     )}
@@ -2368,7 +2368,7 @@ export default function Sidebar() {
                     className="px-3 py-2 text-zinc-400 hover:text-accent-600 transition border-l border-zinc-200 dark:border-zinc-700"
                     aria-label={`Écouter ${r.label}`}
                   >
-                    <MdVolumeUp size={16} strokeWidth={2} />
+                    <Volume2 size={16} strokeWidth={2} />
                   </button>
                 </div>
               ))}
@@ -2404,7 +2404,7 @@ export default function Sidebar() {
                     className="flex-1 flex items-center gap-2 text-left px-3 py-2.5 text-sm text-zinc-700 dark:text-zinc-200"
                   >
                     {selectedNotificationSound === s.id ? (
-                      <MdHowToReg size={16} strokeWidth={2} className="text-accent-600 shrink-0" />
+                      <UserCheck size={16} strokeWidth={2} className="text-accent-600 shrink-0" />
                     ) : (
                       <span className="w-4 shrink-0" />
                     )}
@@ -2420,7 +2420,7 @@ export default function Sidebar() {
                     className="px-3 py-2 text-zinc-400 hover:text-accent-600 transition border-l border-zinc-200 dark:border-zinc-700"
                     aria-label={`Écouter ${s.label}`}
                   >
-                    <MdVolumeUp size={16} strokeWidth={2} />
+                    <Volume2 size={16} strokeWidth={2} />
                   </button>
                 </div>
               ))}

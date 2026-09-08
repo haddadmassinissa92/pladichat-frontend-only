@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { MdMic, MdMicOff, MdPersonAdd, MdCall, MdCallEnd, MdVideocam, MdVideocamOff } from "react-icons/md";
+import { Phone, PhoneOff, Video, Mic, MicOff, VideoOff, UserPlus } from "lucide-react";
 import { useCallStore } from "@/store/useCallStore";
 import { useChatStore } from "@/store/useChatStore";
 import Avatar from "./Avatar";
@@ -342,7 +342,7 @@ export default function CallModal() {
               onClick={handleTapToPlay}
               className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/80 text-white"
             >
-              <MdVideocam size={40} />
+              <Video size={40} />
               <p className="text-sm font-medium">Appuie pour activer l&apos;appel</p>
             </button>
           )}
@@ -472,14 +472,14 @@ export default function CallModal() {
                   className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label="Refuser"
                 >
-                  <MdCallEnd size={26} />
+                  <PhoneOff size={26} />
                 </button>
                 <button
                   onClick={acceptCall}
                   className="bg-emerald-600 hover:bg-emerald-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label="Accepter"
                 >
-                  <MdCall size={26} />
+                  <Phone size={26} />
                 </button>
               </>
             )}
@@ -491,14 +491,14 @@ export default function CallModal() {
                   className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label="Refuser"
                 >
-                  <MdCallEnd size={26} />
+                  <PhoneOff size={26} />
                 </button>
                 <button
                   onClick={acceptGroupCall}
                   className="bg-emerald-600 hover:bg-emerald-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label="Rejoindre"
                 >
-                  <MdCall size={26} />
+                  <Phone size={26} />
                 </button>
               </>
             )}
@@ -509,7 +509,7 @@ export default function CallModal() {
                 className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                 aria-label="Annuler l'appel"
               >
-                <MdCallEnd size={26} />
+                <PhoneOff size={26} />
               </button>
             )}
 
@@ -522,7 +522,7 @@ export default function CallModal() {
                   }`}
                   aria-label="Couper/réactiver le micro"
                 >
-                  {isMuted ? <MdMicOff size={22} /> : <MdMic size={22} />}
+                  {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
                 </button>
 
                 {callType === "video" && (
@@ -533,7 +533,7 @@ export default function CallModal() {
                     }`}
                     aria-label="Couper/réactiver la caméra"
                   >
-                    {isCameraOff ? <MdVideocamOff size={22} /> : <MdVideocam size={22} />}
+                    {isCameraOff ? <VideoOff size={22} /> : <Video size={22} />}
                   </button>
                 )}
 
@@ -542,7 +542,7 @@ export default function CallModal() {
                   className="bg-white/20 hover:bg-white/30 transition rounded-full w-14 h-14 flex items-center justify-center"
                   aria-label="Ajouter un participant"
                 >
-                  <MdPersonAdd size={22} />
+                  <UserPlus size={22} />
                 </button>
 
                 <button
@@ -550,7 +550,7 @@ export default function CallModal() {
                   className="bg-red-600 hover:bg-red-700 transition rounded-full w-16 h-16 flex items-center justify-center"
                   aria-label={callMode === "group" ? "Quitter l'appel" : "Raccrocher"}
                 >
-                  <MdCallEnd size={26} />
+                  <PhoneOff size={26} />
                 </button>
               </>
             )}
