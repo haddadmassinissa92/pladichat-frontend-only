@@ -117,28 +117,12 @@ function toggleTheme(): boolean {
   return isDark;
 }
 
-// Vérifie si l'heure actuelle (celle de cet appareil) tombe dans la plage
-// "ne pas déranger" configurée, pour couper le son de notification en local
-// sans attendre un aller-retour serveur
-function isCurrentlyInDoNotDisturb(dnd?: {
-  enabled: boolean;
-  start: string;
-  end: string;
-}): boolean {
-  if (!dnd || !dnd.enabled) return false;
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-  const [startH, startM] = dnd.start.split(":").map(Number);
-  const [endH, endM] = dnd.end.split(":").map(Number);
-  const startMinutes = startH * 60 + startM;
-  const endMinutes = endH * 60 + endM;
-
-  if (startMinutes === endMinutes) return false;
-  if (startMinutes < endMinutes) {
-    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
-  }
-  return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+// Vérifie si le mode "ne pas déranger" est actuellement actif, pour couper
+// le son de notification en local sans attendre un aller-retour serveur.
+// Se désactive tout seul dès que la date "until" est dépassée.
+function isCurrentlyInDoNotDisturb(dnd?: { until?: string | null }): boolean {
+  if (!dnd?.until) return false;
+  return new Date(dnd.until) > new Date();
 }
 
 export default function Sidebar() {
@@ -291,6 +275,23 @@ export default function Sidebar() {
   };
 
   const [showScheduledMessages, setShowScheduledMessages] = useState(false);
+  const [showDndMenu, setShowDndMenu] = useState(false);
+  const handleSetDnd = async (hoursFromNow: number | null) => {
+    if (hoursFromNow === null) {
+      await updateDoNotDisturb(null);
+    } else {
+      const until = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000);
+      await updateDoNotDisturb(until.toISOString());
+    }
+    setShowDndMenu(false);
+  };
+  const handleSetDndUntilTomorrowMorning = async () => {
+    const until = new Date();
+    until.setDate(until.getDate() + 1);
+    until.setHours(9, 0, 0, 0);
+    await updateDoNotDisturb(until.toISOString());
+    setShowDndMenu(false);
+  };
 
   const handleSendBroadcast = async () => {
     if (!composingBroadcast || !broadcastText.trim()) return;
@@ -1586,47 +1587,20 @@ export default function Sidebar() {
               </button>
             </div>
 
-            <div className="px-2 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <BellOff size={16} strokeWidth={2} />
-                  Ne pas déranger
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    updateDoNotDisturb({ enabled: !authUser?.doNotDisturb?.enabled })
-                  }
-                  aria-label="Basculer le mode ne pas déranger"
-                  className={`relative w-10 h-5 rounded-full transition-colors ${
-                    authUser?.doNotDisturb?.enabled ? "bg-accent-600" : "bg-zinc-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-                      authUser?.doNotDisturb?.enabled ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
-              {authUser?.doNotDisturb?.enabled && (
-                <div className="flex items-center gap-2 mt-2 pl-6">
-                  <input
-                    type="time"
-                    value={authUser.doNotDisturb.start || "22:00"}
-                    onChange={(e) => updateDoNotDisturb({ start: e.target.value })}
-                    className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-2 py-1 bg-transparent text-sm"
-                  />
-                  <span className="text-zinc-400">à</span>
-                  <input
-                    type="time"
-                    value={authUser.doNotDisturb.end || "07:00"}
-                    onChange={(e) => updateDoNotDisturb({ end: e.target.value })}
-                    className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-2 py-1 bg-transparent text-sm"
-                  />
-                </div>
-              )}
-            </div>
+            <button
+              onClick={() => setShowDndMenu(true)}
+              className="w-full flex items-center justify-between px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <span className="flex items-center gap-2">
+                <BellOff size={16} strokeWidth={2} />
+                Ne pas déranger
+              </span>
+              <span className="text-xs text-zinc-400">
+                {isCurrentlyInDoNotDisturb(authUser?.doNotDisturb)
+                  ? `Actif jusqu'à ${new Date(authUser!.doNotDisturb!.until!).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
+                  : "Désactivé"}
+              </span>
+            </button>
 
             <button
               onClick={() => {
@@ -1893,6 +1867,58 @@ export default function Sidebar() {
             <button
               onClick={() => setShowQrCodeOnly(false)}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : choisir la durée du mode "ne pas déranger" */}
+      {showDndMenu && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowDndMenu(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-1">Ne pas déranger</h3>
+            <p className="text-xs text-zinc-500 mb-3">
+              Se désactive automatiquement à la fin de la durée choisie.
+            </p>
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => handleSetDnd(1)}
+                className="text-left px-3 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              >
+                1 heure
+              </button>
+              <button
+                onClick={() => handleSetDnd(8)}
+                className="text-left px-3 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              >
+                8 heures
+              </button>
+              <button
+                onClick={handleSetDndUntilTomorrowMorning}
+                className="text-left px-3 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              >
+                Jusqu&apos;à demain 9h00
+              </button>
+              {isCurrentlyInDoNotDisturb(authUser?.doNotDisturb) && (
+                <button
+                  onClick={() => handleSetDnd(null)}
+                  className="text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                >
+                  Désactiver maintenant
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setShowDndMenu(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
             >
               Fermer
             </button>

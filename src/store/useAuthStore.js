@@ -351,12 +351,12 @@ export const useAuthStore = create((set, get) => ({
   // Capture automatiquement le décalage de fuseau horaire actuel du
   // navigateur, pour que le serveur puisse comparer correctement même s'il
   // tourne lui-même dans un autre fuseau.
-  updateDoNotDisturb: async (updates) => {
+  // Active le mode "ne pas déranger" jusqu'à une date/heure précise
+  // (passer null pour le désactiver manuellement avant l'échéance) — se
+  // désactive de toute façon tout seul une fois cette date dépassée
+  updateDoNotDisturb: async (until) => {
     try {
-      const res = await axiosInstance.put("/users/do-not-disturb", {
-        ...updates,
-        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
-      });
+      const res = await axiosInstance.put("/users/do-not-disturb", { until });
       set({
         authUser: { ...get().authUser, doNotDisturb: res.data.doNotDisturb },
       });
