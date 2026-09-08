@@ -6,7 +6,7 @@ import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
-import { Image as ImageIcon, Mic, X, SendHorizontal, Smile } from "lucide-react";
+import { Image as ImageIcon, Mic, X, SendHorizontal, Smile, Clock } from "lucide-react";
 import EmojiPicker from "./EmojiPicker";
 import { getDraft, saveDraft, clearDraft } from "@/lib/drafts";
 
@@ -16,6 +16,10 @@ export default function MessageInput() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleDateTime, setScheduleDateTime] = useState("");
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduleError, setScheduleError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
 
@@ -25,13 +29,14 @@ export default function MessageInput() {
   // Le panneau d'emojis mobile est téléporté directement dans <body> via un
   // portail (voir plus bas) pour garantir un vrai positionnement "fixed" par
   // rapport à l'écran, sans être affecté par les animations de la page
-  // (transform sur les conteneurs parents) qui casseraient sinon son ancrage
-  const [mounted, setMounted] = useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setMounted(true), []);
+  // (transform sur les conteneurs parents) qui casseraient sinon son ancrage.
+  // On évite un `setState` dans un effet : le portail ne doit être rendu que
+  // côté navigateur, ce qui est déjà garanti par l'environnement client.
+  const mounted = typeof window !== "undefined" && typeof document !== "undefined";
 
   // etats pour la gestion des messages, modification, suppression et réponse
   const sendMessage = useChatStore((state) => state.sendMessage);
+  const scheduleMessage = useChatStore((state) => state.scheduleMessage);
   const selectedUser = useChatStore((state) => state.selectedUser);
   const selectedGroup = useChatStore((state) => state.selectedGroup);
   const replyingTo = useChatStore((state) => state.replyingTo);
@@ -42,27 +47,35 @@ export default function MessageInput() {
   // si on tapait encore quand on a cliqué sur une autre conversation.
   const conversationId = selectedUser?._id || selectedGroup?._id || null;
   const previousConversationIdRef = useRef<string | null>(null);
+  const textRef = useRef(text);
+
   useEffect(() => {
-    if (
-      previousConversationIdRef.current &&
-      previousConversationIdRef.current !== conversationId
-    ) {
-      saveDraft(previousConversationIdRef.current, text);
+    textRef.current = text;
+  }, [text]);
+
+  useEffect(() => {
+    const prevId = previousConversationIdRef.current;
+    if (prevId && prevId !== conversationId) {
+      saveDraft(prevId, textRef.current);
       window.dispatchEvent(new Event("chatSettingsChanged"));
     }
-    // Le changement de conversation impose une restauration du brouillon
-    // courant, ce qui nécessite une mise à jour d'état explicite ici.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setText(getDraft(conversationId));
-    previousConversationIdRef.current = conversationId;
-  }, [conversationId, text]);
+
+    const nextText = getDraft(conversationId);
+    const rafId = window.requestAnimationFrame(() => {
+      setText(nextText);
+      previousConversationIdRef.current = conversationId;
+    });
+
+    return () => window.cancelAnimationFrame(rafId);
+  }, [conversationId]);
 
   // Sauvegarde aussi en continu pendant la frappe (léger debounce), pour ne
-  // pas perdre le brouillon en cas de fermeture accidentelle de l'onglet
+  // pas perdre le brouillon en cas de fermeture accidentelle de l'onglet.
+  // Ne prévient pas la sidebar à chaque frappe (uniquement au changement de
+  // conversation ci-dessus, et après l'envoi plus bas) pour rester léger.
   useEffect(() => {
     const timeout = setTimeout(() => {
       saveDraft(conversationId, text);
-      window.dispatchEvent(new Event("chatSettingsChanged"));
     }, 400);
     return () => clearTimeout(timeout);
   }, [text, conversationId]);
@@ -252,6 +265,25 @@ export default function MessageInput() {
     removeAudio();
   };
 
+  // Programme le texte actuellement écrit pour un envoi différé, à la
+  // date/heure choisie dans la modale (texte uniquement, pas d'image/audio)
+  const handleConfirmSchedule = async () => {
+    if (!text.trim() || !scheduleDateTime) return;
+    setScheduleError("");
+    setIsScheduling(true);
+    const result = await scheduleMessage(text.trim(), new Date(scheduleDateTime).toISOString());
+    setIsScheduling(false);
+    if (!result.success) {
+      setScheduleError(result.message);
+      return;
+    }
+    setText("");
+    clearDraft(conversationId);
+    window.dispatchEvent(new Event("chatSettingsChanged"));
+    setShowScheduleModal(false);
+    setScheduleDateTime("");
+  };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -365,6 +397,17 @@ export default function MessageInput() {
           >
             <Mic size={22} strokeWidth={2} />
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowScheduleModal(true)}
+            disabled={!text.trim() || !!imageFile || !!audioBlob}
+            className="shrink-0 text-zinc-500 hover:text-accent-600 transition disabled:opacity-30 disabled:hover:text-zinc-500"
+            aria-label="Programmer l'envoi"
+            title="Programmer l'envoi (texte uniquement)"
+          >
+            <Clock size={20} strokeWidth={2} />
+          </button>
         </div>
 
         <button
@@ -428,6 +471,53 @@ export default function MessageInput() {
           />
           <div className="absolute z-40 bottom-full left-1/2 -translate-x-1/2 mb-2">
             <EmojiPicker onSelect={handleEmojiSelect} />
+          </div>
+        </div>
+      )}
+
+      {/* Modale : programmer l'envoi du texte actuellement écrit à une
+          date/heure future (texte uniquement, pas d'image/audio) */}
+      {showScheduleModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowScheduleModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-3">Programmer l&apos;envoi</h3>
+            <input
+              type="datetime-local"
+              autoFocus
+              value={scheduleDateTime}
+              // eslint-disable-next-line react-hooks/purity
+              min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+                .toISOString()
+                .slice(0, 16)}
+              onChange={(e) => setScheduleDateTime(e.target.value)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 mb-3 bg-transparent text-sm"
+            />
+            {scheduleError && (
+              <p className="text-xs text-red-600 mb-3">{scheduleError}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowScheduleModal(false)}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSchedule}
+                disabled={!scheduleDateTime || isScheduling}
+                className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+              >
+                {isScheduling ? "Programmation..." : "Programmer"}
+              </button>
+            </div>
           </div>
         </div>
       )}
