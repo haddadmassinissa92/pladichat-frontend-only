@@ -291,6 +291,41 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Envoie un message à plusieurs contacts d'un coup (liste de diffusion) :
+  // chacun le reçoit comme un message privé normal, sans savoir qui d'autre
+  // l'a reçu — contrairement à un groupe, ils ne se voient pas entre eux
+  sendBroadcastMessage: async (text, memberIds) => {
+    const results = await Promise.allSettled(
+      memberIds.map((userId) => {
+        const formData = new FormData();
+        formData.append("text", text);
+        return axiosInstance.post(`/messages/send/${userId}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }),
+    );
+
+    const failedCount = results.filter((r) => r.status === "rejected").length;
+
+    // Si l'un des destinataires est la conversation actuellement ouverte,
+    // affiche le message tout de suite dedans, sans attendre un rechargement
+    const { selectedUser, messages } = get();
+    if (selectedUser && memberIds.includes(selectedUser._id)) {
+      const matchingResult = results.find(
+        (r, i) => r.status === "fulfilled" && memberIds[i] === selectedUser._id,
+      );
+      if (matchingResult && matchingResult.status === "fulfilled") {
+        set({ messages: [...messages, matchingResult.value.data] });
+      }
+    }
+
+    return {
+      success: failedCount === 0,
+      sentCount: memberIds.length - failedCount,
+      failedCount,
+    };
+  },
+
   // Fonction pour supprimer un message
   deleteMessage: async (messageId) => {
     try {

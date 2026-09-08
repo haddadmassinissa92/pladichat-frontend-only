@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, Send } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -75,6 +75,11 @@ import {
 } from "@/lib/conversationSettings";
 import { getDraft } from "@/lib/drafts";
 import { getContactTag, getAllUsedTags } from "@/lib/contactTags";
+import {
+  getBroadcastLists,
+  saveBroadcastList,
+  deleteBroadcastList,
+} from "@/lib/broadcastLists";
 
 function formatLastMessage(
   msg:
@@ -156,6 +161,7 @@ export default function Sidebar() {
     pendingGroupInvites,
     getPendingGroupInvites,
     respondToGroupInvite,
+    sendBroadcastMessage,
   } = useChatStore();
   const {
     onlineUsers,
@@ -201,6 +207,70 @@ export default function Sidebar() {
   const [showMyProfileZoom, setShowMyProfileZoom] = useState(false);
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
   const [showQrCodeOnly, setShowQrCodeOnly] = useState(false);
+  const [showBroadcastLists, setShowBroadcastLists] = useState(false);
+  const [broadcastListsData, setBroadcastListsData] = useState<
+    { id: string; name: string; memberIds: string[] }[]
+  >([]);
+  const [editingBroadcastList, setEditingBroadcastList] = useState<{
+    id: string | null;
+    name: string;
+    memberIds: string[];
+  } | null>(null);
+  const [composingBroadcast, setComposingBroadcast] = useState<{
+    id: string;
+    name: string;
+    memberIds: string[];
+  } | null>(null);
+  const [broadcastText, setBroadcastText] = useState("");
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
+  const [broadcastSentFeedback, setBroadcastSentFeedback] = useState("");
+
+  const handleToggleBroadcastMember = (userId: string) => {
+    setEditingBroadcastList((prev) =>
+      prev
+        ? {
+            ...prev,
+            memberIds: prev.memberIds.includes(userId)
+              ? prev.memberIds.filter((id) => id !== userId)
+              : [...prev.memberIds, userId],
+          }
+        : prev,
+    );
+  };
+
+  const handleSaveBroadcastList = () => {
+    if (!editingBroadcastList || !editingBroadcastList.name.trim()) return;
+    saveBroadcastList(
+      editingBroadcastList.name.trim(),
+      editingBroadcastList.memberIds,
+      editingBroadcastList.id,
+    );
+    setBroadcastListsData(getBroadcastLists());
+    setEditingBroadcastList(null);
+  };
+
+  const handleDeleteBroadcastList = (id: string) => {
+    deleteBroadcastList(id);
+    setBroadcastListsData(getBroadcastLists());
+  };
+
+  const handleSendBroadcast = async () => {
+    if (!composingBroadcast || !broadcastText.trim()) return;
+    setIsSendingBroadcast(true);
+    const result = await sendBroadcastMessage(
+      broadcastText.trim(),
+      composingBroadcast.memberIds,
+    );
+    setIsSendingBroadcast(false);
+    setBroadcastText("");
+    setBroadcastSentFeedback(
+      result.success
+        ? `Envoyé à ${result.sentCount} personne${result.sentCount > 1 ? "s" : ""}.`
+        : `Envoyé à ${result.sentCount}, échec pour ${result.failedCount}.`,
+    );
+    setTimeout(() => setBroadcastSentFeedback(""), 3000);
+  };
+
   const [showLogoutAllConfirm, setShowLogoutAllConfirm] = useState(false);
   const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
   const handleLogoutAllDevices = async () => {
@@ -1330,6 +1400,18 @@ export default function Sidebar() {
                 <span className="text-zinc-400">({sentContactRequests.length})</span>
               )}
             </button>
+
+            <button
+              onClick={() => {
+                setShowMyProfile(false);
+                setBroadcastListsData(getBroadcastLists());
+                setShowBroadcastLists(true);
+              }}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <Megaphone size={16} strokeWidth={2} className="shrink-0" />
+              Listes de diffusion
+            </button>
             </div>
 
             <div className="my-4 border-t border-zinc-200 dark:border-zinc-800" />
@@ -1708,6 +1790,180 @@ export default function Sidebar() {
             >
               Fermer
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : liste des listes de diffusion, avec création/suppression */}
+      {showBroadcastLists && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowBroadcastLists(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-1">Listes de diffusion</h3>
+            <p className="text-xs text-zinc-500 mb-3">
+              Envoie un même message à plusieurs contacts d&apos;un coup :
+              chacun le reçoit en privé, sans savoir qui d&apos;autre l&apos;a reçu.
+            </p>
+            <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1 mb-3">
+              {broadcastListsData.length === 0 && (
+                <p className="text-sm text-zinc-400">
+                  Aucune liste de diffusion pour le moment.
+                </p>
+              )}
+              {broadcastListsData.map((list) => (
+                <div
+                  key={list.id}
+                  className="flex items-center justify-between py-2 text-sm border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+                >
+                  <button
+                    onClick={() => {
+                      setShowBroadcastLists(false);
+                      setComposingBroadcast(list);
+                    }}
+                    className="min-w-0 text-left hover:opacity-70 transition"
+                  >
+                    <p className="font-medium truncate">{list.name}</p>
+                    <p className="text-xs text-zinc-400">
+                      {list.memberIds.length} contact{list.memberIds.length > 1 ? "s" : ""}
+                    </p>
+                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => setEditingBroadcastList(list)}
+                      className="text-zinc-400 hover:text-accent-600 transition"
+                      aria-label="Modifier la liste"
+                    >
+                      <Pencil size={14} strokeWidth={2} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBroadcastList(list.id)}
+                      className="text-zinc-400 hover:text-red-600 transition"
+                      aria-label="Supprimer la liste"
+                    >
+                      <Trash2 size={14} strokeWidth={2} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() =>
+                setEditingBroadcastList({ id: null, name: "", memberIds: [] })
+              }
+              className="w-full flex items-center justify-center gap-2 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition mb-2"
+            >
+              <Plus size={16} strokeWidth={2} />
+              Nouvelle liste
+            </button>
+            <button
+              onClick={() => setShowBroadcastLists(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : créer ou modifier une liste de diffusion */}
+      {editingBroadcastList && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-3">
+              {editingBroadcastList.id ? "Modifier la liste" : "Nouvelle liste"}
+            </h3>
+            <input
+              type="text"
+              autoFocus
+              placeholder="Nom de la liste (ex: Famille)"
+              value={editingBroadcastList.name}
+              onChange={(e) =>
+                setEditingBroadcastList({ ...editingBroadcastList, name: e.target.value })
+              }
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 mb-3 bg-transparent text-sm"
+            />
+            <p className="text-xs text-zinc-400 uppercase mb-1">Contacts</p>
+            <div className="custom-scrollbar max-h-48 overflow-y-auto mb-3">
+              {users.map((user: User) => (
+                <label
+                  key={user._id}
+                  className="flex items-center gap-2 py-2 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={editingBroadcastList.memberIds.includes(user._id)}
+                    onChange={() => handleToggleBroadcastMember(user._id)}
+                  />
+                  {user.username}
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditingBroadcastList(null)}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSaveBroadcastList}
+                disabled={!editingBroadcastList.name.trim() || editingBroadcastList.memberIds.length === 0}
+                className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+              >
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : composer et envoyer un message à toute une liste de diffusion */}
+      {composingBroadcast && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
+            <h3 className="font-bold mb-1">
+              Diffuser à &quot;{composingBroadcast.name}&quot;
+            </h3>
+            <p className="text-xs text-zinc-500 mb-3">
+              {composingBroadcast.memberIds.length} destinataire
+              {composingBroadcast.memberIds.length > 1 ? "s" : ""}, chacun le
+              recevra en message privé.
+            </p>
+            <textarea
+              autoFocus
+              placeholder="Écris ton message..."
+              value={broadcastText}
+              onChange={(e) => setBroadcastText(e.target.value)}
+              rows={4}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 mb-3 bg-transparent text-sm resize-none"
+            />
+            {broadcastSentFeedback && (
+              <p className="text-xs text-emerald-600 mb-3">{broadcastSentFeedback}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setComposingBroadcast(null);
+                  setBroadcastText("");
+                }}
+                className="flex-1 border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm"
+              >
+                Fermer
+              </button>
+              <button
+                onClick={handleSendBroadcast}
+                disabled={!broadcastText.trim() || isSendingBroadcast}
+                className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                <Send size={14} strokeWidth={2} />
+                {isSendingBroadcast ? "Envoi..." : "Envoyer"}
+              </button>
+            </div>
           </div>
         </div>
       )}
