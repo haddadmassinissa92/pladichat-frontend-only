@@ -1521,6 +1521,7 @@ export default function ChatContainer() {
                   isMine={isMine}
                   senderName={senderName}
                   isLast={index === messages.length - 1}
+                  groupMembers={selectedGroup ? selectedGroup.members : undefined}
                 />
               </div>
             );

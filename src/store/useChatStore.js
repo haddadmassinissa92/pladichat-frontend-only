@@ -522,8 +522,15 @@ export const useChatStore = create((set, get) => ({
       if (selectedGroup && groupId === selectedGroup._id) {
         set({
           messages: get().messages.map((msg) =>
-            msg.sender === myId && msg.status !== "read"
-              ? { ...msg, status: "read", readAt: now }
+            msg.sender === myId
+              ? {
+                  ...msg,
+                  status: "read",
+                  readAt: now,
+                  readBy: (msg.readBy || []).includes(readBy)
+                    ? msg.readBy
+                    : [...(msg.readBy || []), readBy],
+                }
               : msg,
           ),
         });

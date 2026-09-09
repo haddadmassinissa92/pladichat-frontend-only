@@ -34,6 +34,7 @@ type Message = {
   audio: string;
   status: string;
   readAt?: string | null;
+  readBy?: string[];
   createdAt: string;
   edited?: boolean;
   reactions?: Reaction[];
@@ -68,13 +69,16 @@ export default function MessageBubble({
   isMine,
   senderName,
   isLast = false,
+  groupMembers,
 }: {
   msg: Message;
   isMine: boolean;
   senderName?: string;
   isLast?: boolean;
+  groupMembers?: { _id: string; username: string }[];
 }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showSeenBy, setShowSeenBy] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(msg.text);
   const [showImagePreview, setShowImagePreview] = useState(false);
@@ -421,9 +425,38 @@ export default function MessageBubble({
         </div>
       )}
 
-      {isMine && isLast && msg.status === "read" && msg.readAt && (
+      {isMine && !groupMembers && isLast && msg.status === "read" && msg.readAt && (
         <div className="text-xs text-zinc-400 mt-1 text-right w-full">
           Vu à {formatReadTime(msg.readAt)}
+        </div>
+      )}
+
+      {isMine && groupMembers && (msg.readBy?.length || 0) > 0 && (
+        <div className="relative text-right w-full">
+          <button
+            onClick={() => setShowSeenBy(!showSeenBy)}
+            className="text-xs text-zinc-400 hover:text-accent-600 mt-1 transition"
+          >
+            Vu par {msg.readBy!.length}
+          </button>
+          {showSeenBy && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setShowSeenBy(false)}
+              />
+              <div className="absolute z-20 right-0 bottom-full mb-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-44 text-left">
+                {msg.readBy!.map((userId) => {
+                  const member = groupMembers.find((m) => m._id === userId);
+                  return (
+                    <p key={userId} className="px-3 py-1 truncate">
+                      {member?.username || "Utilisateur"}
+                    </p>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
 
