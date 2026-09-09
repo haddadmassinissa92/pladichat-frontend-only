@@ -5,6 +5,12 @@ import { create } from "zustand";
 import { axiosInstance } from "@/lib/axios";
 import { useAuthStore } from "@/store/useAuthStore";
 
+// Compteur de requêtes pour la recherche globale : permet d'ignorer une
+// réponse arrivée en retard (ex: on clique vite Photos puis Audios, et la
+// réponse de "Photos" revient après celle d'"Audios") plutôt que de
+// l'appliquer et écraser par erreur le résultat le plus récent
+let globalSearchRequestId = 0;
+
 // Création du store de chat avec Zustand
 export const useChatStore = create((set, get) => ({
   users: [],
@@ -198,9 +204,11 @@ export const useChatStore = create((set, get) => ({
     // Sans mot-clé, on n'accepte de chercher que si un filtre par type de
     // contenu est actif (ex: "toutes mes photos") ; sinon rien à chercher
     if ((!query || !query.trim()) && !type) {
+      globalSearchRequestId += 1; // annule aussi toute requête encore en vol
       set({ globalSearchResults: [] });
       return;
     }
+    const requestId = ++globalSearchRequestId;
     set({ isGlobalSearching: true });
     try {
       const params = new URLSearchParams();
@@ -209,14 +217,22 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get(
         `/messages/search-all/global?${params.toString()}`,
       );
+      // Une recherche plus récente a été lancée entre-temps : cette
+      // réponse est périmée, on l'ignore pour ne pas écraser la bonne
+      if (requestId !== globalSearchRequestId) return;
       set({ globalSearchResults: res.data.results });
     } catch (error) {
       console.error(error);
     } finally {
-      set({ isGlobalSearching: false });
+      if (requestId === globalSearchRequestId) {
+        set({ isGlobalSearching: false });
+      }
     }
   },
-  clearGlobalSearchResults: () => set({ globalSearchResults: [] }),
+  clearGlobalSearchResults: () => {
+    globalSearchRequestId += 1;
+    set({ globalSearchResults: [] });
+  },
 
   // Fonction pour envoyer un message à l'utilisateur sélectionné
   sendMessage: async (data) => {
