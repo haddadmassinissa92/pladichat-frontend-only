@@ -194,15 +194,20 @@ export const useChatStore = create((set, get) => ({
   // seule conversation à la fois
   globalSearchResults: [],
   isGlobalSearching: false,
-  searchAllConversations: async (query) => {
-    if (!query || !query.trim()) {
+  searchAllConversations: async (query, type) => {
+    // Sans mot-clé, on n'accepte de chercher que si un filtre par type de
+    // contenu est actif (ex: "toutes mes photos") ; sinon rien à chercher
+    if ((!query || !query.trim()) && !type) {
       set({ globalSearchResults: [] });
       return;
     }
     set({ isGlobalSearching: true });
     try {
+      const params = new URLSearchParams();
+      if (query && query.trim()) params.set("q", query.trim());
+      if (type) params.set("type", type);
       const res = await axiosInstance.get(
-        `/messages/search-all/global?q=${encodeURIComponent(query)}`,
+        `/messages/search-all/global?${params.toString()}`,
       );
       set({ globalSearchResults: res.data.results });
     } catch (error) {

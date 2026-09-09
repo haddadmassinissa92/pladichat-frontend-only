@@ -449,13 +449,18 @@ export default function Sidebar() {
   // Recherche globale dans toutes les conversations à la fois
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
+  const [globalSearchType, setGlobalSearchType] = useState<string | null>(null);
   const globalSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleGlobalSearchChange = (value: string) => {
     setGlobalSearchQuery(value);
     if (globalSearchDebounceRef.current) clearTimeout(globalSearchDebounceRef.current);
     globalSearchDebounceRef.current = setTimeout(() => {
-      searchAllConversations(value);
+      searchAllConversations(value, globalSearchType || undefined);
     }, 300);
+  };
+  const handleGlobalSearchTypeChange = (type: string | null) => {
+    setGlobalSearchType(type);
+    searchAllConversations(globalSearchQuery, type || undefined);
   };
   const handleGlobalSearchResultClick = (result: {
     sender: { _id: string };
@@ -2332,21 +2337,46 @@ export default function Sidebar() {
               onChange={(e) => handleGlobalSearchChange(e.target.value)}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-full px-4 py-2 bg-transparent text-sm mb-3"
             />
+            <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+              {[
+                { id: null, label: "Tous" },
+                { id: "images", label: "Photos" },
+                { id: "links", label: "Liens" },
+                { id: "audios", label: "Audios" },
+              ].map((f) => (
+                <button
+                  key={f.label}
+                  onClick={() => handleGlobalSearchTypeChange(f.id)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                    globalSearchType === f.id
+                      ? "bg-accent-600 text-white border-accent-600"
+                      : "border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-accent-600"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
             <div className="custom-scrollbar max-h-96 overflow-y-auto flex flex-col gap-1">
               {isGlobalSearching && (
                 <p className="text-sm text-zinc-400 text-center py-4">Recherche...</p>
               )}
-              {!isGlobalSearching && globalSearchQuery.trim() && globalSearchResults.length === 0 && (
-                <p className="text-sm text-zinc-400 text-center py-4">Aucun résultat.</p>
-              )}
-              {!isGlobalSearching && !globalSearchQuery.trim() && (
+              {!isGlobalSearching &&
+                (globalSearchQuery.trim() || globalSearchType) &&
+                globalSearchResults.length === 0 && (
+                  <p className="text-sm text-zinc-400 text-center py-4">Aucun résultat.</p>
+                )}
+              {!isGlobalSearching && !globalSearchQuery.trim() && !globalSearchType && (
                 <p className="text-sm text-zinc-400 text-center py-4">
-                  Tape un mot pour chercher dans toutes tes conversations.
+                  Tape un mot, ou choisis un type de contenu ci-dessus.
                 </p>
               )}
               {globalSearchResults.map((result: {
                 _id: string;
                 text: string;
+                image?: string;
+                audio?: string;
+                linkPreview?: { url?: string; title?: string } | null;
                 createdAt: string;
                 sender: { _id: string; username: string; avatar?: string };
                 receiver?: { _id: string; username: string; avatar?: string };
@@ -2357,6 +2387,14 @@ export default function Sidebar() {
                   : result.sender._id === authUser?._id
                     ? result.receiver?.username
                     : result.sender.username;
+                const prefix = result.sender._id === authUser?._id ? "Toi : " : "";
+                const contentPreview = result.image
+                  ? "📷 Photo"
+                  : result.audio
+                    ? "🎤 Message vocal"
+                    : result.linkPreview
+                      ? `🔗 ${result.linkPreview.title || result.linkPreview.url}`
+                      : result.text;
                 return (
                   <button
                     key={result._id}
@@ -2372,8 +2410,8 @@ export default function Sidebar() {
                       </span>
                     </div>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
-                      {result.sender._id === authUser?._id ? "Toi : " : ""}
-                      {result.text}
+                      {prefix}
+                      {contentPreview}
                     </p>
                   </button>
                 );
@@ -2383,6 +2421,7 @@ export default function Sidebar() {
               onClick={() => {
                 setShowGlobalSearch(false);
                 setGlobalSearchQuery("");
+                setGlobalSearchType(null);
                 clearGlobalSearchResults();
               }}
               className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
