@@ -37,6 +37,7 @@ type Message = {
   readBy?: string[];
   createdAt: string;
   edited?: boolean;
+  editHistory?: { text: string; editedAt: string }[];
   reactions?: Reaction[];
   linkPreview?: {
     url: string;
@@ -55,6 +56,16 @@ const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 function formatReadTime(dateString: string): string {
   return new Date(dateString).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatEditDateTime(dateString: string): string {
+  return new Date(dateString).toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -87,6 +98,7 @@ export default function MessageBubble({
   const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
   const [isTextExpanded, setIsTextExpanded] = useState(false);
   const [showForwardModal, setShowForwardModal] = useState(false);
+  const [showEditHistory, setShowEditHistory] = useState(false);
   const [forwardSearch, setForwardSearch] = useState("");
   const [forwardedToId, setForwardedToId] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -328,7 +340,15 @@ export default function MessageBubble({
             )}
 
             {msg.edited && (
-              <span className="text-xs opacity-60 ml-1">(modifié)</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowEditHistory(true);
+                }}
+                className="text-xs opacity-60 hover:opacity-100 ml-1 underline underline-offset-2"
+              >
+                (modifié)
+              </button>
             )}
             {isMine && (
               <span className="inline-flex ml-2 opacity-70 align-middle">
@@ -542,6 +562,48 @@ export default function MessageBubble({
             )}
           </div>
         </>
+      )}
+
+      {/* Modale : historique des versions précédentes d'un message modifié */}
+      {showEditHistory && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowEditHistory(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-3">Historique des modifications</h3>
+            <div className="custom-scrollbar max-h-72 overflow-y-auto flex flex-col gap-3">
+              <div>
+                <p className="text-xs text-zinc-400 mb-0.5">Version actuelle</p>
+                <p className="text-sm bg-accent-50 dark:bg-accent-950 rounded-lg px-3 py-2">
+                  {msg.text}
+                </p>
+              </div>
+              {(msg.editHistory || [])
+                .slice()
+                .reverse()
+                .map((version, index) => (
+                  <div key={index}>
+                    <p className="text-xs text-zinc-400 mb-0.5">
+                      Avant le {formatEditDateTime(version.editedAt)}
+                    </p>
+                    <p className="text-sm bg-zinc-100 dark:bg-zinc-800 rounded-lg px-3 py-2 text-zinc-500 dark:text-zinc-400">
+                      {version.text}
+                    </p>
+                  </div>
+                ))}
+            </div>
+            <button
+              onClick={() => setShowEditHistory(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Confirmation avant suppression d'un message */}
