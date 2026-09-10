@@ -1506,23 +1506,27 @@ export default function Sidebar() {
               </p>
             )}
 
-            <div className="mt-4 space-y-0.5">
+            <div className="mt-4">
+            <p className="text-xs font-semibold text-zinc-400 uppercase px-2 pb-1 text-left">
+              Compte
+            </p>
+            <div className="space-y-0.5">
             <button
-              onClick={handleCopyShareLink}
+              onClick={() => {
+                setShowChangePassword(true);
+                setShowMyProfile(false);
+              }}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <LinkIcon size={16} strokeWidth={2} className="shrink-0" />
-              {linkCopied ? "Lien copié !" : "Copier mon lien d'ajout"}
+              <Lock size={16} strokeWidth={2} className="shrink-0" />
+              Mot de passe
             </button>
+            </div>
 
-            <button
-              onClick={() => setShowQrCodeOnly(true)}
-              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-            >
-              <QrCode size={16} strokeWidth={2} className="shrink-0" />
-              Mon QR code
-            </button>
-
+            <p className="text-xs font-semibold text-zinc-400 uppercase px-2 pt-3 pb-1 text-left">
+              Confidentialité
+            </p>
+            <div className="space-y-0.5">
             <button
               onClick={() => {
                 setShowMyProfile(false);
@@ -1565,6 +1569,42 @@ export default function Sidebar() {
                   ({mutedUsers.length + mutedGroups.length})
                 </span>
               )}
+            </button>
+
+            <button
+              onClick={() => setShowDndMenu(true)}
+              className="w-full flex items-center justify-between px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <span className="flex items-center gap-2">
+                <BellOff size={16} strokeWidth={2} />
+                Ne pas déranger
+              </span>
+              <span className="text-xs text-zinc-400">
+                {isCurrentlyInDoNotDisturb(authUser?.doNotDisturb)
+                  ? `Actif jusqu'à ${new Date(authUser!.doNotDisturb!.until!).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
+                  : "Désactivé"}
+              </span>
+            </button>
+            </div>
+
+            <p className="text-xs font-semibold text-zinc-400 uppercase px-2 pt-3 pb-1 text-left">
+              Contacts &amp; messages
+            </p>
+            <div className="space-y-0.5">
+            <button
+              onClick={handleCopyShareLink}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <LinkIcon size={16} strokeWidth={2} className="shrink-0" />
+              {linkCopied ? "Lien copié !" : "Copier mon lien d'ajout"}
+            </button>
+
+            <button
+              onClick={() => setShowQrCodeOnly(true)}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <QrCode size={16} strokeWidth={2} className="shrink-0" />
+              Mon QR code
             </button>
 
             <button
@@ -1619,8 +1659,10 @@ export default function Sidebar() {
             </button>
             </div>
 
-            <div className="my-4 border-t border-zinc-200 dark:border-zinc-800" />
-
+            <p className="text-xs font-semibold text-zinc-400 uppercase px-2 pt-3 pb-1 text-left">
+              Personnalisation
+            </p>
+            <div className="space-y-0.5">
             <button
               onClick={() => {
                 setShowMyProfile(false);
@@ -1726,33 +1768,12 @@ export default function Sidebar() {
                 />
               </button>
             </div>
+            </div>
 
-            <button
-              onClick={() => setShowDndMenu(true)}
-              className="w-full flex items-center justify-between px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-            >
-              <span className="flex items-center gap-2">
-                <BellOff size={16} strokeWidth={2} />
-                Ne pas déranger
-              </span>
-              <span className="text-xs text-zinc-400">
-                {isCurrentlyInDoNotDisturb(authUser?.doNotDisturb)
-                  ? `Actif jusqu'à ${new Date(authUser!.doNotDisturb!.until!).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
-                  : "Désactivé"}
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                setShowChangePassword(true);
-                setShowMyProfile(false);
-              }}
-              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-            >
-              <Lock size={16} strokeWidth={2} className="shrink-0" />
-              Mot de passe
-            </button>
-
+            <p className="text-xs font-semibold text-red-400 uppercase px-2 pt-3 pb-1 text-left">
+              Zone sensible
+            </p>
+            <div className="space-y-0.5">
             <button
               onClick={logout}
               className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
@@ -1782,6 +1803,8 @@ export default function Sidebar() {
               <Trash2 size={16} strokeWidth={2} className="shrink-0" />
               Supprimer mon compte
             </button>
+            </div>
+            </div>
 
             <button
               onClick={() => setShowMyProfile(false)}
@@ -2751,9 +2774,11 @@ export default function Sidebar() {
                 <div key={w.id}>
                   {w.category !== WALLPAPERS[index - 1]?.category && (
                     <p className="text-xs font-semibold text-zinc-400 uppercase px-3 pt-2 pb-1">
-                      {WALLPAPER_CATEGORY_LABELS[
-                        w.category as keyof typeof WALLPAPER_CATEGORY_LABELS
-                      ]}
+                      {
+                        WALLPAPER_CATEGORY_LABELS[
+                          w.category as keyof typeof WALLPAPER_CATEGORY_LABELS
+                        ]
+                      }
                     </p>
                   )}
                   <button
