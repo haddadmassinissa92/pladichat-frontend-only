@@ -6,9 +6,9 @@
   --foreground: #171717;
 
   /* Couleur d'accent de l'application : valeurs par défaut (= indigo actuel).
-    Changées dynamiquement en JS (voir lib/accentColor.js) quand l'utilisateur
-    choisit une autre couleur - grâce au "@theme inline" ci-dessous, toutes
-    les classes d'accent utilisées dans
+     Changées dynamiquement en JS (voir lib/accentColor.js) quand l'utilisateur
+     choisit une autre couleur — grâce au "@theme inline" ci-dessous, toutes
+     les classes bg-accent-*, text-accent-* et border-accent-* utilisées dans
      l'app se mettent à jour instantanément, sans recharger la page. */
   --accent-50: #eef2ff;
   --accent-100: #e0e7ff;
@@ -63,6 +63,33 @@ body {
   background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
   background-size: 20px 20px;
   color: rgb(161 161 170 / 0.4);
+}
+
+/* Fonds d'écran de conversation animés : un dégradé dont la position se
+   déplace doucement en boucle, pour un effet plus vivant qu'une couleur
+   plate ou un dégradé figé */
+@keyframes wallpaper-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.bg-wallpaper-animated-warm {
+  background: linear-gradient(-45deg, #f97316, #ec4899, #a855f7, #f97316);
+  background-size: 400% 400%;
+  animation: wallpaper-gradient-shift 15s ease infinite;
+}
+
+.bg-wallpaper-animated-cool {
+  background: linear-gradient(-45deg, #06b6d4, #3b82f6, #6366f1, #06b6d4);
+  background-size: 400% 400%;
+  animation: wallpaper-gradient-shift 15s ease infinite;
 }
 
 /* Barre de scroll personnalisée, fine et discrète, utilisée sur toutes les

@@ -49,6 +49,7 @@ import EmojiPicker from "./EmojiPicker";
 import CallModal from "./CallModal";
 import {
   WALLPAPERS,
+  WALLPAPER_CATEGORY_LABELS,
   getGlobalWallpaper,
   setGlobalWallpaper,
   setGlobalWallpaperImage,
@@ -2746,20 +2747,28 @@ export default function Sidebar() {
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm">
             <h3 className="font-bold mb-3">Fond d&apos;écran</h3>
             <div className="custom-scrollbar max-h-64 overflow-y-auto flex flex-col gap-1">
-              {WALLPAPERS.map((w) => (
-                <button
-                  key={w.id}
-                  onClick={() =>
-                    w.id === "custom"
-                      ? globalWallpaperFileInputRef.current?.click()
-                      : handleGlobalWallpaperChange(w.id)
-                  }
-                  className={`block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
-                    globalWallpaper === w.id ? "font-semibold" : ""
-                  }`}
-                >
-                  {w.label}
-                </button>
+              {WALLPAPERS.map((w, index) => (
+                <div key={w.id}>
+                  {w.category !== WALLPAPERS[index - 1]?.category && (
+                    <p className="text-xs font-semibold text-zinc-400 uppercase px-3 pt-2 pb-1">
+                      {WALLPAPER_CATEGORY_LABELS[
+                        w.category as keyof typeof WALLPAPER_CATEGORY_LABELS
+                      ]}
+                    </p>
+                  )}
+                  <button
+                    onClick={() =>
+                      w.id === "custom"
+                        ? globalWallpaperFileInputRef.current?.click()
+                        : handleGlobalWallpaperChange(w.id)
+                    }
+                    className={`block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
+                      globalWallpaper === w.id ? "font-semibold" : ""
+                    }`}
+                  >
+                    {w.label}
+                  </button>
+                </div>
               ))}
             </div>
             <button
