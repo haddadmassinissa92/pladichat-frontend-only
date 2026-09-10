@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, SendHorizontal, Download, Clock, Reply, Smile } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, SendHorizontal, Download, Clock, Reply, Smile, BarChart3 } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -195,6 +195,8 @@ export default function Sidebar() {
     toggleBlockUser,
     toggleMuteConversation,
     updateDoNotDisturb,
+    myStats,
+    getMyStats,
   } = useAuthStore();
   const {
     handleIncomingCall,
@@ -347,6 +349,7 @@ export default function Sidebar() {
   };
 
   const [showDndMenu, setShowDndMenu] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const handleSetDnd = async (hoursFromNow: number | null) => {
     if (hoursFromNow === null) {
       await updateDoNotDisturb(null);
@@ -1521,6 +1524,18 @@ export default function Sidebar() {
               <Lock size={16} strokeWidth={2} className="shrink-0" />
               Mot de passe
             </button>
+
+            <button
+              onClick={() => {
+                setShowMyProfile(false);
+                getMyStats();
+                setShowStats(true);
+              }}
+              className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <BarChart3 size={16} strokeWidth={2} className="shrink-0" />
+              Statistiques
+            </button>
             </div>
 
             <p className="text-xs font-semibold text-zinc-400 uppercase px-2 pt-3 pb-1 text-left">
@@ -2122,6 +2137,90 @@ export default function Sidebar() {
                 <SendHorizontal size={16} strokeWidth={2} />
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : statistiques personnelles */}
+      {showStats && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowStats(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-bold mb-3">Statistiques</h3>
+            {!myStats ? (
+              <p className="text-sm text-zinc-400 text-center py-8">Chargement...</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 mb-1">
+                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3">
+                  <p className="text-2xl font-bold text-accent-600">{myStats.totalSent}</p>
+                  <p className="text-xs text-zinc-400">Messages envoyés</p>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3">
+                  <p className="text-2xl font-bold text-accent-600">{myStats.daysSinceCreation}</p>
+                  <p className="text-xs text-zinc-400">Jours d&apos;ancienneté</p>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3">
+                  <p className="text-2xl font-bold text-accent-600">{myStats.imagesSent}</p>
+                  <p className="text-xs text-zinc-400">Photos envoyées</p>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3">
+                  <p className="text-2xl font-bold text-accent-600">{myStats.audiosSent}</p>
+                  <p className="text-xs text-zinc-400">Audios envoyés</p>
+                </div>
+                <div className="col-span-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3 flex items-center gap-3">
+                  {myStats.mostActiveContact ? (
+                    <>
+                      <Avatar
+                        src={myStats.mostActiveContact.avatar}
+                        fallback={myStats.mostActiveContact.username[0]?.toUpperCase()}
+                        colorClass="bg-accent-600"
+                        size="w-9 h-9 text-sm"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">
+                          {myStats.mostActiveContact.username}
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                          Contact le plus actif ({myStats.mostActiveContact.messageCount} messages)
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-zinc-400">Aucun contact actif pour le moment.</p>
+                  )}
+                </div>
+                <div className="col-span-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3 flex items-center gap-3">
+                  {myStats.mostActiveGroup ? (
+                    <>
+                      <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold shrink-0">
+                        {myStats.mostActiveGroup.name[0]?.toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">
+                          {myStats.mostActiveGroup.name}
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                          Groupe le plus actif ({myStats.mostActiveGroup.messageCount} messages)
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-zinc-400">Aucun groupe actif pour le moment.</p>
+                  )}
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => setShowStats(false)}
+              className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg py-2 text-sm mt-3"
+            >
+              Fermer
+            </button>
           </div>
         </div>
       )}

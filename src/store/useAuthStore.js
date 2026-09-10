@@ -369,6 +369,18 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Récupère les statistiques personnelles (messages envoyés, contact et
+  // groupe les plus actifs, etc.), calculées à la demande côté serveur
+  myStats: null,
+  getMyStats: async () => {
+    try {
+      const res = await axiosInstance.get("/users/my-stats");
+      set({ myStats: res.data });
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
   // Change le nom d'utilisateur du compte connecté
   updateUsername: async (username) => {
     try {
