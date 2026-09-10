@@ -359,6 +359,43 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Récupère les tout derniers messages d'une conversation précise, sans
+  // rien changer à la conversation actuellement ouverte (pas de sélection,
+  // pas de "messages" écrasés) — utilisé pour la réponse rapide depuis la
+  // liste, qui doit pouvoir montrer un peu de contexte sans ouvrir la
+  // conversation
+  getQuickPreviewMessages: async (id, isGroup) => {
+    try {
+      const res = await axiosInstance.get(
+        `/messages/${id}?isGroup=${isGroup}`,
+      );
+      return res.data.messages.slice(-3);
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  },
+
+  // Envoie un message texte à une conversation précise depuis la réponse
+  // rapide, sans changer la conversation actuellement sélectionnée
+  sendQuickReply: async (id, isGroup, text) => {
+    try {
+      const formData = new FormData();
+      formData.append("text", text);
+      if (isGroup) formData.append("groupId", id);
+
+      await axiosInstance.post(`/messages/send/${id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Erreur",
+      };
+    }
+  },
+
   // Envoie un message à plusieurs contacts d'un coup (liste de diffusion) :
   // chacun le reçoit comme un message privé normal, sans savoir qui d'autre
   // l'a reçu — contrairement à un groupe, ils ne se voient pas entre eux

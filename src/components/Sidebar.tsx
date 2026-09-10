@@ -39,7 +39,7 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, Send, Download, Clock } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, Send, Download, Clock, Reply } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -170,6 +170,8 @@ export default function Sidebar() {
     getPendingGroupInvites,
     respondToGroupInvite,
     sendBroadcastMessage,
+    getQuickPreviewMessages,
+    sendQuickReply,
     scheduledMessages,
     getScheduledMessages,
     cancelScheduledMessage,
@@ -275,6 +277,68 @@ export default function Sidebar() {
   };
 
   const [showScheduledMessages, setShowScheduledMessages] = useState(false);
+
+  // Réponse rapide depuis la liste : répondre à un contact ou un groupe sans
+  // ouvrir toute la conversation. Déclenchée par une icône au survol sur
+  // ordinateur, ou un clic long sur mobile (pas de survol/clic droit là-bas).
+  const [quickReplyTarget, setQuickReplyTarget] = useState<{
+    id: string;
+    name: string;
+    avatar?: string;
+    isGroup: boolean;
+  } | null>(null);
+  const [quickReplyMessages, setQuickReplyMessages] = useState<
+    { _id: string; text: string; image?: string; audio?: string; sender: string }[]
+  >([]);
+  const [isLoadingQuickReply, setIsLoadingQuickReply] = useState(false);
+  const [quickReplyText, setQuickReplyText] = useState("");
+  const [isSendingQuickReply, setIsSendingQuickReply] = useState(false);
+  const quickReplyLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleOpenQuickReply = async (
+    id: string,
+    name: string,
+    avatar: string | undefined,
+    isGroup: boolean,
+  ) => {
+    setQuickReplyTarget({ id, name, avatar, isGroup });
+    setQuickReplyText("");
+    setIsLoadingQuickReply(true);
+    const preview = await getQuickPreviewMessages(id, isGroup);
+    setQuickReplyMessages(preview);
+    setIsLoadingQuickReply(false);
+  };
+
+  const handleQuickReplyLongPressStart = (
+    id: string,
+    name: string,
+    avatar: string | undefined,
+    isGroup: boolean,
+  ) => {
+    quickReplyLongPressTimer.current = setTimeout(() => {
+      handleOpenQuickReply(id, name, avatar, isGroup);
+    }, 500);
+  };
+  const handleQuickReplyLongPressEnd = () => {
+    if (quickReplyLongPressTimer.current) clearTimeout(quickReplyLongPressTimer.current);
+  };
+
+  const handleSendQuickReply = async () => {
+    if (!quickReplyTarget || !quickReplyText.trim()) return;
+    setIsSendingQuickReply(true);
+    const result = await sendQuickReply(
+      quickReplyTarget.id,
+      quickReplyTarget.isGroup,
+      quickReplyText.trim(),
+    );
+    setIsSendingQuickReply(false);
+    if (result.success) {
+      setQuickReplyTarget(null);
+      getUsers();
+      getGroups();
+    }
+  };
+
   const [showDndMenu, setShowDndMenu] = useState(false);
   const handleSetDnd = async (hoursFromNow: number | null) => {
     if (hoursFromNow === null) {
@@ -459,6 +523,10 @@ export default function Sidebar() {
     }, 300);
   };
   const handleGlobalSearchTypeChange = (type: string | null) => {
+    // Annule toute recherche textuelle en attente (débounce précédent),
+    // sinon elle pourrait se déclencher juste après et écraser ces
+    // résultats filtrés par un ancien filtre périmé
+    if (globalSearchDebounceRef.current) clearTimeout(globalSearchDebounceRef.current);
     setGlobalSearchType(type);
     searchAllConversations(globalSearchQuery, type || undefined);
   };
@@ -923,14 +991,28 @@ export default function Sidebar() {
           </div>
         )}
         {visibleGroups.map((group: Group) => (
-          <button
+          <div
             key={group._id}
+            role="button"
+            tabIndex={0}
             onClick={() => {
               clearManuallyUnread(group._id);
               window.dispatchEvent(new Event("chatSettingsChanged"));
               setSelectedGroup(group);
             }}
-            className={`w-full flex items-center gap-3 p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                clearManuallyUnread(group._id);
+                window.dispatchEvent(new Event("chatSettingsChanged"));
+                setSelectedGroup(group);
+              }
+            }}
+            onTouchStart={() =>
+              handleQuickReplyLongPressStart(group._id, group.name, undefined, true)
+            }
+            onTouchEnd={handleQuickReplyLongPressEnd}
+            onTouchMove={handleQuickReplyLongPressEnd}
+            className={`group w-full flex items-center gap-3 p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer ${
               selectedGroup?._id === group._id
                 ? "bg-zinc-100 dark:bg-zinc-800"
                 : ""
@@ -988,7 +1070,18 @@ export default function Sidebar() {
                 )}
               </div>
             </div>
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenQuickReply(group._id, group.name, undefined, true);
+              }}
+              aria-label="Réponse rapide"
+              title="Réponse rapide"
+              className="hidden sm:flex opacity-0 group-hover:opacity-100 transition shrink-0 text-zinc-400 hover:text-accent-600 p-1.5 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700"
+            >
+              <Reply size={16} strokeWidth={2} />
+            </button>
+          </div>
         ))}
 
         {isUsersLoading && (
@@ -1040,14 +1133,33 @@ export default function Sidebar() {
         )}
 
         {visibleUsers.map((user: User) => (
-            <button
+            <div
               key={user._id}
+              role="button"
+              tabIndex={0}
               onClick={() => {
                 clearManuallyUnread(user._id);
                 window.dispatchEvent(new Event("chatSettingsChanged"));
                 setSelectedUser(user);
               }}
-              className={`w-full flex items-center gap-3 p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition ${
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  clearManuallyUnread(user._id);
+                  window.dispatchEvent(new Event("chatSettingsChanged"));
+                  setSelectedUser(user);
+                }
+              }}
+              onTouchStart={() =>
+                handleQuickReplyLongPressStart(
+                  user._id,
+                  getNickname(user._id) || user.username,
+                  user.avatar,
+                  false,
+                )
+              }
+              onTouchEnd={handleQuickReplyLongPressEnd}
+              onTouchMove={handleQuickReplyLongPressEnd}
+              className={`group w-full flex items-center gap-3 p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer ${
                 selectedUser?._id === user._id
                   ? "bg-zinc-100 dark:bg-zinc-800"
                   : ""
@@ -1108,7 +1220,23 @@ export default function Sidebar() {
                   )}
                 </div>
               </div>
-            </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenQuickReply(
+                    user._id,
+                    getNickname(user._id) || user.username,
+                    user.avatar,
+                    false,
+                  );
+                }}
+                aria-label="Réponse rapide"
+                title="Réponse rapide"
+                className="hidden sm:flex opacity-0 group-hover:opacity-100 transition shrink-0 text-zinc-400 hover:text-accent-600 p-1.5 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              >
+                <Reply size={16} strokeWidth={2} />
+              </button>
+            </div>
           ))}
 
         {isLoadingMoreUsers && (
@@ -1875,6 +2003,76 @@ export default function Sidebar() {
             >
               Fermer
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : réponse rapide depuis la liste, sans ouvrir la conversation */}
+      {quickReplyTarget && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setQuickReplyTarget(null)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Avatar
+                src={quickReplyTarget.avatar}
+                fallback={quickReplyTarget.name[0]?.toUpperCase()}
+                colorClass={quickReplyTarget.isGroup ? "bg-emerald-600" : "bg-accent-600"}
+                size="w-9 h-9 text-sm"
+              />
+              <h3 className="font-bold truncate">{quickReplyTarget.name}</h3>
+            </div>
+
+            <div className="custom-scrollbar max-h-48 overflow-y-auto mb-3 flex flex-col gap-1.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-2">
+              {isLoadingQuickReply && (
+                <p className="text-sm text-zinc-400 text-center py-4">Chargement...</p>
+              )}
+              {!isLoadingQuickReply && quickReplyMessages.length === 0 && (
+                <p className="text-sm text-zinc-400 text-center py-4">
+                  Aucun message pour le moment.
+                </p>
+              )}
+              {!isLoadingQuickReply &&
+                quickReplyMessages.map((m) => {
+                  const isMine = m.sender === authUser?._id;
+                  const label = isMine
+                    ? "Toi"
+                    : quickReplyTarget.isGroup
+                      ? "Membre"
+                      : quickReplyTarget.name;
+                  const content = m.image ? "📷 Photo" : m.audio ? "🎤 Message vocal" : m.text;
+                  return (
+                    <div key={m._id} className="text-sm">
+                      <span className="font-medium">{label} : </span>
+                      <span className="text-zinc-600 dark:text-zinc-300">{content}</span>
+                    </div>
+                  );
+                })}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                autoFocus
+                placeholder="Écris ta réponse..."
+                value={quickReplyText}
+                onChange={(e) => setQuickReplyText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendQuickReply()}
+                className="flex-1 min-w-0 border border-zinc-300 dark:border-zinc-700 rounded-full px-4 py-2 bg-transparent text-sm"
+              />
+              <button
+                onClick={handleSendQuickReply}
+                disabled={!quickReplyText.trim() || isSendingQuickReply}
+                aria-label="Envoyer"
+                className="bg-accent-600 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-accent-700 transition disabled:opacity-50 shrink-0"
+              >
+                <Send size={16} strokeWidth={2} />
+              </button>
+            </div>
           </div>
         </div>
       )}
