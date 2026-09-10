@@ -1633,7 +1633,9 @@ export default function ChatContainer() {
                 <div key={w.id}>
                   {w.category !== WALLPAPERS[index - 1]?.category && (
                     <p className="text-xs font-semibold text-zinc-400 uppercase px-3 pt-2 pb-1">
-                      {WALLPAPER_CATEGORY_LABELS[w.category]}
+                      {WALLPAPER_CATEGORY_LABELS[
+                        w.category as keyof typeof WALLPAPER_CATEGORY_LABELS
+                      ]}
                     </p>
                   )}
                   <button
