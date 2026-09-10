@@ -2084,7 +2084,7 @@ export default function Sidebar() {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowQuickReplyEmoji(false)}
                   />
-                  <div className="absolute z-20 bottom-full right-0 mb-2">
+                  <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2">
                     <EmojiPicker onSelect={handleQuickReplyEmojiSelect} />
                   </div>
                 </>
