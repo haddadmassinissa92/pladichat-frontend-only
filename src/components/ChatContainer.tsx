@@ -1026,6 +1026,9 @@ export default function ChatContainer() {
                   onClick={() => setShowUserMenu(false)}
                 />
                 <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-48 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                  <p className="px-4 pt-1 pb-1 text-[10px] font-semibold text-zinc-400 uppercase">
+                    Affichage
+                  </p>
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
@@ -1057,6 +1060,10 @@ export default function ChatContainer() {
                     <Palette size={16} strokeWidth={2} className="shrink-0" />
                     Thème
                   </button>
+
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-zinc-400 uppercase border-t border-zinc-100 dark:border-zinc-800 mt-1">
+                    Notifications
+                  </p>
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
@@ -1094,6 +1101,10 @@ export default function ChatContainer() {
                     )}
                     {isMuted ? "Réactiver les notifications" : "Mettre en sourdine"}
                   </button>
+
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-zinc-400 uppercase border-t border-zinc-100 dark:border-zinc-800 mt-1">
+                    Organisation
+                  </p>
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
@@ -1114,6 +1125,10 @@ export default function ChatContainer() {
                     <Circle size={16} strokeWidth={2} className="shrink-0 fill-current" />
                     Marquer comme non lu
                   </button>
+
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-zinc-400 uppercase border-t border-zinc-100 dark:border-zinc-800 mt-1">
+                    Exporter
+                  </p>
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
@@ -1134,6 +1149,10 @@ export default function ChatContainer() {
                     <Download size={16} strokeWidth={2} className="shrink-0" />
                     Exporter en PDF
                   </button>
+
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-red-400 uppercase border-t border-zinc-100 dark:border-zinc-800 mt-1">
+                    Zone sensible
+                  </p>
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
@@ -1177,6 +1196,9 @@ export default function ChatContainer() {
                   onClick={() => setShowGroupMenu(false)}
                 />
                 <div className="absolute right-0 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 text-sm w-52 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                  <p className="px-4 pt-1 pb-1 text-[10px] font-semibold text-zinc-400 uppercase">
+                    Affichage
+                  </p>
                   <button
                     onClick={() => {
                       setShowGroupMenu(false);
@@ -1208,6 +1230,10 @@ export default function ChatContainer() {
                     <Palette size={16} strokeWidth={2} className="shrink-0" />
                     Thème
                   </button>
+
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-zinc-400 uppercase border-t border-zinc-100 dark:border-zinc-800 mt-1">
+                    Notifications
+                  </p>
                   <button
                     onClick={() => {
                       setShowGroupMenu(false);
@@ -1245,6 +1271,10 @@ export default function ChatContainer() {
                     )}
                     {isMuted ? "Réactiver les notifications" : "Mettre en sourdine"}
                   </button>
+
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-zinc-400 uppercase border-t border-zinc-100 dark:border-zinc-800 mt-1">
+                    Organisation
+                  </p>
                   <button
                     onClick={() => {
                       setShowGroupMenu(false);
@@ -1265,6 +1295,10 @@ export default function ChatContainer() {
                     <Circle size={16} strokeWidth={2} className="shrink-0 fill-current" />
                     Marquer comme non lu
                   </button>
+
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-zinc-400 uppercase border-t border-zinc-100 dark:border-zinc-800 mt-1">
+                    Exporter
+                  </p>
                   <button
                     onClick={() => {
                       setShowGroupMenu(false);
@@ -1285,18 +1319,12 @@ export default function ChatContainer() {
                     <Download size={16} strokeWidth={2} className="shrink-0" />
                     Exporter en PDF
                   </button>
-                  <button
-                    onClick={() => {
-                      setShowGroupMenu(false);
-                      setShowClearConfirm(true);
-                    }}
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
-                  >
-                    <Trash2 size={16} strokeWidth={2} className="shrink-0" />
-                    Supprimer la conversation
-                  </button>
+
                   {isGroupAdmin && (
                     <>
+                      <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-zinc-400 uppercase border-t border-zinc-100 dark:border-zinc-800 mt-1">
+                        Administration
+                      </p>
                       <button
                         onClick={handleOpenRenameGroup}
                         className="w-full flex items-center gap-2 text-left px-4 py-2 text-zinc-700 dark:text-zinc-200 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
@@ -1342,6 +1370,20 @@ export default function ChatContainer() {
                       )}
                     </>
                   )}
+
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-red-400 uppercase border-t border-zinc-100 dark:border-zinc-800 mt-1">
+                    Zone sensible
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      setShowClearConfirm(true);
+                    }}
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                  >
+                    <Trash2 size={16} strokeWidth={2} className="shrink-0" />
+                    Supprimer la conversation
+                  </button>
                   {isGroupCreator && (
                     <button
                       onClick={handleOpenDeleteGroupConfirm}
@@ -1591,7 +1633,7 @@ export default function ChatContainer() {
                 <div key={w.id}>
                   {w.category !== WALLPAPERS[index - 1]?.category && (
                     <p className="text-xs font-semibold text-zinc-400 uppercase px-3 pt-2 pb-1">
-                      {WALLPAPER_CATEGORY_LABELS[w.category as keyof typeof WALLPAPER_CATEGORY_LABELS]}
+                      {WALLPAPER_CATEGORY_LABELS[w.category]}
                     </p>
                   )}
                   <button
