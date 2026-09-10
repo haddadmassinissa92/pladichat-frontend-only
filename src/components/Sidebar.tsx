@@ -39,12 +39,13 @@ type DiscoverableGroup = {
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, Send, Download, Clock, Reply } from "lucide-react";
+import { Search, Plus, Palette, Camera, Moon, Bell, BellOff, Lock, LogOut, Trash2, UserPlus, X, Music, Volume2, UserCheck, Pencil, Ban, Link as LinkIcon, EyeOff, QrCode, Compass, Megaphone, SendHorizontal, Download, Clock, Reply, Smile } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCallStore } from "@/store/useCallStore";
 import Avatar from "./Avatar";
+import EmojiPicker from "./EmojiPicker";
 import CallModal from "./CallModal";
 import {
   WALLPAPERS,
@@ -293,6 +294,10 @@ export default function Sidebar() {
   const [isLoadingQuickReply, setIsLoadingQuickReply] = useState(false);
   const [quickReplyText, setQuickReplyText] = useState("");
   const [isSendingQuickReply, setIsSendingQuickReply] = useState(false);
+  const [showQuickReplyEmoji, setShowQuickReplyEmoji] = useState(false);
+  const handleQuickReplyEmojiSelect = (emoji: string) => {
+    setQuickReplyText((prev) => prev + emoji);
+  };
   const quickReplyLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleOpenQuickReply = async (
@@ -303,6 +308,7 @@ export default function Sidebar() {
   ) => {
     setQuickReplyTarget({ id, name, avatar, isGroup });
     setQuickReplyText("");
+    setShowQuickReplyEmoji(false);
     setIsLoadingQuickReply(true);
     const preview = await getQuickPreviewMessages(id, isGroup);
     setQuickReplyMessages(preview);
@@ -2054,7 +2060,7 @@ export default function Sidebar() {
                 })}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="relative flex items-center gap-2">
               <input
                 type="text"
                 autoFocus
@@ -2062,15 +2068,34 @@ export default function Sidebar() {
                 value={quickReplyText}
                 onChange={(e) => setQuickReplyText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendQuickReply()}
-                className="flex-1 min-w-0 border border-zinc-300 dark:border-zinc-700 rounded-full px-4 py-2 bg-transparent text-sm"
+                className="flex-1 min-w-0 border border-zinc-300 dark:border-zinc-700 rounded-full pl-4 pr-9 py-2 bg-transparent text-sm"
               />
+              <button
+                type="button"
+                onClick={() => setShowQuickReplyEmoji(!showQuickReplyEmoji)}
+                aria-label="Ajouter un emoji"
+                className="absolute right-[52px] text-zinc-400 hover:text-accent-600 transition"
+              >
+                <Smile size={18} strokeWidth={2} />
+              </button>
+              {showQuickReplyEmoji && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowQuickReplyEmoji(false)}
+                  />
+                  <div className="absolute z-20 bottom-full right-0 mb-2">
+                    <EmojiPicker onSelect={handleQuickReplyEmojiSelect} />
+                  </div>
+                </>
+              )}
               <button
                 onClick={handleSendQuickReply}
                 disabled={!quickReplyText.trim() || isSendingQuickReply}
                 aria-label="Envoyer"
                 className="bg-accent-600 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-accent-700 transition disabled:opacity-50 shrink-0"
               >
-                <Send size={16} strokeWidth={2} />
+                <SendHorizontal size={16} strokeWidth={2} />
               </button>
             </div>
           </div>
@@ -2357,7 +2382,7 @@ export default function Sidebar() {
                 disabled={!broadcastText.trim() || isSendingBroadcast}
                 className="flex-1 bg-accent-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
-                <Send size={14} strokeWidth={2} />
+                <SendHorizontal size={14} strokeWidth={2} />
                 {isSendingBroadcast ? "Envoi..." : "Envoyer"}
               </button>
             </div>
