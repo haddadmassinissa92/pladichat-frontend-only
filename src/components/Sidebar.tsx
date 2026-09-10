@@ -1083,7 +1083,7 @@ export default function Sidebar() {
               }}
               aria-label="Réponse rapide"
               title="Réponse rapide"
-              className="hidden sm:flex opacity-0 group-hover:opacity-100 transition shrink-0 text-zinc-400 hover:text-accent-600 p-1.5 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              className="[@media(hover:none)]:hidden flex opacity-0 group-hover:opacity-100 transition shrink-0 text-zinc-400 hover:text-accent-600 p-1.5 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700"
             >
               <Reply size={16} strokeWidth={2} />
             </button>
@@ -1238,7 +1238,7 @@ export default function Sidebar() {
                 }}
                 aria-label="Réponse rapide"
                 title="Réponse rapide"
-                className="hidden sm:flex opacity-0 group-hover:opacity-100 transition shrink-0 text-zinc-400 hover:text-accent-600 p-1.5 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                className="[@media(hover:none)]:hidden flex opacity-0 group-hover:opacity-100 transition shrink-0 text-zinc-400 hover:text-accent-600 p-1.5 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700"
               >
                 <Reply size={16} strokeWidth={2} />
               </button>
