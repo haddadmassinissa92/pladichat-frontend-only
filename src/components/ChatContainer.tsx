@@ -1556,8 +1556,8 @@ export default function ChatContainer() {
                           ...msg.linkPreview,
                           url: msg.linkPreview.url ?? "",
                           title: msg.linkPreview.title ?? "",
-                          description: "",
-                          image: "",
+                          description: msg.linkPreview.description ?? "",
+                          image: msg.linkPreview.image ?? "",
                         }
                       : msg.linkPreview,
                   }}
