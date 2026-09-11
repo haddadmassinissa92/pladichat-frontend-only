@@ -16,6 +16,19 @@ export default function MessageInput() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+
+  // Aperçu de lien en direct, pendant la frappe (avant même l'envoi) :
+  // détecte une URL dans le texte, récupère son aperçu après une courte
+  // pause de frappe, et permet de le retirer sans effacer le texte
+  const [linkPreview, setLinkPreview] = useState<{
+    url: string;
+    title: string;
+    description: string;
+    image: string;
+  } | null>(null);
+  const [isLoadingLinkPreview, setIsLoadingLinkPreview] = useState(false);
+  const dismissedUrlRef = useRef<string | null>(null);
+  const linkPreviewDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleDateTime, setScheduleDateTime] = useState("");
   const [isScheduling, setIsScheduling] = useState(false);
@@ -36,6 +49,7 @@ export default function MessageInput() {
 
   // etats pour la gestion des messages, modification, suppression et réponse
   const sendMessage = useChatStore((state) => state.sendMessage);
+  const getLinkPreview = useChatStore((state) => state.getLinkPreview);
   const scheduleMessage = useChatStore((state) => state.scheduleMessage);
   const selectedUser = useChatStore((state) => state.selectedUser);
   const selectedGroup = useChatStore((state) => state.selectedGroup);
@@ -63,6 +77,8 @@ export default function MessageInput() {
     const nextText = getDraft(conversationId);
     const rafId = window.requestAnimationFrame(() => {
       setText(nextText);
+      setLinkPreview(null);
+      dismissedUrlRef.current = null;
       previousConversationIdRef.current = conversationId;
     });
 
@@ -79,6 +95,41 @@ export default function MessageInput() {
     }, 400);
     return () => clearTimeout(timeout);
   }, [text, conversationId]);
+
+  // Détecte une URL dans le texte en cours de frappe et va chercher son
+  // aperçu après une courte pause (comme Discord/Messenger), sans attendre
+  // l'envoi du message. Un aperçu explicitement retiré (bouton "x") ne
+  // réapparaît pas tant que la même URL reste dans le texte.
+  useEffect(() => {
+    if (linkPreviewDebounceRef.current) clearTimeout(linkPreviewDebounceRef.current);
+
+    const match = text.match(/(https?:\/\/[^\s]+)/i);
+    const url = match ? match[0] : null;
+
+    if (!url) {
+      dismissedUrlRef.current = null;
+      const timeoutId = setTimeout(() => {
+        setLinkPreview(null);
+      }, 0);
+
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }
+    if (url === linkPreview?.url || url === dismissedUrlRef.current) return;
+
+    linkPreviewDebounceRef.current = setTimeout(async () => {
+      setIsLoadingLinkPreview(true);
+      const preview = await getLinkPreview(url);
+      setIsLoadingLinkPreview(false);
+      if (preview) setLinkPreview(preview);
+      else setLinkPreview(null);
+    }, 600);
+
+    return () => {
+      if (linkPreviewDebounceRef.current) clearTimeout(linkPreviewDebounceRef.current);
+    };
+  }, [text, getLinkPreview, linkPreview?.url]);
 
   const setReplyingTo = useChatStore((state) => state.setReplyingTo);
 
@@ -261,6 +312,7 @@ export default function MessageInput() {
     setText("");
     clearDraft(conversationId);
     window.dispatchEvent(new Event("chatSettingsChanged"));
+    setLinkPreview(null);
     removeImage();
     removeAudio();
   };
@@ -280,6 +332,7 @@ export default function MessageInput() {
     setText("");
     clearDraft(conversationId);
     window.dispatchEvent(new Event("chatSettingsChanged"));
+    setLinkPreview(null);
     setShowScheduleModal(false);
     setScheduleDateTime("");
   };
@@ -302,6 +355,54 @@ export default function MessageInput() {
           >
             <X size={16} strokeWidth={2} />
           </button>
+        </div>
+      )}
+
+      {/* Aperçu de lien en direct, pendant la frappe (avant l'envoi) */}
+      {(linkPreview || isLoadingLinkPreview) && (
+        <div className="px-4 pt-2">
+          <div className="relative flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-2 pr-8">
+            {isLoadingLinkPreview && !linkPreview ? (
+              <p className="text-xs text-zinc-400 px-1 py-1">Chargement de l&apos;aperçu...</p>
+            ) : (
+              linkPreview && (
+                <>
+                  {linkPreview.image && (
+                    <Image
+                      src={linkPreview.image}
+                      alt=""
+                      width={56}
+                      height={56}
+                      unoptimized
+                      className="w-14 h-14 rounded-lg object-cover shrink-0"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    {linkPreview.title && (
+                      <p className="text-sm font-semibold truncate">{linkPreview.title}</p>
+                    )}
+                    {linkPreview.description && (
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">
+                        {linkPreview.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-zinc-400 truncate">{linkPreview.url}</p>
+                  </div>
+                </>
+              )
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                dismissedUrlRef.current = linkPreview?.url || null;
+                setLinkPreview(null);
+              }}
+              aria-label="Retirer l'aperçu du lien"
+              className="absolute top-1.5 right-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+            >
+              <X size={14} strokeWidth={2} />
+            </button>
+          </div>
         </div>
       )}
 

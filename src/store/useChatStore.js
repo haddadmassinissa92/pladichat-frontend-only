@@ -305,6 +305,20 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Récupère l'aperçu (titre, description, image) d'une URL en direct,
+  // pendant que l'utilisateur tape, avant même d'avoir envoyé le message
+  getLinkPreview: async (url) => {
+    try {
+      const res = await axiosInstance.get(
+        `/messages/link-preview?url=${encodeURIComponent(url)}`,
+      );
+      return res.data.linkPreview;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  },
+
   // Fonction pour définir le message auquel l'utilisateur répond
   setReplyingTo: (message) => set({ replyingTo: message }),
 
