@@ -77,10 +77,11 @@ export default function MessageInput() {
     const nextText = getDraft(conversationId);
     const rafId = window.requestAnimationFrame(() => {
       setText(nextText);
-      setLinkPreview(null);
-      dismissedUrlRef.current = null;
       previousConversationIdRef.current = conversationId;
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLinkPreview(null);
+    dismissedUrlRef.current = null;
 
     return () => window.cancelAnimationFrame(rafId);
   }, [conversationId]);
@@ -107,14 +108,10 @@ export default function MessageInput() {
     const url = match ? match[0] : null;
 
     if (!url) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLinkPreview(null);
       dismissedUrlRef.current = null;
-      const timeoutId = setTimeout(() => {
-        setLinkPreview(null);
-      }, 0);
-
-      return () => {
-        clearTimeout(timeoutId);
-      };
+      return;
     }
     if (url === linkPreview?.url || url === dismissedUrlRef.current) return;
 
